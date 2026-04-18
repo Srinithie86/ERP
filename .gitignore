@@ -1,0 +1,53 @@
+# Standard Flutter/Dart .gitignore
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Android related
+**/android/**/build/
+**/android/app/src/main/res/drawable-*/
+**/android/app/src/main/res/raw/
+*.iml
+.idea/
+.gradle/
+local.properties
+*.jks
+*.keystore
+*.pk8
+*.p12
+*.key
+pubspec.lock
+
+# iOS/macOS related
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/App.framework
+**/ios/Flutter/App.podspec
+**/ios/Flutter/Engine.framework
+**/ios/Flutter/Frameworks
+**/ios/Runner/GeneratedPluginRegistrant.[mh]
+**/macosx/Flutter/ephemeral/
+**/ios/.generated/
+*.xcworkspace
+/*/Pods/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+*.iterm2
+
+# Web related
+.web/
+
+# Logs
+*.log
+*.err
+*.out
+
+# Folders to ignore in this specific project
+/android/app/build/
+**/build/
+.history
+.DS_Store

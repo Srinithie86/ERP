@@ -1,0 +1,19 @@
+{
+  "hi": [
+    "signIn",
+    "manageBiz",
+    "enterMail",
+    "enterMobile",
+    "enterWhatsapp",
+    "next",
+    "verify",
+    "verifyWithOtp",
+    "resendOtp",
+    "smartErp",
+    "erpDashboard",
+    "analyticsReports",
+    "workplaceDashboard",
+    "notification",
+    "selectApp"
+  ]
+}
