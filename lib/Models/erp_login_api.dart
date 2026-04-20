@@ -23,9 +23,9 @@ class ErpLoginApi {
       request.fields['cid'] = cid;
       request.fields['user_id'] = userId;
       request.fields['password'] = password;
-      request.fields['device_id'] = deviceId.isEmpty ? "1" : deviceId;
-      request.fields['lt'] = lat.isEmpty ? "123" : lat;
-      request.fields['ln'] = lng.isEmpty ? "145" : lng;
+      request.fields['device_id'] = deviceId;
+      request.fields['lt'] = lat;
+      request.fields['ln'] = lng;
 
       debugPrint("FIELDS: ${request.fields}");
 
@@ -61,9 +61,9 @@ class ErpLoginApi {
       request.fields['cid'] = cid.isEmpty ? "44555666" : cid;
       request.fields['mobile'] = mobile;
       request.fields['user_id'] = mobile; // Backend often needs both
-      request.fields['device_id'] = deviceId.isEmpty ? "1" : deviceId;
-      request.fields['lt'] = lat.isEmpty ? "123" : lat;
-      request.fields['ln'] = lng.isEmpty ? "145" : lng;
+      request.fields['device_id'] = deviceId;
+      request.fields['lt'] = lat;
+      request.fields['ln'] = lng;
       if (appSignature != null) {
         request.fields['app_signature'] = appSignature;
       }
@@ -104,9 +104,9 @@ class ErpLoginApi {
       request.fields['mobile'] = mobile;
       request.fields['otp'] = otp;
       request.fields['token'] = token;
-      request.fields['device_id'] = deviceId.isEmpty ? "1" : deviceId;
-      request.fields['lt'] = lat.isEmpty ? "123" : lat;
-      request.fields['ln'] = lng.isEmpty ? "145" : lng;
+      request.fields['device_id'] = deviceId;
+      request.fields['lt'] = lat;
+      request.fields['ln'] = lng;
 
       debugPrint("FIELDS: ${request.fields}");
 
@@ -137,9 +137,9 @@ class ErpLoginApi {
       request.fields['type'] = '5003';
       request.fields['cid'] = cid;
       request.fields['role_id'] = roleId;
-      request.fields['device_id'] = deviceId.isEmpty ? "1" : deviceId;
-      request.fields['lt'] = lat.isEmpty ? "123" : lat;
-      request.fields['ln'] = lng.isEmpty ? "145" : lng;
+      request.fields['device_id'] = deviceId;
+      request.fields['lt'] = lat;
+      request.fields['ln'] = lng;
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
@@ -162,9 +162,9 @@ class ErpLoginApi {
       var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
       request.fields['type'] = '5006';
       request.fields['uid'] = uid;
-      request.fields['device_id'] = deviceId.isEmpty ? "1" : deviceId;
-      request.fields['lt'] = lat.isEmpty ? "123" : lat;
-      request.fields['ln'] = lng.isEmpty ? "145" : lng;
+      request.fields['device_id'] = deviceId;
+      request.fields['lt'] = lat;
+      request.fields['ln'] = lng;
       if (token != null) request.fields['token'] = token;
 
       var streamedResponse = await request.send();

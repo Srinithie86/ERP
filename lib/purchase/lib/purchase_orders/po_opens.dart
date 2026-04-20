@@ -47,7 +47,7 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['error'] == false) {
+        if (data['error'] == false || data['error'].toString().toLowerCase() == 'false') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(data['message'] ?? "PO $status successfully"), backgroundColor: Colors.green),
           );
@@ -61,11 +61,12 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
     } catch (e) {
       _showError("Connection error: $e");
     } finally {
-      setState(() => isActionLoading = false);
+      if (mounted) setState(() => isActionLoading = false);
     }
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
@@ -73,17 +74,17 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
     final item = widget.poData;
-    final status = item["status_text"] ?? "Pending";
+    final status = (item["status_text"] ?? "Pending").toString();
     final pdfLink = item["pdf_link"];
+    const primaryTeal = Color(0xFF26A69A);
 
     return Scaffold(
       backgroundColor: const Color(0xffF8F9FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF26A69A),
+        backgroundColor: primaryTeal,
         elevation: 0,
-        title: Text("PO Details", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text("PO Details", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -94,13 +95,13 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(item, status),
+            _buildHeader(item, status, primaryTeal),
             const SizedBox(height: 16),
             _buildDetailsCard(item),
             const SizedBox(height: 16),
-            _buildItemCard(item),
+            _buildItemCard(item, primaryTeal),
             const SizedBox(height: 24),
-            if (pdfLink != null && pdfLink.isNotEmpty)
+            if (pdfLink != null && pdfLink.toString().isNotEmpty)
               ElevatedButton.icon(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseRequestPdfViewer(pdfUrl: pdfLink, prNumber: item["po_no"] ?? "PO"))),
                 icon: const Icon(Icons.picture_as_pdf),
@@ -113,44 +114,14 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            if (status.toLowerCase().contains("pending"))
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: isActionLoading ? null : () => _updatePOStatus("Rejected"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade50,
-                        foregroundColor: Colors.red.shade700,
-                        side: BorderSide(color: Colors.red.shade200),
-                        minimumSize: const Size(0, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: isActionLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text("Reject PO"),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: isActionLoading ? null : () => _updatePOStatus("Approved"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF26A69A),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(0, 50),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: isActionLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("Approve PO"),
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(Map<String, dynamic> item, String status) {
+  Widget _buildHeader(Map<String, dynamic> item, String status, Color teal) {
     Color statusColor = status.toLowerCase().contains("approve") ? Colors.green : (status.toLowerCase().contains("reject") ? Colors.red : Colors.orange);
     
     return Container(
@@ -158,14 +129,14 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFF26A69A).withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.assignment, color: Color(0xFF26A69A)),
+            decoration: BoxDecoration(color: teal.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(Icons.assignment, color: teal),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -179,7 +150,7 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
             child: Text(status, style: GoogleFonts.outfit(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
         ],
@@ -193,45 +164,45 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         children: [
-          _detailRow("Supplier", item["supplier_name"] ?? "N/A"),
+          _detailRow("Supplier", (item["supplier_name"] ?? "N/A").toString()),
           const Divider(height: 24),
-          _detailRow("Quotation Ref", item["quotation_ref"] ?? "N/A"),
+          _detailRow("Quotation Ref", (item["quotation_ref"] ?? "N/A").toString()),
           const Divider(height: 24),
-          _detailRow("Payment Terms", item["payment_terms"] ?? "N/A"),
+          _detailRow("Payment Terms", (item["payment_terms"] ?? "N/A").toString()),
           const Divider(height: 24),
-          _detailRow("Delivery Date", item["delivery_date"] ?? "N/A"),
+          _detailRow("Delivery Date", (item["delivery_date"] ?? "N/A").toString()),
         ],
       ),
     );
   }
 
-  Widget _buildItemCard(Map<String, dynamic> item) {
+  Widget _buildItemCard(Map<String, dynamic> item, Color teal) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text("Order Items", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 16),
-          Text(item["pro_name"] ?? "Product Name N/A", style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-          Text("Code: ${item["item_code"] ?? "N/A"}", style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
+          Text((item["pro_name"] ?? "Product Name N/A").toString(), style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+          Text("Code: ${(item["item_code"] ?? "N/A").toString()}", style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _itemStat("Qty", "${item["qty"] ?? item["quantity"] ?? "0"}"),
-              _itemStat("Rate", "₹${item["unit_rate"] ?? "0"}"),
-              _itemStat("Tax", "${item["tax"] ?? "0"}%"),
-              _itemStat("Discount", "${item["discount"] ?? "0"}%"),
+              _itemStat("Qty", (item["qty"] ?? item["quantity"] ?? "0").toString()),
+              _itemStat("Rate", "₹${(item["unit_rate"] ?? "0").toString()}"),
+              _itemStat("Tax", "${(item["tax"] ?? "0").toString()}%"),
+              _itemStat("Discount", "${(item["discount"] ?? "0").toString()}%"),
             ],
           ),
           const Divider(height: 32),
@@ -239,7 +210,7 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Total Amount", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text("₹${item["tot_amt"] ?? "0"}", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: const Color(0xFF26A69A))),
+              Text("₹${(item["tot_amt"] ?? "0").toString()}", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: teal)),
             ],
           ),
         ],

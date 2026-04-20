@@ -15,7 +15,7 @@ class QuotationComparisonScreen extends StatefulWidget {
 }
 
 class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
-  String? selectedQuotationId;
+
   String? selectedQuotationNo;
   bool showTable = false;
   bool isLoadingDropdown = true;
@@ -69,21 +69,39 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
   Future<void> _fetchQuotationDropdown() async {
     if (cid == null) return;
     setState(() => isLoadingDropdown = true);
+    print("================ FETCH QUOTATIONS (4031) ================");
+    print("CID: $cid");
     try {
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {"type": "4031", "cid": cid!, "device_id": deviceId ?? "", "lt": lt ?? "0", "ln": ln ?? "0"},
       );
+      
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['error'] == false && data['data'] != null) {
+        if ((data['error'] == false || data['error']?.toString().toLowerCase() == 'false') && data['data'] != null) {
           setState(() {
             quotationList = List<Map<String, dynamic>>.from(data['data']);
+            
+            // Fix for crash: 'widget.items!.where((DropdownMenuItem<T> item) => item.value == widget.value).length == 1'
+            if (selectedQuotationNo != null) {
+              bool exists = quotationList.any((q) => q['quotation_no']?.toString() == selectedQuotationNo);
+              if (!exists) {
+                selectedQuotationNo = null;
+              }
+            }
+
+            if (quotationList.isEmpty) {
+               print("⚠️ Quotation list is empty from server.");
+            }
           });
         }
       }
     } catch (e) {
-      debugPrint("Dropdown Fetch Error: $e");
+      print("Dropdown Fetch Error: $e");
     } finally {
       if (mounted) setState(() => isLoadingDropdown = false);
     }
@@ -294,36 +312,47 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryTeal = Color(0xff26A69A);
-    const primaryBlue = Color(0xFF1976D2);
+    const primaryTeal = Color(0xFF1E88E5); // More professional blue-teal
+    const accentGreen = Color(0xFF43A047);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         titleSpacing: 0,
-        backgroundColor: primaryTeal,
+        backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          selectedQuotationNo == null 
-            ? "Quotation Comparison" 
-            : "Comparison: $selectedQuotationNo", 
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp)
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Quotation Comparison",
+              style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18.sp),
+            ),
+            if (selectedQuotationNo != null)
+              Text(
+                "Ref: $selectedQuotationNo",
+                style: GoogleFonts.outfit(color: primaryTeal, fontWeight: FontWeight.bold, fontSize: 12.sp),
+              ),
+          ],
         ),
       ),
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSelectionCard(primaryTeal),
-                  const SizedBox(height: 24),
                   if (showTable) ...[
-                    _buildSummaryBar(primaryBlue),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
+                    _buildSummaryBar(),
+                    SizedBox(height: 16.h),
                     _buildGroupedComparison(primaryTeal),
                   ],
                 ],
@@ -333,59 +362,93 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
         ],
       ),
       bottomNavigationBar: showTable 
-        ? SafeArea(child: _buildBottomAction(primaryTeal)) 
+        ? SafeArea(child: _buildBottomAction(accentGreen)) 
         : null,
     );
   }
 
-  Widget _buildSelectionCard(Color primaryTeal) {
+  Widget _buildSelectionCard(Color primaryColor) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Select Quotation No", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14.sp, color: Colors.black87)),
-          const SizedBox(height: 10),
           Container(
-            height: 50.h,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(color: Colors.grey.shade50, border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                hint: Text(isLoadingDropdown ? "Loading quotations..." : "Choose Quotation", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
-                value: selectedQuotationId,
-                icon: isLoadingDropdown ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.keyboard_arrow_down, color: Colors.black),
-                items: quotationList.map((data) {
-                  final qNo = data['quotation_no']?.toString() ?? 'N/A';
-                  return DropdownMenuItem<String>(
-                    value: data['id']?.toString(),
-                    onTap: () => selectedQuotationNo = qNo,
-                    child: Text(qNo, style: GoogleFonts.outfit(fontSize: 14.sp)),
-                  );
-                }).toList(),
-                onChanged: (newValue) => setState(() => selectedQuotationId = newValue),
-              ),
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.description_outlined, color: primaryColor, size: 20.sp),
+                SizedBox(width: 8.w),
+                Text(
+                  "Select Quotation",
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp, color: primaryColor),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          InkWell(
-            onTap: isLoadingComparison ? null : _loadComparison,
-            child: Container(
-              width: double.infinity,
-              height: 50,
-              decoration: BoxDecoration(color: primaryTeal, borderRadius: BorderRadius.circular(8)),
-              child: Center(
-                child: isLoadingComparison 
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text("Load Comparison", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
+          Padding(
+            padding: EdgeInsets.all(16.w),
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 0),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(color: primaryColor),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  hint: Text(isLoadingDropdown ? "Loading..." : "Choose Quotation No", 
+                    style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
+                  value: (quotationList.any((q) => q['quotation_no']?.toString() == selectedQuotationNo)) ? selectedQuotationNo : null,
+                  items: quotationList.map((data) {
+                    final qNo = data['quotation_no']?.toString() ?? 'N/A';
+                    final label = data['label']?.toString() ?? qNo;
+                    return DropdownMenuItem<String>(
+                      value: qNo,
+                      child: Text(label, style: GoogleFonts.outfit(fontSize: 13.sp, fontWeight: FontWeight.normal)),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    if (newValue == null) return;
+                    setState(() { selectedQuotationNo = newValue; });
+                    _loadComparison();
+                  },
+                ),
+                SizedBox(height: 16.h),
+                ElevatedButton(
+                  onPressed: isLoadingComparison ? null : _loadComparison,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size(double.infinity, 48.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                    elevation: 0,
+                  ),
+                  child: isLoadingComparison 
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.w))
+                    : Text("Load Comparison Data", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                ),
+              ],
             ),
           ),
         ],
@@ -393,57 +456,53 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
     );
   }
 
-  Widget _buildSummaryBar(Color blue) {
-    // Extract RFQ No from the first item found
+  Widget _buildSummaryBar() {
     String rfqNo = "-";
     if (groupedComparisonData.isNotEmpty) {
       final firstGroup = groupedComparisonData.values.first;
-      if (firstGroup.isNotEmpty) {
-        rfqNo = firstGroup.first['rfq_no'] ?? "-";
-      }
+      if (firstGroup.isNotEmpty) rfqNo = firstGroup.first['rfq_no'] ?? "-";
     }
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: blue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: blue.withValues(alpha: 0.2)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFE3F2FD)),
+        gradient: LinearGradient(
+          colors: [Colors.white, const Color(0xFFF1F8FE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Quotation Ref", style: GoogleFonts.outfit(fontSize: 11.sp, color: Colors.grey.shade600)),
-                    Text(selectedQuotationNo ?? "-", style: GoogleFonts.outfit(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("RFQ Reference", style: GoogleFonts.outfit(fontSize: 11.sp, color: Colors.grey.shade600)),
-                    Text(rfqNo, style: GoogleFonts.outfit(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  ],
-                ),
-              ),
+              _buildSummaryHeader("Quotation REF", selectedQuotationNo ?? "-", Icons.tag),
+              Container(width: 1, height: 30, color: Colors.grey.shade200),
+              _buildSummaryHeader("RFQ REF", rfqNo, Icons.request_quote),
             ],
           ),
-          const SizedBox(height: 12),
+          Divider(height: 24.h, color: Colors.grey.shade200),
           Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                "${selectedRowKeys.length} items selected for approval",
-                style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13.sp, color: Colors.green.shade700),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                    SizedBox(width: 8.w),
+                    Text(
+                      "${selectedRowKeys.length} Items ready for Approval",
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12.sp, color: Colors.green.shade700),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -452,241 +511,210 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
     );
   }
 
-  Widget _buildBottomAction(Color teal) {
+  Widget _buildSummaryHeader(String label, String value, IconData icon) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, size: 16.sp, color: Colors.blueGrey),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: GoogleFonts.outfit(fontSize: 10.sp, color: Colors.blueGrey, letterSpacing: 0.5)),
+                Text(value, style: GoogleFonts.outfit(fontSize: 13.sp, fontWeight: FontWeight.w900, color: Colors.black87), overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction(Color green) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, -2))]),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton.icon(
-          onPressed: isGeneratingApproval ? null : _generatePurchaseApproval,
-          icon: isGeneratingApproval 
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-            : const Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-          label: Text(isGeneratingApproval ? "Processing..." : "Generate Purchase Approval", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16.sp)),
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff4CAF50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: isGeneratingApproval ? null : _generatePurchaseApproval,
+        icon: isGeneratingApproval 
+          ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.w))
+          : const Icon(Icons.verified_user_outlined, color: Colors.white, size: 20),
+        label: Text(
+          isGeneratingApproval ? "GENERAING..." : "GENERATE PURCHASE APPROVAL", 
+          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14.sp, letterSpacing: 1.0)
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: green,
+          minimumSize: Size(double.infinity, 54.h),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          elevation: 0,
         ),
       ),
     );
   }
 
   Widget _buildGroupedComparison(Color teal) {
-    // Column widths matching the reference image scale
-    const double colBase = 90;
     const Map<String, double> widths = {
-      'check': 50,
-      'supplier': 200,
-      'qty': 70,
-      'sku': 60,
-      'rate': 90,
-      'taxP': 60,
-      'taxA': 100,
-      'disc': 60,
-      'other': 70,
-      'net': 130,
-      'pay': 150,
-      'price': 110,
+      'check': 50, 'supplier': 180, 'qty': 70, 'sku': 60, 'rate': 90,
+      'taxP': 60, 'taxA': 90, 'disc': 60, 'other': 70, 'net': 110,
+      'pay': 140, 'price': 110,
     };
 
-    final double totalWidth = widths.values.reduce((a, b) => a + b);
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. MAIN HEADER ROW (Dark Blue)
-          Container(
-            width: totalWidth,
-            height: 45,
-            decoration: const BoxDecoration(
-              color: Color(0xff122E50),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 48.h,
+              decoration: const BoxDecoration(color: Color(0xFF263238)), // Sleek Dark Header
+              child: Row(
+                children: [
+                  _buildHeaderCell("", widths['check']!),
+                  _buildHeaderCell("SUPPLIER", widths['supplier']!),
+                  _buildHeaderCell("QTY", widths['qty']!),
+                  _buildHeaderCell("UOM", widths['sku']!),
+                  _buildHeaderCell("RATE", widths['rate']!),
+                  _buildHeaderCell("TAX%", widths['taxP']!),
+                  _buildHeaderCell("TAX AMT", widths['taxA']!),
+                  _buildHeaderCell("DISC%", widths['disc']!),
+                  _buildHeaderCell("OTHER", widths['other']!),
+                  _buildHeaderCell("NET RATE", widths['net']!),
+                  _buildHeaderCell("DELIVERY", widths['pay']!),
+                  _buildHeaderCell("RANK", widths['price']!),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                _buildHeaderCell("", widths['check']!),
-                _buildHeaderCell("Supplier", widths['supplier']!),
-                _buildHeaderCell("Qty", widths['qty']!),
-                _buildHeaderCell("SKU", widths['sku']!),
-                _buildHeaderCell("Rate (₹)", widths['rate']!),
-                _buildHeaderCell("Tax %", widths['taxP']!),
-                _buildHeaderCell("Tax Amt (₹)", widths['taxA']!),
-                _buildHeaderCell("Disc %", widths['disc']!),
-                _buildHeaderCell("Other", widths['other']!),
-                _buildHeaderCell("Net Rate (₹)\nQty*Rate+Tax", widths['net']!, isSmall: true),
-                _buildHeaderCell("Payment Term", widths['pay']!),
-                _buildHeaderCell("Price", widths['price']!),
-              ],
-            ),
-          ),
-
-          // 2. DATA GROUPS
-          ...groupedComparisonData.entries.map((group) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ITEM GROUP HEADER
-                Container(
-                  width: totalWidth,
-                  height: 35,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xffDEE6F1),
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade300),
-                      left: BorderSide(color: Colors.grey.shade300),
-                      right: BorderSide(color: Colors.grey.shade300),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.inventory_2, size: 14, color: Color(0xff122E50)),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Item : ${group.key.toUpperCase()}",
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xff122E50),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // SUPPLIER ROWS FOR THIS ITEM
-                ...group.value.map((offer) {
-                  final bool isSelected = selectedRowKeys.contains(offer['key']);
-                  final bool isLowest = offer['price_status'] == "LOWEST";
-                  
-                  // Row Colors matching image (Selected = Light Yellow)
-                  final Color rowBg = isSelected ? const Color(0xffFFFFE1) : Colors.white;
-
-                  return Container(
-                    width: totalWidth,
-                    height: 52,
-                    clipBehavior: Clip.hardEdge,
-                    decoration: BoxDecoration(
-                      color: rowBg,
-                      border: Border(
-                        bottom: BorderSide(color: Colors.grey.shade300),
-                        left: BorderSide(color: Colors.grey.shade300),
-                        right: BorderSide(color: Colors.grey.shade300),
-                      ),
-                    ),
+            ...groupedComparisonData.entries.map((group) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: widths.values.reduce((a, b) => a + b),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                    color: const Color(0xFFECEFF1),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Checkbox Cell
-                        SizedBox(
-                          width: widths['check'],
-                          child: Center(
-                            child: Checkbox(
-                              value: isSelected,
-                              activeColor: const Color(0xff1976D2),
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val == true) selectedRowKeys.add(offer['key']);
-                                  else selectedRowKeys.remove(offer['key']);
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        _buildDataCell(offer['supplier_name'], widths['supplier']!, isBold: true),
-                        _buildDataCell(offer['qty'], widths['qty']!),
-                        _buildDataCell(offer['sku'], widths['sku']!),
-                        _buildDataCell(offer['rate'], widths['rate']!),
-                        _buildDataCell(offer['taxPerc'], widths['taxP']!),
-                        _buildDataCell(offer['taxAmt'], widths['taxA']!),
-                        _buildDataCell(offer['dis'], widths['disc']!),
-                        _buildDataCell(offer['other'], widths['other']!),
-                        _buildDataCell(offer['netRate'], widths['net']!, isBold: true),
-                        _buildDataCell(offer['paymentTerm'], widths['pay']!),
-                        
-                        // Price Status Badge
-                        SizedBox(
-                          width: widths['price']!,
-                          child: Center(
-                            child: Container(
-                              height: 22,
-                              width: 80,
-                              decoration: BoxDecoration(
-                                color: isLowest ? const Color(0xff4CAF50) : const Color(0xffE53935),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(isLowest ? Icons.check : Icons.arrow_upward, size: 10, color: Colors.white),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    offer['price_status'],
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: 8.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        const Icon(Icons.inventory_2, size: 14, color: Colors.blueGrey),
+                        SizedBox(width: 8.w),
+                        Text(
+                          group.key.toUpperCase(),
+                          style: GoogleFonts.outfit(fontSize: 12.sp, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade800),
                         ),
                       ],
                     ),
-                  );
-                }),
-              ],
-            );
-          }),
-        ],
+                  ),
+                  ...group.value.map((offer) {
+                    final bool isSelected = selectedRowKeys.contains(offer['key']);
+                    final bool isLowest = offer['price_status'] == "LOWEST";
+                    return Container(
+                      height: 52.h,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFFFFFDE7) : Colors.white,
+                        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildCheckCell(offer['key'], isSelected, widths['check']!),
+                          _buildDataCell(offer['supplier_name'], widths['supplier']!, isBold: true),
+                          _buildDataCell(offer['qty'], widths['qty']!),
+                          _buildDataCell(offer['sku'], widths['sku']!),
+                          _buildDataCell("₹${offer['rate']}", widths['rate']!),
+                          _buildDataCell("${offer['taxPerc']}%", widths['taxP']!),
+                          _buildDataCell("₹${offer['taxAmt']}", widths['taxA']!),
+                          _buildDataCell("${offer['dis']}%", widths['disc']!),
+                          _buildDataCell("₹${offer['other']}", widths['other']!),
+                          _buildDataCell("₹${offer['netRate']}", widths['net']!, isBold: true, color: teal),
+                          _buildDataCell(offer['paymentTerm'], widths['pay']!),
+                          _buildStatusCell(offer['price_status'], isLowest, widths['price']!),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              );
+            }).toList(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHeaderCell(String label, double width, {bool isSmall = false}) {
+  Widget _buildCheckCell(String key, bool selected, double width) {
     return Container(
       width: width,
-      height: double.infinity,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 0.5)),
+      child: Checkbox(
+        value: selected,
+        activeColor: const Color(0xFF1E88E5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        onChanged: (val) {
+          setState(() {
+            if (val == true) selectedRowKeys.add(key);
+            else selectedRowKeys.remove(key);
+          });
+        },
       ),
+    );
+  }
+
+  Widget _buildStatusCell(String status, bool isLowest, double width) {
+    return Container(
+      width: width,
+      alignment: Alignment.center,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: isLowest ? Colors.green : Colors.orange.shade800,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          status,
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCell(String label, double width) {
+    return Container(
+      width: width,
+      alignment: Alignment.centerLeft,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(border: Border(right: BorderSide(color: Colors.white10, width: 0.5))),
       child: Text(
         label,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.outfit(
-          color: Colors.white,
-          fontSize: isSmall ? 9.sp : 11.sp,
-          fontWeight: FontWeight.bold,
-          height: 1.1,
-        ),
+        style: GoogleFonts.outfit(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.w900, letterSpacing: 0.5),
       ),
     );
   }
 
-  Widget _buildDataCell(String value, double width, {bool isBold = false}) {
+  Widget _buildDataCell(String value, double width, {bool isBold = false, Color? color}) {
     return Container(
       width: width,
-      height: double.infinity,
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: Colors.grey.shade200, width: 0.5)),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(border: Border(right: BorderSide(color: Colors.grey.shade100, width: 0.5))),
       child: Text(
         value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.outfit(
-          fontSize: 11.sp,
+          fontSize: 11.sp, 
           fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-          color: Colors.black87,
+          color: color ?? (isBold ? Colors.black87 : Colors.black54),
         ),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

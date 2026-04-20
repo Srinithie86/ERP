@@ -10,6 +10,7 @@ import 'package:hrm/main.dart';
 import 'package:erp_smart/main.dart' as main;
 import 'package:erp_smart/TOTAL_ERP/home/home.dart';
 import 'package:erp_smart/TOTAL_ERP/home/dashboard_sub_screen.dart';
+import 'package:erp_smart/utils/device_service.dart';
 import 'profile_details_sheet.dart';
 import 'package:erp_smart/TOTAL_ERP/login/sign_in_screen.dart' as erp;
 
@@ -53,9 +54,9 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
-      final deviceId = prefs.getString('device_id') ?? '1';
-      final lat = prefs.getString('lt') ?? '0.0';
-      final lng = prefs.getString('ln') ?? '0.0';
+      final deviceId = DeviceService.deviceId;
+      final lat = DeviceService.latitude;
+      final lng = DeviceService.longitude;
 
       final token = prefs.getString('token');
       
@@ -126,12 +127,32 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                               ),
                             ],
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                            title: Text(
-                              companyName.toUpperCase(),
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 16),
-                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              leading: Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: (comData['logo_url'] != null && comData['logo_url'].toString().isNotEmpty)
+                                      ? Image.network(comData['logo_url'], fit: BoxFit.contain)
+                                      : const Icon(Icons.business, color: Color(0xFF26A69A)),
+                                ),
+                              ),
+                              title: Text(
+                                companyName.toUpperCase(),
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 15, color: const Color(0xFF1A1F71)),
+                              ),
+                              subtitle: Text(
+                                comData['address']?.toString() ?? '',
+                                style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[600]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             onTap: () => _performSwitch(context, company),
                           ),
                         );
@@ -182,6 +203,14 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     }
     await prefs.setString('logo', logoUrl);
     await prefs.setString('profile_photo', logoUrl);
+    
+    // Update local state for immediate UI feedback
+    if (mounted) {
+      setState(() {
+        currentCompanyName = comData['name'] ?? '';
+        profilePhoto = logoUrl;
+      });
+    }
     
     // 2. Update User Session Data
     final String newUid = userData['uid']?.toString() ?? '';
@@ -298,23 +327,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                         ),
                         
                         _buildSectionHeader("Preference"),
-                        ValueListenableBuilder<ThemeMode>(
-                          valueListenable: main.themeNotifier,
-                          builder: (context, mode, child) {
-                            return _DrawerTile(
-                              icon: Icons.dark_mode_outlined,
-                              title: "Dark Mode",
-                              onTap: () {},
-                              trailing: Switch(
-                                value: mode == ThemeMode.dark,
-                                onChanged: (v) {
-                                  main.themeNotifier.value = v ? ThemeMode.dark : ThemeMode.light;
-                                },
-                                activeColor: const Color(0xFF26A69A),
-                              ),
-                            );
-                          }
-                        ),
+                        // Dark Mode removed per user request
                         ValueListenableBuilder<Locale>(
                           valueListenable: main.localeNotifier,
                           builder: (context, locale, child) {
@@ -547,7 +560,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  email.contains("@") ? email : "smmpower@gmail.com",
+                  email.isNotEmpty && email != "N/A" ? email : name,
                   style: GoogleFonts.outfit(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14.sp,

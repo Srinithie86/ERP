@@ -12,7 +12,13 @@ class MainRoot extends StatefulWidget {
   final bool isEmbedded;
   final VoidCallback? onHomePressed;
   final GlobalKey<ScaffoldState>? scaffoldKey;
-  const MainRoot({super.key, this.isEmbedded = false, this.onHomePressed, this.scaffoldKey});
+
+  const MainRoot({
+    super.key,
+    this.isEmbedded = false,
+    this.onHomePressed,
+    this.scaffoldKey,
+  });
 
   @override
   State<MainRoot> createState() => _MainRootState();
@@ -38,8 +44,8 @@ class _MainRootState extends State<MainRoot> {
                                 prefs.get('uid')?.toString() ??
                                 "";
 
-      final String lat = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String lng = prefs.getDouble('lng')?.toString() ?? "0.0";
+      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
       final String deviceId = prefs.getString('device_id') ?? "";
       final String cid = prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
       final String token = prefs.getString('token') ?? "";
@@ -102,7 +108,6 @@ class _MainRootState extends State<MainRoot> {
   Widget build(BuildContext context) {
     assert(_screens.length == 4);
     return Scaffold(
-      key: widget.scaffoldKey,
       body: _screens[_selectedIndex],
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _selectedIndex,

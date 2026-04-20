@@ -53,12 +53,22 @@ class _DashboardState extends State<Dashboard> {
   String poTotal = "0";
   String pendingApproval = "0";
 
+  List<FlSpot> analyticsSpots = [];
+  List<String> analyticsMonths = [];
+  double maxYValue = 5.0; 
+  bool isLoadingAnalytics = true;
+
+  List<Map<String, dynamic>> orderStatuses = [];
+  bool isLoadingStatuses = true;
+
   @override
   void initState() {
     super.initState();
     _loadMenuData();
     _fetchMenuData(); // Fetch fresh menu data from API
     _fetchDashboardMetrics();
+    _fetchPurchaseAnalytics();
+    _fetchOrderStatus();
     // Pre-fetch Approvals data to make the screen transition "instant"
     RequestApprovals.preFetch();
     
@@ -116,6 +126,151 @@ class _DashboardState extends State<Dashboard> {
       }
     } catch (e) {
       debugPrint("Fetch Dashboard Metrics Error: $e");
+    }
+  }
+
+  Future<void> _fetchPurchaseAnalytics() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '';
+      final uid = prefs.getString('id') ?? prefs.getString('uid') ?? '';
+      final deviceData = await DeviceServices.getAndStoreDeviceInfo();
+      final ln = deviceData['ln'] ?? '0.0';
+      final lt = deviceData['lt'] ?? '0.0';
+      final deviceId = deviceData['device_id'] ?? 'Unknown';
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "type": "4040",
+          "cid": cid,
+          "device_id": deviceId,
+          "uid": uid,
+          "ln": ln,
+          "lt": lt,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          final List rawData = data['data'];
+          List<FlSpot> spots = [];
+          List<String> months = [];
+          double maxVal = 0;
+
+          int index = 0;
+          for (var item in rawData) {
+            if (item['month_name'] != null && item['total_amount'] != null) {
+              double amount = double.tryParse(item['total_amount'].toString()) ?? 0;
+              // Convert to Lakhs for display (divide by 100,000)
+              double amountInLakhs = amount / 100000;
+              spots.add(FlSpot(index.toDouble(), amountInLakhs));
+              months.add(item['month_name'].toString().substring(0, 3));
+              if (amountInLakhs > maxVal) maxVal = amountInLakhs;
+              index++;
+            }
+          }
+
+          if (mounted) {
+            setState(() {
+              analyticsSpots = spots;
+              analyticsMonths = months;
+              // Set maxY to slightly above max data point, or at least 5
+              maxYValue = maxVal > 0 ? (maxVal * 1.2).ceilToDouble() : 5.0;
+              isLoadingAnalytics = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch Purchase Analytics Error: $e");
+      if (mounted) {
+        setState(() {
+          isLoadingAnalytics = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchOrderStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '';
+      final uid = prefs.getString('id') ?? prefs.getString('uid') ?? '';
+      final deviceData = await DeviceServices.getAndStoreDeviceInfo();
+      final ln = deviceData['ln'] ?? '0.0';
+      final lt = deviceData['lt'] ?? '0.0';
+      final deviceId = deviceData['device_id'] ?? 'Unknown';
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "type": "4041",
+          "cid": cid,
+          "device_id": deviceId,
+          "uid": uid,
+          "ln": ln,
+          "lt": lt,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          final List rawData = data['data'];
+          
+          List<Map<String, dynamic>> processedStatuses = [];
+          for (var item in rawData) {
+            String name = (item['status_name'] ?? '').toString();
+            Color color;
+            int priority;
+
+            // Map colors and set order priority (Outermost to Innermost)
+            if (name.toLowerCase().contains("rejected")) {
+              color = const Color(0xffDE318A); // Pink (Outermost)
+              priority = 1;
+            } else if (name.toLowerCase().contains("approved") || name.toLowerCase().contains("completed")) {
+              color = const Color(0xff26A69A); // Teal (Secondary)
+              priority = 2;
+            } else if (name.toLowerCase().contains("process")) {
+              color = const Color(0xff9139ED); // Purple (Tertiary)
+              priority = 3;
+            } else if (name.toLowerCase().contains("pending")) {
+              color = const Color(0xffD3A422); // Gold (Innermost)
+              priority = 4;
+            } else {
+              color = const Color(0xff2A4FD3); // Default Blue
+              priority = 5;
+            }
+
+            processedStatuses.add({
+              "name": name,
+              "count": item['total_count'],
+              "percentage": item['percentage'],
+              "color": color,
+              "priority": priority,
+            });
+          }
+
+          // Sort by priority to ensure consistent concentric ring order
+          processedStatuses.sort((a, b) => a['priority'].compareTo(b['priority']));
+
+          if (mounted) {
+            setState(() {
+              orderStatuses = processedStatuses;
+              isLoadingStatuses = false;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch Order Status Error: $e");
+      if (mounted) {
+        setState(() {
+          isLoadingStatuses = false;
+        });
+      }
     }
   }
 
@@ -208,7 +363,12 @@ class _DashboardState extends State<Dashboard> {
       appBar: _currentIndex != 0 ? null : AppBar(
         backgroundColor: const Color(0xff26A69A),
         elevation: 0,
-        titleSpacing: 20, // Increased spacing for title since leading is gone
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: const Text(
           "Purchase Management",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -246,7 +406,8 @@ class _DashboardState extends State<Dashboard> {
         ],
       ),
 
-        endDrawer: const DynamicDrawer(moduleName: "PURCHASE"),
+        drawer: const DynamicDrawer(moduleName: "PURCHASE"),
+        endDrawer: const DynamicDrawer(), // Global settings in end drawer
 
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
@@ -466,14 +627,14 @@ class _DashboardState extends State<Dashboard> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF26A69A),
+                                  color: Color(0xFF6B4EE0),
                                 ),
                               ),
                               SizedBox(width: 4),
                               Icon(
                                 Icons.keyboard_arrow_down,
                                 size: 18,
-                                color: Color(0xFF26A69A),
+                                color: Color(0xFF6B4EE0),
                               ),
                             ],
                           ),
@@ -482,195 +643,98 @@ class _DashboardState extends State<Dashboard> {
                     ),
                     const SizedBox(height: 20),
 
-                    Builder(
-                      builder: (context) {
-                        // Define the spots once so showingTooltipIndicators references the same data
-                        final spots = const [
-                          FlSpot(0, 0.4),
-                          FlSpot(1, 1.3),
-                          FlSpot(2, 0.9),
-                          FlSpot(3, 1.9),
-                          FlSpot(4, 1.1),
-                          FlSpot(5, 2.48),
-                        ];
-                        final barData = LineChartBarData(
-                          isCurved: true,
-                          curveSmoothness: 0.35,
-                          color: const Color(0xFF26A69A),
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) {
-                              // Highlight the last dot
-                              if (index == spots.length - 1) {
-                                return FlDotCirclePainter(
-                                  radius: 5,
-                                  color: const Color(0xFF26A69A),
-                                  strokeWidth: 2.5,
-                                  strokeColor: Colors.white,
+                    isLoadingAnalytics 
+                    ? const SizedBox(
+                        height: 190,
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF26A69A))),
+                      )
+                    : analyticsSpots.isEmpty
+                    ? const SizedBox(
+                        height: 190,
+                        child: Center(child: Text("No analytics data available")),
+                      )
+                    : SizedBox(
+                      height: 190,
+                      child: BarChart(
+                        BarChartData(
+                          maxY: maxYValue,
+                          barTouchData: BarTouchData(
+                            enabled: true,
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipColor: (group) => const Color(0xff2D237A),
+                              tooltipBorderRadius: BorderRadius.circular(8),
+                              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                return BarTooltipItem(
+                                  "₹${rod.toY.toStringAsFixed(2)}L",
+                                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                 );
-                              }
-                              return FlDotCirclePainter(
-                                radius: 3.5,
-                                color: Colors.white,
-                                strokeWidth: 2,
-                                strokeColor: const Color(0xFF26A69A),
-                              );
-                            },
-                          ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF26A69A).withValues(alpha: 0.35),
-                                const Color(0xFF26A69A).withValues(alpha: 0.0),
-                              ],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
+                              },
                             ),
                           ),
-                          spots: spots,
-                        );
-
-                        return SizedBox(
-                          height: 190,
-                          child: LineChart(
-                            LineChartData(
-                              minY: 0,
-                              maxY: 3,
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                horizontalInterval: 1,
-                                getDrawingHorizontalLine: (value) {
-                                  return FlLine(
-                                    color: const Color(
-                                      0xffE0E0E0,
-                                    ).withValues(alpha: 0.5),
-                                    strokeWidth: 1,
-                                    dashArray: [5, 5],
+                          titlesData: FlTitlesData(
+                            show: true,
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  int idx = value.toInt();
+                                  if (idx >= 0 && idx < analyticsMonths.length) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                        analyticsMonths[idx],
+                                        style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF6B4EE0)),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox();
+                                },
+                                reservedSize: 28,
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 32,
+                                interval: (maxYValue / 3).clamp(0.1, double.infinity),
+                                getTitlesWidget: (value, meta) {
+                                  return Text(
+                                    value == 0 ? "0" : "${value.toStringAsFixed(1)}L",
+                                    style: const TextStyle(color: Color(0xff9E9E9E), fontSize: 11, fontWeight: FontWeight.w500),
                                   );
                                 },
                               ),
-                              borderData: FlBorderData(show: false),
-                              titlesData: FlTitlesData(
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 1,
-                                    reservedSize: 32,
-                                    getTitlesWidget: (value, meta) {
-                                      if (value > 3 || value < 0) {
-                                        return const SizedBox();
-                                      }
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 4,
-                                        ),
-                                        child: Text(
-                                          value == 0
-                                              ? "0"
-                                              : "${value.toInt()}L",
-                                          style: const TextStyle(
-                                            color: Color(0xff9E9E9E),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 1,
-                                    getTitlesWidget: (value, meta) {
-                                      const style = TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF26A69A),
-                                      );
-                                      switch (value.toInt()) {
-                                        case 0:
-                                          return const Text(
-                                            "Jan",
-                                            style: style,
-                                          );
-                                        case 1:
-                                          return const Text(
-                                            "Feb",
-                                            style: style,
-                                          );
-                                        case 2:
-                                          return const Text(
-                                            "Mar",
-                                            style: style,
-                                          );
-                                        case 3:
-                                          return const Text(
-                                            "Apr",
-                                            style: style,
-                                          );
-                                        case 4:
-                                          return const Text(
-                                            "May",
-                                            style: style,
-                                          );
-                                        case 5:
-                                          return const Text(
-                                            "Jun",
-                                            style: style,
-                                          );
-                                      }
-                                      return const SizedBox();
-                                    },
-                                  ),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                              ),
-                              lineTouchData: LineTouchData(
-                                enabled: true,
-                                handleBuiltInTouches: true,
-                                touchTooltipData: LineTouchTooltipData(
-                                  getTooltipColor: (spot) =>
-                                      const Color(0xff2D237A),
-                                  tooltipBorderRadius: BorderRadius.circular(8),
-                                  tooltipPadding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
-                                  ),
-                                  getTooltipItems: (touchedSpots) {
-                                    return touchedSpots.map((spot) {
-                                      return LineTooltipItem(
-                                        "₹2.48L",
-                                        const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                ),
-                              ),
-                              // Always show tooltip at the Jun (index 5) data point
-                              showingTooltipIndicators: [
-                                ShowingTooltipIndicators([
-                                  LineBarSpot(barData, 0, spots[5]),
-                                ]),
-                              ],
-                              lineBarsData: [barData],
                             ),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                           ),
-                        );
-                      },
+                          borderData: FlBorderData(show: false),
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: maxYValue / 4,
+                            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withOpacity(0.1), strokeWidth: 1, dashArray: [5, 5]),
+                          ),
+                          barGroups: List.generate(analyticsSpots.length, (index) {
+                            return BarChartGroupData(
+                              x: index,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: analyticsSpots[index].y,
+                                  color: const Color(0xFF6B4EE0),
+                                  width: 16,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  backDrawRodData: BackgroundBarChartRodData(
+                                    show: true,
+                                    toY: maxYValue,
+                                    color: const Color(0xFF6B4EE0).withOpacity(0.05),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -704,66 +768,91 @@ class _DashboardState extends State<Dashboard> {
 
                     const SizedBox(height: 20),
 
-                    SizedBox(
-                      height: 150,
-                      child: Row(
+                    isLoadingStatuses
+                    ? const SizedBox(
+                        height: 180,
+                        child: Center(child: CircularProgressIndicator(color: Color(0xFF26A69A))),
+                      )
+                    : orderStatuses.isEmpty
+                    ? const SizedBox(
+                        height: 180,
+                        child: Center(child: Text("No status data")),
+                      )
+                    : SizedBox(
+                      height: 180,
+                      child: Stack(
                         children: [
-                          Expanded(
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  width: 140,
-                                  height: 140,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xffDE318A), // Outer Pink
-                                  ),
-                                ),
-                                Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xff2A4FD3),
-                                  ),
-                                ),
-                                Container(
-                                  width: 65,
-                                  height: 65,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xff9139ED),
-                                  ),
-                                ),
-                                Container(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xffD3A422),
-                                  ),
-                                ),
-                              ],
+                          // Concentric Circles
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: width * 0.45,
+                            child: Center(
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: List.generate(orderStatuses.length, (index) {
+                                  double size = 140 - (index * 35.0);
+                                  if (size < 40) size = 40;
+                                  
+                                  return Container(
+                                    width: size,
+                                    height: size,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: orderStatuses[index]['color'],
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }), // No reverse - largest first (bottom), smallest last (top)
+                              ),
                             ),
                           ),
 
-                          const SizedBox(width: 12),
-
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
+                          // Indicator Lines and Labels (Static-like dynamic layout)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: width * 0.45,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                LegendItem("Rejected", Color(0xffDE318A)),
-                                SizedBox(height: 12),
-                                LegendItem("Completed", Color(0xff2A4FD3)),
-                                SizedBox(height: 12),
-                                LegendItem("Pending", Color(0xffD3A422)),
-                                SizedBox(height: 12),
-                                LegendItem("Process", Color(0xff9139ED)),
-                              ],
+                              children: List.generate(orderStatuses.length, (idx) {
+                                final status = orderStatuses[idx];
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: Row(
+                                    children: [
+                                      // Minimalist line representation
+                                      Container(
+                                        width: 25 - (idx * 4.0).clamp(0, 15),
+                                        height: 1.5,
+                                        color: status['color'],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "${status['name']} (${status['count']})",
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: status['color'],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }),
                             ),
                           ),
                         ],

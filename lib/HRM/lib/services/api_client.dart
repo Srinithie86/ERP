@@ -33,10 +33,10 @@ class ApiClient {
       }
       
       if (!finalBody.containsKey('lt')) {
-        finalBody['lt'] = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? prefs.getString('latitude') ?? "145";
+        finalBody['lt'] = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? prefs.getString('latitude') ?? "";
       }
       if (!finalBody.containsKey('ln')) {
-        finalBody['ln'] = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? prefs.getString('longitude') ?? "145";
+        finalBody['ln'] = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? prefs.getString('longitude') ?? "";
       }
       if (!finalBody.containsKey('device_id')) {
         finalBody['device_id'] = prefs.getString('device_id') ?? "123456";

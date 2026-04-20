@@ -45,7 +45,7 @@ dependencies:
   purchase_erp:
     path: lib/purchase
   hrm:
-    path: HRM
+    path: lib/HRM
   sale_management:
     path: lib/sale_management
   # crm_admin_app:

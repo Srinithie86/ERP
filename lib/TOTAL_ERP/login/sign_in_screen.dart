@@ -112,23 +112,30 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _validateAndSubmit() async {
-    setState(() => _errorText = null);
-    if (_isMobileLogin) {
-      final mobile = _mobileController.text.trim();
-      if (mobile.length < 10) {
-        setState(() => _errorText = "Enter valid mobile number");
+      // Force fresh device/location info before login
+      await DeviceService.initDeviceInfo();
+      
+      if (!DeviceService.isInitialized) {
+        setState(() => _errorText = "Location and Device Info required. Please enable GPS.");
         return;
       }
-      await _handleMobileLogin(mobile);
-    } else {
-      final username = _usernameController.text.trim();
-      final password = _passwordController.text.trim();
-      if (username.isEmpty || password.isEmpty) {
-        setState(() => _errorText = "Enter User ID and Password");
-        return;
+      
+      if (_isMobileLogin) {
+        final mobile = _mobileController.text.trim();
+        if (mobile.length < 10) {
+          setState(() => _errorText = "Enter valid mobile number");
+          return;
+        }
+        await _handleMobileLogin(mobile);
+      } else {
+        final username = _usernameController.text.trim();
+        final password = _passwordController.text.trim();
+        if (username.isEmpty || password.isEmpty) {
+          setState(() => _errorText = "Enter User ID and Password");
+          return;
+        }
+        await _handlePasswordLogin(username, password);
       }
-      await _handlePasswordLogin(username, password);
-    }
   }
 
   Future<void> _handlePasswordLogin(String username, String password) async {
@@ -157,6 +164,15 @@ class _SignInScreenState extends State<SignInScreen> {
             _currentToken = token;
             _showOtpView = true;
           });
+          
+          // Autofill OTP if provided in response
+          if (otp.length == 6) {
+            for (int i = 0; i < 6; i++) {
+              _otpControllers[i].text = otp[i];
+            }
+            Future.delayed(const Duration(milliseconds: 500), () => _verifyOtp());
+          }
+          
           _startTimer();
         } else {
           _finalizeLogin(response);
@@ -188,6 +204,8 @@ class _SignInScreenState extends State<SignInScreen> {
       if (response['error'] == false) {
         final token = response['token']?.toString() ?? "";
         final cid = response['cid']?.toString() ?? "44555666";
+        final otp = response['otp']?.toString() ?? "";
+        
         setState(() {
           _currentContact = mobile;
           _currentLoginType = LoginType.sms;
@@ -195,6 +213,14 @@ class _SignInScreenState extends State<SignInScreen> {
           _currentToken = token;
           _showOtpView = true;
         });
+
+        // Autofill OTP if provided in response
+        if (otp.length == 6) {
+          for (int i = 0; i < 6; i++) {
+            _otpControllers[i].text = otp[i];
+          }
+          Future.delayed(const Duration(milliseconds: 500), () => _verifyOtp());
+        }
         _startTimer();
       } else {
         setState(() => _errorText = response['error_msg'] ?? 'Request failed');
@@ -249,6 +275,7 @@ class _SignInScreenState extends State<SignInScreen> {
     await prefs.setString('uid', uid);
     await prefs.setString('cid', cid);
     await prefs.setString('role_id', roleId);
+    await prefs.setString('login_cus_id', uid); // For HRM module compatibility
     if (response['menu'] != null) if (mounted) context.read<MenuProvider>().setMenu(response['menu']);
     if (mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
   }

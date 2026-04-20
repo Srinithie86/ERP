@@ -50,36 +50,55 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               )
             else
-              SizedBox(width: 8.w), // Replaced menu button with small spacing
+              IconButton(
+                onPressed: onMenuPressed,
+                icon: Icon(
+                  Icons.menu_rounded,
+                  color: isDark ? Colors.white : Colors.black87,
+                  size: 26.sp,
+                ),
+              ),
             
             SizedBox(width: 12.w),
             
             Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      color: titleColor,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18.sp,
-                      letterSpacing: -0.5,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Image.asset(
+                    "assets/images/logo.png",
+                    height: 32.h,
+                    errorBuilder: (_, __, ___) => Icon(Icons.business, size: 30.sp, color: const Color(0xFF26A69A)),
                   ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle ?? '',
-                      style: GoogleFonts.outfit(
-                        color: Colors.grey,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
-                      ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.outfit(
+                            color: titleColor,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18.sp,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle ?? '',
+                            style: GoogleFonts.outfit(
+                              color: Colors.grey,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
@@ -96,21 +115,6 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 onPressed: () {},
               ),
-
-            // Profile Icon (Profile Details Trigger) - ALWAYS VISIBLE
-            SizedBox(width: 8.w),
-            GestureDetector(
-              onTap: onProfileTap ?? () => showProfileDetailsSheet(context, isDark: isDark),
-              child: CircleAvatar(
-                radius: 16.r,
-                backgroundColor: tealColor.withValues(alpha: 0.1),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: tealColor,
-                  size: 20.sp,
-                ),
-              ),
-            ),
           ],
         ),
       ),

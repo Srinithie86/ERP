@@ -16,6 +16,18 @@ import 'ticket_raise.dart';
 // import '../widgets/user_avatar.dart';
 // import '../main_root.dart';
 import '../home_screen/employee_detail.dart';
+import 'package:hrm_admin_app/Screens/Admin/Onboarding/onboarding_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/PerformanceManagement/performance_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/TrainingDevelopment/training_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/HealthSafety/health_safety_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/RecuritmentScreens/recruitment.dart';
+import 'package:hrm_admin_app/Screens/Admin/LeaveManagement/admin_leave_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/PermissionManagement/admin_permission_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/ExpenseManagement/admin_expense_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/PayrollManagement/admin_payroll_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/ComplaintManagement/admin_complaint_management.dart';
+import 'package:hrm_admin_app/Screens/Admin/EmployeeManagement/admin_employee_details.dart';
+import 'package:hrm_admin_app/Screens/Admin/AttendanceManagement/admin_attendance_management.dart';
 
 class HRMDrawer extends StatefulWidget {
   final VoidCallback? onHomePressed;
@@ -129,6 +141,70 @@ class _HRMDrawerState extends State<HRMDrawer> {
                 //   title: "App Feedback",
                 //   onTap: () => _navigate(const FeedbackSupportScreen()),
                 // ),
+                // if (userRole.toLowerCase() == 'admin' || userRole.toLowerCase() == 'super admin') ...[
+                  const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                  _buildSectionHeader("Management Hub"),
+                  _buildDrawerItem(
+                    icon: Icons.badge_outlined,
+                    title: "Admin Employee Details",
+                    onTap: () => _navigate(const AdminEmployeeFeatureScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.fact_check_rounded,
+                    title: "Attendance Management",
+                    onTap: () => _navigate(const AdminAttendanceManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.event_note_outlined,
+                    title: "Leave Approvel Management",
+                    onTap: () => _navigate(const AdminLeaveManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.person_search_outlined,
+                    title: "Recruitment",
+                    onTap: () => _navigate(const RecruitmentScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.how_to_reg_outlined,
+                    title: "Onboarding",
+                    onTap: () => _navigate(const OnboardingManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.gavel_outlined,
+                    title: "Complaints",
+                    onTap: () => _navigate(const AdminComplaintManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.payments_outlined,
+                    title: "Payroll",
+                    onTap: () => _navigate(const AdminPayrollManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: "Permissions",
+                    onTap: () => _navigate(const AdminPermissionManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: "Expense",
+                    onTap: () => _navigate(const AdminExpenseManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.speed_outlined,
+                    title: "Performance",
+                    onTap: () => _navigate(const PerformanceManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.school_outlined,
+                    title: "Training",
+                    onTap: () => _navigate(const TrainingManagementScreen()),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.health_and_safety_outlined,
+                    title: "Health & Safety",
+                    onTap: () => _navigate(const HealthSafetyManagementScreen()),
+                  ),
+                // ],
               ],
             ),
           ),

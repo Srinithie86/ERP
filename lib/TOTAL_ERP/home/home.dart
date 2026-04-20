@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   ModuleItem? _activeModule; // Store ModuleItem instead of instantiated Widget
   String? _activeModuleTitle;
-  final GlobalKey<ScaffoldState> _scaffoldKey = moduleScaffoldKey;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _onModuleSelected(ModuleItem module, String moduleTitle) {
     setState(() {
@@ -69,9 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
           key: _scaffoldKey,
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           resizeToAvoidBottomInset: false,
-          endDrawer: DynamicDrawer(moduleName: _activeModuleTitle?.toUpperCase()),
+          drawer: DynamicDrawer(moduleName: _activeModuleTitle?.toUpperCase()),
           appBar: _activeModule != null ? null : UniversalAppBar(
-            onProfileTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+            onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
             title: _selectedIndex == 0
                 ? AppLocalization.of('Global Erp')
                 : (_selectedIndex == 1

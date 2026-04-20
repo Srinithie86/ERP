@@ -19,18 +19,22 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   final TextEditingController poNumberController = TextEditingController();
   final TextEditingController supplierNameController = TextEditingController();
+  final TextEditingController quotationRefController = TextEditingController();
   final TextEditingController deliveryAddressController = TextEditingController();
   final TextEditingController deliveryDateController = TextEditingController(
     text: "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}",
   );
+  final TextEditingController taxAmountController = TextEditingController(text: "0.00");
 
   String? cid;
   String? deviceId;
+  String? mid;
+  String? selectedSupplierId;
   String? lt;
   String? ln;
   bool isSaving = false;
   String selectedStatus = "Pending";
-  String grandTotal = "₹0.00";
+  String grandTotalValue = "₹0.00";
 
   @override
   void initState() {
@@ -44,6 +48,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       if (!mounted) return;
       setState(() {
         cid = prefs.getString('cid') ?? '';
+        mid = prefs.getString('mid') ?? '0'; // Added mid
         deviceId = prefs.getString('device_id') ?? 'Unknown';
         lt = prefs.getString('lt') ?? '0';
         ln = prefs.getString('ln') ?? '0';
@@ -69,7 +74,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {
-          "type": "4008",
+          "type": "4008", // Type provided in user's request
           "cid": cid!,
           "device_id": deviceId ?? "",
           "ln": ln ?? "0",
@@ -82,6 +87,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // The user's snippet expected success: true and data['items']
         if (data['success'] == true && data['items'] != null && data['items'].isNotEmpty) {
           return data['items'][0];
         }
@@ -94,11 +100,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   void _calculateGrandTotal() {
     double total = 0.0;
+    double taxTotal = 0.0;
     for (var item in itemsList) {
       total += double.tryParse((item['total'] as TextEditingController).text) ?? 0.0;
+      taxTotal += double.tryParse((item['taxAmt'] as TextEditingController).text) ?? 0.0;
     }
     setState(() {
-      grandTotal = "₹${total.toStringAsFixed(2)}";
+      grandTotalValue = "₹${total.toStringAsFixed(2)}";
+      taxAmountController.text = taxTotal.toStringAsFixed(2);
     });
   }
 
@@ -173,34 +182,42 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       final prefs = await SharedPreferences.getInstance();
       String uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
       final roleId = prefs.getString('role_id') ?? '';
+      
+      List<Map<String, dynamic>> itemsJson = [];
+      for (var item in itemsList) {
+        itemsJson.add({
+          "item_code": (item["code"] as TextEditingController).text.trim(),
+          "pro_name": (item["name"] as TextEditingController).text.trim(),
+          "uom": (item["uom"] as TextEditingController).text.trim(),
+          "quantity": (item["qty"] as TextEditingController).text.trim(),
+          "unit_rate": (item["rate"] as TextEditingController).text.trim(),
+          "discount": (item["discountPerc"] as TextEditingController).text.trim(),
+          "tax": (item["taxPerc"] as TextEditingController).text.trim(),
+          "tax_amt": (item["taxAmt"] as TextEditingController).text.trim(),
+          "tot_amt": (item["total"] as TextEditingController).text.trim(),
+        });
+      }
 
       final Map<String, String> body = {
         "cid": cid!,
         "type": "4009",
         "uid": uid,
+        "mid": mid ?? "0",
         "role_id": roleId,
         "ln": ln ?? "0",
         "lt": lt ?? "0",
         "device_id": deviceId ?? "",
         "po_no": poNumberController.text,
+        "quotation_ref": quotationRefController.text.trim(),
         "delivery_date": deliveryDateController.text,
         "status": selectedStatus,
+        "supplier_id": selectedSupplierId ?? "0",
         "supplier_name": supplierNameController.text.trim(),
-        "grand_total": grandTotal.replaceAll('₹', '').replaceAll(',', '').trim(),
+        "delivery_address": deliveryAddressController.text.trim(),
+        "tax_amount": taxAmountController.text,
+        "grand_total": grandTotalValue.replaceAll('₹', '').replaceAll(',', '').trim(),
+        "items": jsonEncode(itemsJson),
       };
-
-      for (int i = 0; i < itemsList.length; i++) {
-        var item = itemsList[i];
-        body["items[$i][item_code]"] = (item["code"] as TextEditingController).text.trim();
-        body["items[$i][product_name]"] = (item["name"] as TextEditingController).text.trim();
-        body["items[$i][uom]"] = (item["uom"] as TextEditingController).text.trim();
-        body["items[$i][quantity]"] = (item["qty"] as TextEditingController).text.trim();
-        body["items[$i][unit_rate]"] = (item["rate"] as TextEditingController).text.trim();
-        body["items[$i][discount]"] = (item["discountPerc"] as TextEditingController).text.trim();
-        body["items[$i][tax]"] = (item["taxPerc"] as TextEditingController).text.trim();
-        body["items[$i][tax_amt]"] = (item["taxAmt"] as TextEditingController).text.trim();
-        body["items[$i][tot_amt]"] = (item["total"] as TextEditingController).text.trim();
-      }
 
       final response = await http.post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body);
 
@@ -224,8 +241,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
-
-  // --- UI Helpers ---
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -254,7 +269,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       decoration: BoxDecoration(
         color: readOnly ? Colors.grey.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: TextField(
         controller: controller,
@@ -279,7 +294,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: TypeAheadField<Map<String, dynamic>>(
         controller: supplierNameController,
@@ -306,6 +321,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         onSelected: (suggestion) {
           setState(() {
             supplierNameController.text = suggestion['Ledger_Name'] ?? '';
+            selectedSupplierId = suggestion['id']?.toString() ?? '0'; // Capture ID
             deliveryAddressController.text = suggestion['address'] ?? '';
           });
         },
@@ -348,40 +364,38 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 _buildSectionTitle("SUPPLIER & DELIVERY INFO"),
                 _buildLabeledField("SUPPLIER NAME", _buildSupplierSearch()),
                 const SizedBox(height: 16),
-                _buildLabeledField("DELIVERY ADDRESS", _buildTextField("Enter Address", deliveryAddressController)),
-                const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildLabeledField("DELIVERY DATE", InkWell(
-                        onTap: () => _selectDate(context),
-                        child: IgnorePointer(child: _buildTextField("Select Date", deliveryDateController, readOnly: true)),
-                      )),
-                    ),
+                    Expanded(child: _buildLabeledField("QUOTATION REF", _buildTextField("Enter Ref#", quotationRefController))),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildLabeledField("PO STATUS", Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: selectedStatus,
-                            items: ["Pending", "Approved", "Closed"]
-                                .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.outfit(fontSize: 13))))
-                                .toList(),
-                            onChanged: (val) => setState(() => selectedStatus = val!),
-                          ),
-                        ),
-                      )),
-                    ),
+                    Expanded(child: _buildLabeledField("DELIVERY DATE", InkWell(
+                      onTap: () => _selectDate(context),
+                      child: IgnorePointer(child: _buildTextField("Select Date", deliveryDateController, readOnly: true)),
+                    ))),
                   ],
                 ),
+                const SizedBox(height: 16),
+                _buildLabeledField("DELIVERY ADDRESS", _buildTextField("Enter Address", deliveryAddressController)),
+                const SizedBox(height: 16),
+                _buildLabeledField("PO STATUS", Container(
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedStatus,
+                      items: ["Pending", "Approved", "Closed"]
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.outfit(fontSize: 13))))
+                          .toList(),
+                      onChanged: (val) => setState(() => selectedStatus = val!),
+                    ),
+                  ),
+                )),
                 
                 const SizedBox(height: 32),
                 Row(
@@ -438,7 +452,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -446,8 +460,16 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Text("TAX AMOUNT", style: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600)),
+                      Text("₹${taxAmountController.text}", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.blueGrey)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Text("GRAND TOTAL", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey.shade600)),
-                      Text(grandTotal, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: const Color(0xff22A79A))),
+                      Text(grandTotalValue, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: const Color(0xff22A79A))),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -494,7 +516,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0xff22A79A).withValues(alpha: 0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: const Color(0xff22A79A).withOpacity(0.1), shape: BoxShape.circle),
                   child: const Icon(Icons.shopping_bag_outlined, color: Color(0xff22A79A), size: 20),
                 ),
                 const SizedBox(width: 16),
@@ -653,8 +675,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   void dispose() {
     poNumberController.dispose();
     supplierNameController.dispose();
+    quotationRefController.dispose();
     deliveryAddressController.dispose();
     deliveryDateController.dispose();
+    taxAmountController.dispose();
     for (var item in itemsList) {
       item.values.forEach((v) => (v as TextEditingController).dispose());
     }

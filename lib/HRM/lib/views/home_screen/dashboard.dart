@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hrm/views/home/settings.dart';
-import 'package:provider/provider.dart';
-import 'package:erp_smart/providers/menu_provider.dart';
-import 'package:erp_smart/utils/app_navigation.dart';
-import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
-import 'package:hrm/views/widgets/profile_card.dart';
 import 'dart:async';
 
 import 'package:hrm/views/home_screen/performance.dart';
@@ -13,6 +8,10 @@ import 'package:hrm/views/home_screen/reports.dart';
 import 'package:hrm/views/marketing/marketing_selection.dart';
 import 'leave_management.dart';
 import 'package:hrm_admin_app/Screens/Admin/admin_dashboard.dart' as admin;
+import 'package:hrm_admin_app/Screens/Admin/admin_approvals_screen.dart';
+import 'package:hrm_admin_app/Models/leave_api.dart' as admin_api;
+import 'package:hrm_admin_app/Models/employee_api.dart' as admin_emp_api;
+import 'package:hrm_admin_app/Utils/shared_prefs_util.dart' as admin_prefs;
 import 'tasks_list.dart';
 import 'notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,6 +61,8 @@ class _DashboardState extends State<Dashboard> {
   double leavesTakenThisMonth = 0;
   int totalMonthDays = 0;
   double totalLeaveBalance = 0;
+  int _pendingLeaveCount = 0;
+  bool _isCountLoading = false;
 
   @override
   void initState() {
@@ -143,6 +144,7 @@ class _DashboardState extends State<Dashboard> {
       _fetchLeaveHistory(),
       _fetchMonthlyPerformance(prefs),
       _fetchCheckInStatus(prefs),
+      _fetchAdminLeaveCount(),
     ]).then((_) {
       if (mounted) setState(() => isStatusFetching = false);
     });
@@ -152,6 +154,41 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       totalMonthDays = DateTime(now.year, now.month + 1, 0).day;
     });
+  }
+
+  Future<void> _fetchAdminLeaveCount() async {
+    // if (userRole.toLowerCase() != 'admin' && userRole.toLowerCase() != 'super admin') return;
+    if (!mounted) return;
+    setState(() => _isCountLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String uid = prefs.getString('login_cus_id') ?? 
+                         prefs.getString('uid') ?? "";
+      
+      String? reportingManager;
+      try {
+        final empResponse = await admin_emp_api.EmployeeApi.fetchEmployeeDetails(uid: uid);
+        if (empResponse.data.isNotEmpty) {
+          reportingManager = empResponse.data.first.reportingManager;
+        }
+      } catch (e) {
+        debugPrint("Dashboard Error fetching reporting manager for count: $e");
+      }
+
+      final response = await admin_api.LeaveApi.fetchLeaveRequests(reportingManager: reportingManager);
+      if (mounted) {
+        setState(() {
+          _pendingLeaveCount = response.data.where((doc) {
+            final s = doc.status?.toLowerCase() ?? "";
+            return s == "pending" || s == "";
+          }).length;
+          _isCountLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Dashboard Error fetching admin leave count: $e");
+      if (mounted) setState(() => _isCountLoading = false);
+    }
   }
 
   Future<void> _clearAttendancePrefs(SharedPreferences prefs) async {
@@ -173,8 +210,8 @@ class _DashboardState extends State<Dashboard> {
 
       final String cid =
           prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
-      final String lat = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String lng = prefs.getDouble('lng')?.toString() ?? "0.0";
+      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
       final String deviceId = prefs.getString('device_id') ?? "";
 
       final body = {
@@ -231,8 +268,8 @@ class _DashboardState extends State<Dashboard> {
     try {
       final String uid =
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
-      final lat = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final lng = prefs.getDouble('lng')?.toString() ?? "0.0";
+      final lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
 
       final response = await _apiClient.post({
           "type": "2051",
@@ -440,8 +477,8 @@ class _DashboardState extends State<Dashboard> {
           prefs.get('uid')?.toString() ??
           "";
       final String deviceId = prefs.getString('device_id') ?? "";
-      final String lat = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String lng = prefs.getDouble('lng')?.toString() ?? "0.0";
+      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
       final String? token = prefs.getString('token');
 
       DateTime now = DateTime.now();
@@ -688,19 +725,28 @@ class _DashboardState extends State<Dashboard> {
     double boxRadius = w * 0.03;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      endDrawer: const DynamicDrawer(moduleName: "HRM"),
+      backgroundColor: Colors.white,
+      drawer: HRMDrawer(onHomePressed: widget.onHomePressed),
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         elevation: 0,
-        titleSpacing: 20,
         title: Text(
-          "HRM Management",
+          "HRMApp",
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: isTablet ? 26 : (isDesktop ? 28 : 20),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
+        ),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: Icon(Icons.menu, size: w * 0.07, color: Colors.white),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          }
         ),
         actions: [
           IconButton(
@@ -732,18 +778,7 @@ class _DashboardState extends State<Dashboard> {
               size: isTablet ? 30 : 26,
             ),
           ),
-          const SizedBox(width: 4),
-          Builder(
-            builder: (context) => GestureDetector(
-              onTap: () => Scaffold.of(context).openEndDrawer(),
-              child: const CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white24,
-                child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
         ],
       ),
       body: RefreshIndicator(
@@ -751,76 +786,213 @@ class _DashboardState extends State<Dashboard> {
         onRefresh: () async {
           await _initializeApp();
         },
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(padding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (!isCheckedIn && !isTodayFinished && !isStatusFetching) ...[
-                      _buildCheckInReminderCard(context, w),
-                      SizedBox(height: h * 0.02),
-                    ],
-                    if (isCheckedIn &&
-                        !isTodayFinished &&
-                        marketingAttendanceMode &&
-                        !hasDoneMarketingToday) ...[
-                      _buildMarketingCheckInReminderCard(context, w),
-                      SizedBox(height: h * 0.02),
-                    ],
-                    if (isOnBreak) ...[
-                      _buildBreakInProgressCard(context, w),
-                      SizedBox(height: h * 0.02),
-                    ],
-                    _buildModernSummaryCards(w, h),
-                  ],
-                ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            left: padding,
+            right: padding,
+            top: padding,
+            bottom: padding + 80, // Extra padding for bottom nav space
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            if (!isCheckedIn && !isTodayFinished && !isStatusFetching) ...[
+              _buildCheckInReminderCard(context, w),
+              SizedBox(height: h * 0.02),
+            ],
+            if (isCheckedIn &&
+                !isTodayFinished &&
+                marketingAttendanceMode &&
+                !hasDoneMarketingToday) ...[
+              _buildMarketingCheckInReminderCard(context, w),
+              SizedBox(height: h * 0.02),
+            ],
+            if (isOnBreak) ...[
+              _buildBreakInProgressCard(context, w),
+              SizedBox(height: h * 0.02),
+            ],
+            _buildModernSummaryCards(w, h),
+            SizedBox(height: h * 0.02),
+            // if (userRole.toLowerCase() == 'admin' ||
+            //     userRole.toLowerCase() == 'super admin') ...[
+              _buildApprovalsCard(w, h),
+              SizedBox(height: h * 0.02),
+            // ],
+            SizedBox(height: h * 0.02),
+            Container(
+              padding: EdgeInsets.all(w * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B2C61),
+                borderRadius: BorderRadius.circular(boxRadius),
               ),
-            ),
-            
-            _buildSectionLabel("Quick Actions"),
-            _buildQuickActions(context),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: padding),
-                child: Column(
-                  children: [
-                    SizedBox(height: h * 0.02),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        return Column(
-                          children: [
-                            if (userRole.toLowerCase() == 'admin' ||
-                                userRole.toLowerCase() == 'super admin') ...[
-                              menuBox(
-                                context,
-                                constraints.maxWidth,
-                                "Admin Controls",
-                                "assets/businessman.png",
-                                const LinearGradient(
-                                  colors: [Colors.white, Color(0xFFFAFFB8)],
-                                ),
-                                isFullWidth: true,
-                              ),
-                            ],
-                          ],
-                        );
-                      },
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.campaign,
+                    color: Colors.white,
+                    size: isTablet ? 36 : 30,
+                  ),
+                  SizedBox(width: w * 0.03),
+                  Expanded(
+                    child: Text(
+                      "Company Announcement\nNew HR policy updates available.",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: isTablet ? 18 : 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    const SizedBox(height: 100), // Spacing at bottom
-                  ],
-                ),
+                  ),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF1B2C61),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {},
+                    child: Text(
+                      "View",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: isTablet ? 16 : 14,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            SizedBox(height: h * 0.02),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Your Task",
+                  style: GoogleFonts.poppins(
+                    fontSize: isTablet ? 20 : 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TasksListScreen(),
+                    ),
+                  ),
+                  icon: const Icon(
+                    Icons.arrow_circle_right_outlined,
+                    color: Color(0xFF26A69A),
+                    size: 28,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: h * 0.01),
+            taskCard(),
+            SizedBox(height: h * 0.02),
+            Text(
+              "Your Target",
+              style: GoogleFonts.poppins(
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: h * 0.01),
+            targetBox(),
+            SizedBox(height: h * 0.02),
+            Container(
+              padding: EdgeInsets.all(w * 0.04),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.white, Color(0xFF24D7B3)],
+                ),
+                borderRadius: BorderRadius.circular(boxRadius),
+                boxShadow: const [
+                  BoxShadow(
+                    offset: Offset(0, 10),
+                    blurRadius: 5,
+                    color: Colors.black12,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Image.asset(
+                    "assets/frame.png",
+                    height: isTablet ? 90 : 70,
+                    width: isTablet ? 50 : 35,
+                  ),
+                  SizedBox(width: w * 0.04),
+                  Expanded(
+                    child: Text(
+                      "Almost there! Push through the last 25% and claim your success!!",
+                      style: GoogleFonts.poppins(
+                        fontSize: isTablet ? 18 : 14,
+                        color: const Color(0xff1B2C61),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: h * 0.02),
+            Text(
+              "Leave Summary",
+              style: GoogleFonts.poppins(
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: h * 0.01),
+            leaveReport(),
+            if (leaveHistory.isNotEmpty) ...[
+              SizedBox(height: h * 0.02),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Recent Activity",
+                    style: GoogleFonts.poppins(
+                      fontSize: isTablet ? 20 : 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LeaveManagementScreen(),
+                      ),
+                    ).then((_) => _initializeApp()),
+                    child: Text(
+                      "View All",
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF26A69A),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              isLeaveHistoryLoading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF26A69A),
+                        ),
+                      ),
+                    )
+                  : _buildRecentLeaveHistory(w),
+            ],
+            SizedBox(height: h * 0.03),
           ],
         ),
       ),
+    ),
     );
-
   }
 
   Widget _buildModernSummaryCards(double w, double h) {
@@ -953,6 +1125,99 @@ class _DashboardState extends State<Dashboard> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildApprovalsCard(double w, double h) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminApprovalsScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(w * 0.03),
+      child: Container(
+        padding: EdgeInsets.all(w * 0.04),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF26A69A), Color(0xFF00897B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(w * 0.03),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF26A69A).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              height: w * 0.12,
+              width: w * 0.12,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(w * 0.03),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Icon(Icons.task_alt_rounded, color: Colors.white, size: w * 0.07),
+                  if (_pendingLeaveCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          _pendingLeaveCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(width: w * 0.04),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Approvals",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    "Manage Leave & Permission requests",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
+          ],
         ),
       ),
     );
@@ -1588,8 +1853,8 @@ class _DashboardState extends State<Dashboard> {
       String cid, String uid, String dId, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lat = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final lng = prefs.getDouble('lng')?.toString() ?? "0.0";
+      final lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
 
       final response = await _apiClient.post({
           "type": "2062", // Marketing history type
@@ -1617,148 +1882,5 @@ class _DashboardState extends State<Dashboard> {
     } catch (e) {
       debugPrint("Error syncing marketing status: $e");
     }
-  }
-
-  Widget _buildSectionLabel(String label) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF1B2C61),
-          ),
-        ),
-      ),
-    );
-  }
-
-  SliverToBoxAdapter _buildQuickActions(BuildContext context) {
-    final menuProvider = context.watch<MenuProvider>();
-    List<Map<String, dynamic>> subMenus = menuProvider.getSubMenus("HRM");
-
-    // Flatten logic: If HRM only has "HRM Settings", show its children instead
-    if (subMenus.length == 1 && subMenus[0]['name'].toString().contains("Settings")) {
-      final settingsMenu = menuProvider.getSubMenus("HRM Settings");
-      if (settingsMenu.isNotEmpty) {
-        subMenus = settingsMenu;
-      }
-    }
-
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: subMenus.isEmpty
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Text("No actions available"),
-                ),
-              )
-            : GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 0.65,
-                ),
-                itemCount: subMenus.length,
-                itemBuilder: (context, index) {
-                  final item = subMenus[index];
-                  final String name = (item['name'] ?? '').toString();
-                  final String trimmedName = name.trim();
-
-                  return _QuickActionButton(
-                    icon: AppNavigation.getIcon(trimmedName),
-                    label: _getShortLabel(trimmedName),
-                    color: _getActionColor(trimmedName),
-                    onTap: () => AppNavigation.handleNavigation(context, trimmedName, moduleContext: "HRM"),
-                  );
-                },
-              ),
-      ),
-    );
-  }
-
-  String _getShortLabel(String label) {
-    final String n = label.toUpperCase();
-    if (n.contains("LEAVE APPROVAL")) return "Leave App.";
-    if (n.contains("LEAVE TYPES")) return "L. Types";
-    if (n.contains("HRM SETTINGS")) return "Settings";
-    if (n.contains("DEPARTMENT")) return "Dept.";
-    if (n.contains("PERMISSION")) return "Permit";
-    if (label.length > 10) return label.split(' ').first;
-    return label;
-  }
-
-  Color _getActionColor(String name) {
-    final String n = name.toUpperCase();
-    if (n.contains("LEAVE")) return Colors.orange;
-    if (n.contains("PERMISSION")) return Colors.teal;
-    if (n.contains("ATTENDANCE")) return Colors.blue;
-    if (n.contains("PAYROLL")) return Colors.green;
-    return const Color(0xFF26A69A);
-  }
-}
-
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF1B2C61),
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
   }
 }

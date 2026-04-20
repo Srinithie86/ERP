@@ -214,28 +214,51 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
-      final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
-        body: {
-          "type": "2083",
-          "cid": cid,
-          "device_id": "123",
-          "lt": "123",
-          "ln": "123",
-          "form": "sm_main_form_26101",
-          "select": "*",
-          "where": "qc_status like '%Pend%'",
-        },
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['error'] == false) {
-          if (mounted) {
-            setState(() {
-              qcApprovals = List<Map<String, dynamic>>.from(data['data'] ?? []);
-            });
+      
+      // Fetch from both PO (25601) and PR (25001) sources for QC
+      final results = await Future.wait([
+        http.post(
+          Uri.parse("https://erpsmart.in/total/api/m_api/"),
+          body: {
+            "type": "2083",
+            "cid": cid,
+            "device_id": "123",
+            "lt": "123",
+            "ln": "123",
+            "form": "sm_main_form_25601",
+            "select": "*",
+            "where": "qc_status like '%Pend%'",
+          },
+        ),
+        http.post(
+          Uri.parse("https://erpsmart.in/total/api/m_api/"),
+          body: {
+            "type": "2083",
+            "cid": cid,
+            "device_id": "123",
+            "lt": "123",
+            "ln": "123",
+            "form": "sm_main_form_25001",
+            "select": "*",
+            "where": "qc_status like '%Pend%'",
+          },
+        ),
+      ]);
+
+      List<Map<String, dynamic>> combinedQC = [];
+      for (var response in results) {
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['error'] == false && data['data'] != null) {
+            combinedQC.addAll(List<Map<String, dynamic>>.from(data['data']));
           }
         }
+      }
+
+      if (mounted) {
+        setState(() {
+          qcApprovals = combinedQC;
+        });
       }
     } catch (e) {
       debugPrint("Fetch QC error: $e");
@@ -375,9 +398,10 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       dept = data['supplier_name'] ?? 'N/A';
       requester = "Total: ₹${data['tot_amt'] ?? '0'}";
     } else if (isQC) {
-      title = "QC Inspection Pending";
-      dept = data['grn_no'] ?? 'N/A';
-      requester = "Inspector: ${data['inspector_name'] ?? 'N/A'}";
+      title = (data['pro_name'] ?? data['product_name'] ?? "QC Inspection").toString();
+      dept = (data['supplier_name'] ?? data['po_no'] ?? data['no'] ?? 'N/A').toString();
+      String amount = data['tot_amt'] != null ? " | ₹${data['tot_amt']}" : "";
+      requester = "Qty: ${data['qty'] ?? data['quantity_required'] ?? '0'}$amount";
     }
 
     Color accentColor = isPR ? const Color(0xFF26A69A) : (isPO ? const Color(0xFF5C6BC0) : const Color(0xFFFFA726));

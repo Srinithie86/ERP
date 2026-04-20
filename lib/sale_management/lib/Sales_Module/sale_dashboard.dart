@@ -77,7 +77,8 @@ class _DashboardPageState extends State<DashboardPage> {
       value: AppTheme.statusBarTeal,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        endDrawer: const DynamicDrawer(moduleName: "SALES"),
+        drawer: const DynamicDrawer(moduleName: "SALES"),
+        endDrawer: const DynamicDrawer(), 
         body: _tabPages[_selectedIndex],
         bottomNavigationBar: _BottomNavBar(
           selectedIndex: _selectedIndex,
@@ -217,7 +218,12 @@ class _DashboardBody extends StatelessWidget {
       floating: false,
       elevation: 0,
       backgroundColor: const Color(0xFF26A69A),
-      titleSpacing: 20,
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
       title: const Text(
         'Sales Management',
         style: TextStyle(

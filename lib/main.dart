@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
                 return MaterialApp(
                   title: 'Global Erp',
                   debugShowCheckedModeBanner: false,
-                  themeMode: currentMode,
+                  themeMode: ThemeMode.light,
                   locale: currentLocale,
                   localizationsDelegates: const [
                     AppLocalizations.delegate,

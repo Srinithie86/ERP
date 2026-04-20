@@ -1,6 +1,6 @@
 import 'package:ecommerce/Dashboard_Module/dashboard_screen.dart' as ecommerce;
 import 'package:manufacturing_erp/dashboard.dart' as manufacturing;
-import 'package:erp_smart/dealer_management/lib/Dashboard/dashboard_screen.dart'
+import 'package:dealermanagment/Dashboard/dashboard_screen.dart'
     as dealers;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
