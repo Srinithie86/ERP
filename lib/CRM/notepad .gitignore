@@ -1,0 +1,19 @@
+# Gradle files
+.gradle/
+.gradle-user-home/
+build/
+
+# Android / Java
+local.properties
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Node (if any)
+node_modules/

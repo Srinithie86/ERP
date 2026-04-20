@@ -449,7 +449,24 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     final name = item['name'] ?? 'Unknown';
     final trimmedName = name.toString().trim();
     
-    // Check if this item is itself a folder containing more items
+    // 1. Check for nested sub_menu field in the item itself (New requirement)
+    final bool hasNestedSubMenu = item.containsKey('sub_menu') && item['sub_menu'] is List && (item['sub_menu'] as List).isNotEmpty;
+    if (hasNestedSubMenu) {
+      final List<dynamic> subMenu = item['sub_menu'];
+      return Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: const Color(0xFF26A69A),
+          collapsedIconColor: const Color(0xFF26A69A),
+          leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
+          title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
+          childrenPadding: const EdgeInsets.only(left: 16),
+          children: subMenu.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
+        ),
+      );
+    }
+
+    // 2. Fallback to existing folder logic (where content is in a separate top-level key)
     if (provider.isFolder(trimmedName)) {
       final children = provider.getFolderContents(trimmedName);
       
@@ -463,7 +480,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
             leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
             title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
             childrenPadding: const EdgeInsets.only(left: 16),
-            children: children.map((child) => _buildDynamicTile(context, child, provider, trimmedName)).toList(),
+            children: children.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
           ),
         );
       }

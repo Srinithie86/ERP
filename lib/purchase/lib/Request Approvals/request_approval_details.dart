@@ -24,11 +24,13 @@ class _RequestApprovalDetailsScreenState
     extends State<RequestApprovalDetailsScreen> {
   String? selectedValue = "Request For Quotations";
   final TextEditingController _remarksController = TextEditingController();
+  final TextEditingController _approverNameController = TextEditingController();
   bool _isProcessing = false;
 
   @override
   void dispose() {
     _remarksController.dispose();
+    _approverNameController.dispose();
     super.dispose();
   }
 
@@ -426,30 +428,7 @@ class _RequestApprovalDetailsScreenState
 
             const SizedBox(height: 24),
 
-            TextField(
-              controller: _remarksController,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 14),
-              decoration: const InputDecoration(
-                hintText: "Approver Name / Remarks...",
-                hintStyle: TextStyle(
-                  color: Color(0xff757575),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  borderSide: BorderSide(color: Color(0xffD1D1D1), width: 1),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(10)),
-                  borderSide: BorderSide(color: Color(0xffD1D1D1), width: 1),
-                ),
-                contentPadding: EdgeInsets.all(16),
-              ),
-            ),
+            // Removed old TextField from here as it's now in the mandatory dialog
 
             const SizedBox(height: 16),
 
@@ -493,7 +472,7 @@ class _RequestApprovalDetailsScreenState
             const SizedBox(height: 24),
 
             InkWell(
-              onTap: _isProcessing ? null : () => _showApproveDialog(context),
+              onTap: _isProcessing ? null : () => _showMandatoryConfirmDialog(context),
               child: Container(
                 height: 50,
                 decoration: BoxDecoration(
@@ -532,35 +511,61 @@ class _RequestApprovalDetailsScreenState
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: _isProcessing ? null : () => _showRejectDialog(context),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: const Color(0xffAD0F14),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.cancel_outlined, color: Colors.white, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      "Reject",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Rejected button removed
             const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showMandatoryConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Approval", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _approverNameController,
+              decoration: const InputDecoration(
+                labelText: "Approver Name",
+                hintText: "Enter Name",
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _remarksController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: "Remarks (Mandatory)",
+                hintText: "Enter Remarks",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff26A69A)),
+            onPressed: () {
+              if (_remarksController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Remarks are mandatory!"), backgroundColor: Colors.orange),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              _showApproveDialog(context);
+            },
+            child: const Text("Confirm", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
@@ -584,7 +589,8 @@ class _RequestApprovalDetailsScreenState
   }
 
   void _showApproveDialog(BuildContext context) {
-    final approver = _remarksController.text.trim();
+    final approver = _approverNameController.text.trim();
+    final remarks = _remarksController.text.trim();
     final displayName = approver.isNotEmpty ? approver : "Admin";
 
     showDialog(
@@ -672,93 +678,7 @@ class _RequestApprovalDetailsScreenState
     );
   }
 
-  void _showRejectDialog(BuildContext context) {
-    final rejector = _remarksController.text.trim();
-    final displayName = rejector.isNotEmpty ? rejector : "Admin";
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffAD0F14).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.cancel,
-                    color: Color(0xffAD0F14),
-                    size: 60,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Rejected !",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Request Rejected Successfully",
-                  style: TextStyle(color: Colors.black, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                _buildDialogRow("Rejected By", displayName),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Divider(),
-                ),
-                _buildDialogRow(
-                  "Total Items",
-                  widget.itemsData.length.toString(),
-                ),
-                const SizedBox(height: 32),
-                InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _callRejectApi();
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xffAD0F14),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      "Ok",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // Removed _showRejectDialog as reject flow is removed
 
   Widget _buildDialogRow(String label, String value) {
     return Row(

@@ -24,6 +24,7 @@ import 'permission_form.dart';
 import '../home/payroll.dart';
 import '../../services/api_client.dart';
 import '../home/hrm_drawer.dart';
+import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 
 
 class Dashboard extends StatefulWidget {
@@ -726,7 +727,7 @@ class _DashboardState extends State<Dashboard> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: HRMDrawer(onHomePressed: widget.onHomePressed),
+      drawer: const DynamicDrawer(moduleName: "HRM"),
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         elevation: 0,
