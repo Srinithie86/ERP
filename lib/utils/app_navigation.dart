@@ -120,7 +120,7 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.DealsScreen()));
     } else if (n == "FOLLOW UP" || n == "FOLLOW UPS") {
        Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.FollowUpScreen()));
-    } else if (n == "MEETING" || n == "MEETINGS" || n == "VISIT") {
+    } else if (n.contains("MEETING") || n.contains("VISIT")) {
        Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.MeetingVisitScreen()));
     }
     // Generic

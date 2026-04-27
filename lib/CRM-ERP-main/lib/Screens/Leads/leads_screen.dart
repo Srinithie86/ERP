@@ -757,6 +757,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   Expanded(
                     child: Text(
                       name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w700,
@@ -889,6 +891,8 @@ class _LeadsScreenState extends State<LeadsScreen> {
                   Expanded(
                     child: Text(
                       name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w700,

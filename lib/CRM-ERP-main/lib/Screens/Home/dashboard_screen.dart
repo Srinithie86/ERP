@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:crm/Screens/Leads/leads_screen.dart';
 import 'package:crm/Screens/Home/notification_screen.dart';
 import 'package:crm/Screens/Deals/deals_screen.dart';
@@ -431,70 +432,99 @@ class _DashboardContentState extends State<_DashboardContent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
-
-
-          // Management Hub Icons (Dynamic)
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
-            child: widget.crmMenus.isEmpty 
-            ? Row(
-              children: [
-                _buildManagementCard(
-                  context: context,
-                  label: 'Lead',
-                  assetIcon: 'assets/icons/leads.png',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF5263), Color(0xFFFF8A95)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dashboard',
+                            style: GoogleFonts.outfit(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF26A69A),
+                            ),
+                          ),
+                          Text(
+                            'Customer Management Hub',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16.sp,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF26A69A),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today, color: Colors.white, size: 16.sp),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Sort by Date',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeadsScreen())),
                 ),
-                SizedBox(width: 12.w),
-                _buildManagementCard(
-                  context: context,
-                  label: 'Enquiry',
-                  assetIcon: 'assets/icons/enquiry.png',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6200EA), Color(0xFF9575CD)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                const SizedBox(height: 24),
+                // Management Hub Icons (Prioritize Lead, Enquiry, Referral)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    children: [
+                      _buildMainActionCard(
+                        context: context,
+                        label: 'Get\nLead',
+                        icon: Icons.person,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF5263), Color(0xFFFF8A95)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeadsScreen())),
+                      ),
+                      SizedBox(width: 12.w),
+                      _buildMainActionCard(
+                        context: context,
+                        label: 'Get\nEnquiry',
+                        icon: Icons.forum,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6200EA), Color(0xFF9575CD)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnquiryScreen())),
+                      ),
+                      SizedBox(width: 12.w),
+                      _buildMainActionCard(
+                        context: context,
+                        label: 'Get\nReferral',
+                        icon: Icons.group_add,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF00BFA5), Color(0xFF64FFDA)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReferralScreen())),
+                      ),
+                    ],
                   ),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnquiryScreen())),
                 ),
-                SizedBox(width: 12.w),
-                _buildManagementCard(
-                  context: context,
-                  label: 'Referral',
-                  assetIcon: 'assets/icons/re.png',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF00BFA5), Color(0xFF64FFDA)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReferralScreen())),
-                ),
-              ],
-            )
-            : Wrap(
-              spacing: 12.w,
-              runSpacing: 12.h,
-              children: widget.crmMenus.map((item) {
-                final name = (item['name'] ?? '').toString();
-                return SizedBox(
-                  width: (MediaQuery.of(context).size.width - 56.w) / 3,
-                  child: _buildManagementCard(
-                    context: context,
-                    label: name,
-                    assetIcon: _getIconPath(name),
-                    gradient: _getGradient(name),
-                    onTap: () => AppNavigation.handleNavigation(context, name, moduleContext: "CRM"),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
 
           const SizedBox(height: 24),
 
@@ -520,11 +550,12 @@ class _DashboardContentState extends State<_DashboardContent> {
                   count: '30',
                   subtitle: 'Follow up',
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFFFB2B2), Color(0xFFFF5252)],
+                    colors: [Color(0xFFFF8A80), Color(0xFFFF5252)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   iconPath: 'assets/icons/today.png',
+                  icon: Icons.calendar_month,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen(initialIndex: 0))),
                 ),
                 SizedBox(width: 12.w),
@@ -533,11 +564,12 @@ class _DashboardContentState extends State<_DashboardContent> {
                   count: '30',
                   subtitle: 'Follow up',
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFB39DDB), Color(0xFF673AB7)],
+                    colors: [Color(0xFF9575CD), Color(0xFF673AB7)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   iconPath: 'assets/icons/missed.png',
+                  icon: Icons.notifications_paused,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen(initialIndex: 1, isMissed: true))),
                 ),
                 SizedBox(width: 12.w),
@@ -546,11 +578,12 @@ class _DashboardContentState extends State<_DashboardContent> {
                   count: '30',
                   subtitle: 'Follow up',
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFE0F2F1), Color(0xFF4DB6AC)],
+                    colors: [Color(0xFF4DB6AC), Color(0xFF00897B)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   iconPath: 'assets/icons/new.png',
+                  icon: Icons.person_search,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen(initialIndex: 2))),
                 ),
               ],
@@ -578,34 +611,38 @@ class _DashboardContentState extends State<_DashboardContent> {
               children: [
                 Expanded(
                   flex: 1,
-                  child: Container(
-                    height: 150.h,
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFE0F2F1), Color(0xFF26A69A)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: BorderRadius.circular(16.r),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/icons/won.png', height: 40.h, width: 40.w),
-                        SizedBox(height: 12.h),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF80CBC4),
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Text('10', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealWonScreen())),
+                    child: Container(
+                      height: 160.h,
+                      padding: EdgeInsets.all(16.r),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE0F2F1), Color(0xFF26A69A)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        SizedBox(height: 8.h),
-                        Text('Won', style: TextStyle(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold)),
-                        Text('Deal', style: TextStyle(color: Colors.white70, fontSize: 11.sp)),
-                      ],
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.auto_graph, size: 40.sp, color: const Color(0xFF00897B)),
+                          SizedBox(height: 12.h),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF80CBC4).withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(15.r),
+                            ),
+                            child: Text('10', style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text('Won', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                          Text('Deal', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13.sp)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -614,51 +651,57 @@ class _DashboardContentState extends State<_DashboardContent> {
                   flex: 1,
                   child: Column(
                     children: [
-                      Container(
-                        height: 70.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Color(0xFFEDE7F6), Color(0xFF673AB7)]),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Image.asset('assets/icons/pending.png', height: 40.h, width: 40.w),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text('Lost', style: TextStyle(color: Colors.white, fontSize: 11.sp)),
-                                Text('Pending', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                  decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8.r)),
-                                  child: Text('10', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
-                                ),
-                              ],
-                            ),
-                          ],
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealLostScreen(isPending: true))),
+                        child: Container(
+                          height: 75.h,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFFEDE7F6), Color(0xFF673AB7)]),
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.pending_actions, size: 30.sp, color: Colors.white),
+                              const Spacer(),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('Lost', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12.sp)),
+                                  Text('Pending', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                    decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(10.r)),
+                                    child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       SizedBox(height: 10.h),
-                      Container(
-                        height: 70.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Color(0xFFFCE4EC), Color(0xFFFFCDD2)]),
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Image.asset('assets/icons/deal-lost.png', height: 40.h, width: 40.w),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                              decoration: BoxDecoration(color: Colors.orange.shade300, borderRadius: BorderRadius.circular(8.r)),
-                              child: Text('10', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
-                            ),
-                          ],
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealLostScreen(isPending: false))),
+                        child: Container(
+                          height: 75.h,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFFFCE4EC), Color(0xFFFF8A80)]),
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.handshake, size: 30.sp, color: Colors.white),
+                              const Spacer(),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                                decoration: BoxDecoration(color: Colors.amber.shade200, borderRadius: BorderRadius.circular(10.r)),
+                                child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -727,6 +770,51 @@ class _DashboardContentState extends State<_DashboardContent> {
             ),
           ),
 
+          const SizedBox(height: 24),
+
+          // Dynamic/Other Menu Items
+          if (widget.crmMenus.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Text(
+                'More Actions',
+                style: GoogleFonts.outfit(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Wrap(
+                spacing: 12.w,
+                runSpacing: 12.h,
+                children: widget.crmMenus.where((m) {
+                  final n = m['name'].toString().toUpperCase();
+                  return !n.contains("LEAD") && 
+                         !n.contains("ENQUIRY") && 
+                         !n.contains("REFERRAL") &&
+                         !n.contains("DEAL WON") &&
+                         !n.contains("DEAL LOST");
+                }).map((item) {
+                  final name = (item['name'] ?? '').toString();
+                  return SizedBox(
+                    width: (MediaQuery.of(context).size.width - 56.w) / 3,
+                    child: _buildManagementCard(
+                      context: context,
+                      label: name,
+                      assetIcon: _getIconPath(name),
+                      gradient: _getGradient(name),
+                      onTap: () => AppNavigation.handleNavigation(context, name, moduleContext: "CRM"),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 100),
         ],
       ),
@@ -736,10 +824,10 @@ class _DashboardContentState extends State<_DashboardContent> {
 );
 }
 
-  Widget _buildManagementCard({
+  Widget _buildMainActionCard({
     required BuildContext context,
     required String label,
-    required String assetIcon,
+    required IconData icon,
     required Gradient gradient,
     required VoidCallback onTap,
   }) {
@@ -747,7 +835,7 @@ class _DashboardContentState extends State<_DashboardContent> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 105.h,
+          height: 115.h,
           decoration: BoxDecoration(
             gradient: gradient,
             borderRadius: BorderRadius.circular(16.r),
@@ -762,21 +850,68 @@ class _DashboardContentState extends State<_DashboardContent> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(assetIcon, height: 35.h, width: 35.w, color: Colors.white),
-              SizedBox(height: 8.h),
+              Icon(icon, size: 35.sp, color: Colors.white),
+              SizedBox(height: 12.h),
               Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 11.sp,
+                  fontSize: 13.sp,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManagementCard({
+    required BuildContext context,
+    required String label,
+    IconData? icon,
+    String? assetIcon,
+    required Gradient gradient,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 115.h,
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null)
+              Icon(icon, size: 35.sp, color: Colors.white)
+            else if (assetIcon != null)
+              Image.asset(assetIcon, height: 35.h, width: 35.w, color: Colors.white),
+            SizedBox(height: 12.h),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13.sp,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -788,31 +923,44 @@ class _DashboardContentState extends State<_DashboardContent> {
     required String subtitle,
     required Gradient gradient,
     required String iconPath,
+    IconData? icon,
     required VoidCallback onTap,
   }) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 85.h,
-          padding: EdgeInsets.all(10.w),
+          height: 100.h,
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(title, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)),
-                  Image.asset(iconPath, height: 20.h, width: 20.w),
-                ],
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
+                  child: icon != null 
+                    ? Icon(icon, color: Colors.white, size: 14.sp)
+                    : Image.asset(iconPath, height: 14.h, width: 14.w, color: Colors.white),
+                ),
               ),
-              const Spacer(),
-              Text(count, style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold)),
-              Text(subtitle, style: TextStyle(color: Colors.white, fontSize: 10.sp)),
+              Padding(
+                padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                    const Spacer(),
+                    Text(count, style: GoogleFonts.outfit(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold)),
+                    Text(subtitle, style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 11.sp)),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -836,14 +984,24 @@ class _DashboardContentState extends State<_DashboardContent> {
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             SizedBox(width: 8.w),
-            Text(
-              label,
-              style: TextStyle(fontSize: 12.sp, color: Colors.black87, fontWeight: FontWeight.w500),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.black54,
+                ),
+              ),
             ),
-            const Spacer(),
             Text(
               '$percentage%',
-              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),

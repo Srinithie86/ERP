@@ -75,15 +75,9 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
 
   @override
   void codeUpdated() {
-    setState(() {
-      final code = codeValue;
-      if (code != null && code.length == 6) {
-        for (int i = 0; i < 6; i++) {
-          _otpControllers[i].text = code[i];
-        }
-        _verifyOtp();
-      }
-    });
+    // We let PinFieldAutoFill handle the UI update and verification
+    // via its own internal listener when it detects the code.
+    debugPrint("Code received via Autofill: $code");
   }
 
   Future<void> _pickPhoneNumber() async {
@@ -195,9 +189,10 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
             _currentCid = cid;
             _currentToken = token;
             _showOtpView = true;
+            _lastVerifiedOtp = null;
           });
           
-          await listenForCode();
+          listenForCode();
           
           // Autofill OTP if provided in response
           if (otp.length == 6) {
@@ -246,9 +241,10 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           _currentCid = cid;
           _currentToken = token;
           _showOtpView = true;
+          _lastVerifiedOtp = null;
         });
 
-        await listenForCode();
+        listenForCode();
 
         // Autofill OTP if provided in response
         if (otp.length == 6) {
@@ -268,10 +264,13 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     }
   }
 
+  String? _lastVerifiedOtp;
   Future<void> _verifyOtp() async {
     final enteredOtp = _otpControllers.map((c) => c.text).join();
     if (enteredOtp.length < 6) return;
-    if (_isLoading) return;
+    if (_isLoading || _lastVerifiedOtp == enteredOtp) return;
+    
+    _lastVerifiedOtp = enteredOtp;
     setState(() => _isLoading = true);
     try {
       final response = await ErpLoginApi.verifyOtp(
@@ -283,10 +282,12 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         lat: DeviceService.latitude,
         lng: DeviceService.longitude,
       );
+      debugPrint("OTP Verify API Response: $response");
 
       if (response['error'] == false) {
         _finalizeLogin(response);
       } else {
+        _lastVerifiedOtp = null; // Allow retry on error
         setState(() => _errorText = response['error_msg'] ?? 'Invalid OTP');
       }
     } catch (e) {
@@ -313,6 +314,8 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     await prefs.setString('role_id', roleId);
     await prefs.setString('login_cus_id', uid); // For HRM module compatibility
     if (response['menu'] != null) if (mounted) context.read<MenuProvider>().setMenu(response['menu']);
+    debugPrint("Finalizing login, navigating to HomeScreen...");
+    TextInput.finishAutofillContext();
     if (mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
   }
 
@@ -427,71 +430,57 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   }
 
   Widget _buildFormPortion() {
-    return Column(
-      key: const ValueKey("LoginForm"),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 54.h,
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(27.r), border: Border.all(color: Colors.grey.shade100), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]),
-          child: Row(
-            children: [
-              _buildToggle("Via Password", !_isMobileLogin, () => setState(() { _isMobileLogin = false; _errorText = null; })),
-              _buildToggle("Via OTP", _isMobileLogin, () => setState(() { _isMobileLogin = true; _errorText = null; })),
-            ],
-          ),
-        ),
-        SizedBox(height: 24.h),
-        Text("Log in the best experience", style: GoogleFonts.outfit(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.black)),
-        SizedBox(height: 8.h),
-        Text(_isMobileLogin ? "Enter your mobile number to continue" : "Enter your user id and password to continue", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
-        SizedBox(height: 16.h),
-        if (_isMobileLogin)
-          GestureDetector(
-            onTap: _pickPhoneNumber,
-            child: AbsorbPointer(
-              absorbing: false,
-              child: _buildField("Phone Number", _mobileController, isPhone: true),
-            ),
-          )
-        else ...[
-          _buildField("User ID", _usernameController),
-          SizedBox(height: 16.h),
-          _buildField("Password", _passwordController, isPassword: true),
-        ],
-        if (_errorText != null) Padding(padding: EdgeInsets.only(top: 10.h), child: Text(_errorText!, style: GoogleFonts.outfit(color: Colors.red, fontSize: 13.sp))),
-        SizedBox(height: 40.h),
-        Center(
-          child: RichText(
-            textAlign: TextAlign.center,
-            text: TextSpan(
-              style: GoogleFonts.outfit(color: Colors.black54, fontSize: 13.sp),
+    return AutofillGroup(
+      child: Column(
+        key: const ValueKey("LoginForm"),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 54.h,
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(27.r), border: Border.all(color: Colors.grey.shade100), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]),
+            child: Row(
               children: [
-                const TextSpan(text: "By Continuing, you Confirm that you are agree to the\ntotal ERP'S "),
-                TextSpan(text: "terms of use", style: TextStyle(color: const Color(0xFF00897B), fontWeight: FontWeight.bold)),
-                const TextSpan(text: " and "),
-                TextSpan(text: "privacy policy", style: TextStyle(color: const Color(0xFF00897B), fontWeight: FontWeight.bold)),
+                _buildToggle("Via Password", !_isMobileLogin, () => setState(() { _isMobileLogin = false; _errorText = null; })),
+                _buildToggle("Via OTP", _isMobileLogin, () => setState(() { _isMobileLogin = true; _errorText = null; })),
               ],
             ),
           ),
-        ),
+          SizedBox(height: 24.h),
+          Text("Log in the best experience", style: GoogleFonts.outfit(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.black)),
+          SizedBox(height: 8.h),
+          Text(_isMobileLogin ? "Enter your mobile number to continue" : "Enter your user id and password to continue", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
+          SizedBox(height: 16.h),
+          if (_isMobileLogin)
+            GestureDetector(
+              onTap: _pickPhoneNumber,
+              child: AbsorbPointer(
+                absorbing: false,
+                child: _buildField("Phone Number", _mobileController, isPhone: true, autofillHints: [AutofillHints.telephoneNumber]),
+              ),
+            )
+          else ...[
+            _buildField("User ID", _usernameController, autofillHints: [AutofillHints.username]),
+            SizedBox(height: 16.h),
+            _buildField("Password", _passwordController, isPassword: true, autofillHints: [AutofillHints.password]),
+          ],
         SizedBox(height: 16.h),
-        SizedBox(
-          width: double.infinity,
-          height: 52.h,
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _validateAndSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF047466),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey.shade300,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          SizedBox(
+            width: double.infinity,
+            height: 52.h,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : _validateAndSubmit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF047466),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+              ),
+              child: _isLoading ? SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text("Continue", style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.bold)),
             ),
-            child: _isLoading ? SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : Text("Continue", style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.bold)),
           ),
-        ),
-        SizedBox(height: 60.h),
-      ],
+          SizedBox(height: 60.h),
+        ],
+      ),
     );
   }
 
@@ -530,7 +519,8 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
                     for (int i = 0; i < 6; i++) {
                       _otpControllers[i].text = code[i];
                     }
-                    _verifyOtp();
+                    // Wrap in post frame callback to avoid "setState during build" error
+                    WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp());
                   }
                 },
                 codeLength: 6,
@@ -583,11 +573,12 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, {bool isPassword = false, bool isPhone = false}) {
+  Widget _buildField(String label, TextEditingController controller, {bool isPassword = false, bool isPhone = false, Iterable<String>? autofillHints}) {
     return TextField(
       controller: controller,
       obscureText: isPassword && _obscurePassword,
-      keyboardType: isPhone ? TextInputType.number : TextInputType.text,
+      autofillHints: autofillHints,
+      keyboardType: isPhone ? TextInputType.number : (isPassword ? TextInputType.visiblePassword : TextInputType.text),
       inputFormatters: isPhone ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)] : null,
       style: GoogleFonts.outfit(fontSize: 16.sp),
       decoration: InputDecoration(

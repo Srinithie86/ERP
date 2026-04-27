@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class DealLostScreen extends StatelessWidget {
-  const DealLostScreen({super.key});
+  final bool isPending;
+  const DealLostScreen({super.key, this.isPending = false});
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +17,9 @@ class DealLostScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Deal lost',
-          style: TextStyle(
+        title: Text(
+          isPending ? 'Pending deals' : 'Deal lost',
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.w500,
