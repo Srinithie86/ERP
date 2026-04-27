@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import '../purchase_request_pdf_viewer.dart';
 
@@ -127,26 +129,26 @@ class _GrnInspectionScreenState extends State<GrnInspectionScreen> {
       
       for (int i = 0; i < items.length; i++) {
         updatedItems.add({
-          "id": items[i]['id'],
-          "acc_qty": acceptQtyControllers[i].text,
-          "rejected_qty": rejectQtyControllers[i].text,
-          "remarks": remarksControllers[i].text,
-          "qc_test_result": "Pass", // Default or you could add a selector
+          "item_code": items[i]['item_code']?.toString() ?? '',
+          "acc_qty": acceptQtyControllers[i].text.trim(),
+          "rej_qty": rejectQtyControllers[i].text.trim(),
+          "result": "Pass", // Default
+          "status": "Approved",
+          "remarks": remarksControllers[i].text.trim(),
         });
       }
 
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {
-          "type": "4033",
+          "type": "4048",
           "cid": cid.isEmpty ? "44555666" : cid,
           "device_id": deviceId,
           "ln": ln,
           "lt": lt,
           "uid": uid,
-          "id": widget.inspectionData['id'].toString(),
-          "status": "Approved",
-          "data": jsonEncode(updatedItems),
+          "id": widget.inspectionData['id']?.toString() ?? '',
+          "items": jsonEncode(updatedItems),
         },
       );
 
@@ -246,13 +248,21 @@ class _GrnInspectionScreenState extends State<GrnInspectionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          "GRN Inspection",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        backgroundColor: primaryColor,
+        backgroundColor: const Color(0xff26A69A),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: false,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "GRN Inspection",
+          style: GoogleFonts.outfit(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
         actions: [
           if (data['pdf_link'] != null && data['pdf_link'].toString().isNotEmpty)
             IconButton(
@@ -368,7 +378,7 @@ class _GrnInspectionScreenState extends State<GrnInspectionScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
                 ],
                 border: Border.all(color: Colors.grey.shade200),
               ),

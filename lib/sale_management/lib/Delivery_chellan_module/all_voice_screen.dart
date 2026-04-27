@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'generate_info.dart';
 import 'package:flutter/services.dart';
+import 'product_model.dart';
 import 'invoice_view_screen.dart';
+import '../widgets/pdf_viewer_screen.dart';
 
 // ─── Theme Constants ──────────────────────────────────────
 const kTeal = Color(0xFF26A69A);
@@ -28,6 +30,8 @@ class DeliveryChallanItem {
   final String date;
   final String invoiceNo;
   final DeliveryChallanStatus status;
+  final String? pdfUrl;
+  final Map<String, dynamic>? rawData;
 
   const DeliveryChallanItem({
     required this.productName,
@@ -35,6 +39,8 @@ class DeliveryChallanItem {
     required this.date,
     required this.invoiceNo,
     required this.status,
+    this.pdfUrl,
+    this.rawData,
   });
 }
 
@@ -112,12 +118,13 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
       final response = await http.post(
         Uri.parse('https://erpsmart.in/total/api/m_api/'),
         body: {
-          'type': '8014', // Placeholder for Delivery Challan List
+          'type': '8015',
           'cid': cid,
           'ln': ln,
           'lt': lt,
           'device_id': deviceId,
           'uid': uid,
+          'token': prefs.getString('token') ?? 'ytsytsfd',
           'date': _selectedDate.toIso8601String().split('T')[0],
         },
       );
@@ -127,14 +134,19 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
       if (res['error'] == false && res['data'] != null) {
         final List<dynamic> data = res['data'];
         setState(() {
-          _allInvoices = data.map((item) {
-            final inv = item['challan'] ?? item['invoice'];
+          _allInvoices = data.map((inv) {
             return DeliveryChallanItem(
-              productName: inv['customer_name'] ?? 'Unknown Customer',
-              amount: "₹${inv['grand_total'] ?? '0'}",
-              date: inv['date'] ?? '',
-              invoiceNo: inv['challan_no'] ?? inv['invoice_no'] ?? '',
-              status: DeliveryChallanStatus.paid,
+              productName: (inv['customer_name'] == null || inv['customer_name'] == "") 
+                  ? 'Unknown Customer' 
+                  : inv['customer_name'],
+              amount: "₹${inv['g_tol'] ?? '0'}",
+              date: inv['dc_date'] ?? '',
+              invoiceNo: inv['dc_code'] ?? '',
+              status: inv['status'] == 'active' 
+                  ? DeliveryChallanStatus.paid 
+                  : DeliveryChallanStatus.pending,
+              pdfUrl: inv['pdf_url'],
+              rawData: inv,
             );
           }).toList();
         });
@@ -296,7 +308,7 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
               // ── Title ────────────────────────────────────
               Expanded(
                 child: Text(
-                  'All Delivery Challans',
+                  'Delivery Challans',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: titleFontSize,
@@ -531,95 +543,132 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
     final badgeHeight = screenWidth > 600 ? 28.0 : screenWidth * 0.065;
     final badgeRadius = screenWidth > 600 ? 12.0 : screenWidth * 0.03;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: marginB),
-      decoration: BoxDecoration(
-        color: Color(0xffF2F2F2),
-        borderRadius: BorderRadius.circular(cardRadius),
-        border: Border.all(color: kBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(cardPad),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    item.productName,
-                    style: TextStyle(
-                      fontSize: productFontSize,
-                      fontWeight: FontWeight.w700,
-                      color: kTextPrimary,
-                      height: 1.3,
+    return GestureDetector(
+      onTap: () {
+        if (item.pdfUrl != null && item.pdfUrl!.isNotEmpty) {
+           Navigator.push(
+             context,
+             MaterialPageRoute(
+               builder: (ctx) => DeliveryChallanViewScreen(
+                 selectedProducts: const [],
+                 summary: DeliveryChallanSummary(
+                   subtotal: 0,
+                   discount: 0,
+                   taxableAmount: 0,
+                   igst: 0,
+                   cgst: 0,
+                   sgst: 0,
+                   tcs: 0,
+                   tds: 0,
+                   shippingCharges: 0,
+                   finalPayable: double.tryParse(item.amount.replaceAll('₹', '').replaceAll(',', '')) ?? 0,
+                   taxType: 'GST',
+                   priceType: 'Exclude',
+                 ),
+                 title: 'Delivery Challan',
+                 pdfUrl: item.pdfUrl!,
+                 selectedCustomer: {
+                   'Ledger_Name': item.productName,
+                   'id': item.rawData?['cus_id'] ?? item.rawData?['id'] ?? '',
+                   'gst': item.rawData?['customer_gstin'] ?? '',
+                   'phone': item.rawData?['contact_phone'] ?? '',
+                   'address': item.rawData?['address'] ?? '',
+                 },
+                 challanMetadata: item.rawData,
+               ),
+             ),
+           );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: marginB),
+        decoration: BoxDecoration(
+          color: const Color(0xffF2F2F2),
+          borderRadius: BorderRadius.circular(cardRadius),
+          border: Border.all(color: kBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(cardPad),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.productName,
+                      style: TextStyle(
+                        fontSize: productFontSize,
+                        fontWeight: FontWeight.w700,
+                        color: kTextPrimary,
+                        height: 1.3,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(width: screenWidth * 0.02),
-                Text(
-                  item.amount,
-                  style: TextStyle(
-                    fontSize: amountFontSize,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xff005BBF),
+                  SizedBox(width: screenWidth * 0.02),
+                  Text(
+                    item.amount,
+                    style: TextStyle(
+                      fontSize: amountFontSize,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xff005BBF),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: screenWidth * 0.015),
-
-            SizedBox(height: screenWidth * 0.015),
-            Row(
-              children: [
-                Text(
-                  item.date,
-                  style: TextStyle(
-                    fontSize: subFontSize,
-                    color: kTextSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.03),
-                Expanded(
-                  child: Text(
-                    item.invoiceNo,
+                ],
+              ),
+              SizedBox(height: screenWidth * 0.015),
+              SizedBox(height: screenWidth * 0.015),
+              Row(
+                children: [
+                  Text(
+                    item.date,
                     style: TextStyle(
                       fontSize: subFontSize,
                       color: kTextSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  width: badgeWidth,
-                  height: badgeHeight,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(badgeRadius),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    statusLabel,
-                    style: TextStyle(
-                      fontSize: badgeFontSz,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      letterSpacing: 0.2,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  SizedBox(width: screenWidth * 0.03),
+                  Expanded(
+                    child: Text(
+                      item.invoiceNo,
+                      style: TextStyle(
+                        fontSize: subFontSize,
+                        color: kTextSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    width: badgeWidth,
+                    height: badgeHeight,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      borderRadius: BorderRadius.circular(badgeRadius),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: badgeFontSz,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

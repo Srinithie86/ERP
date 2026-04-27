@@ -6,13 +6,13 @@ import 'package:erp_smart/utils/app_navigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:erp_smart/Models/erp_login_api.dart';
-import 'package:hrm/main.dart'; 
-import 'package:erp_smart/main.dart' as main;
+import 'package:erp_localization/erp_localization.dart'; // import from new package
 import 'package:erp_smart/TOTAL_ERP/home/home.dart';
 import 'package:erp_smart/TOTAL_ERP/home/dashboard_sub_screen.dart';
 import 'package:erp_smart/utils/device_service.dart';
 import 'profile_details_sheet.dart';
 import 'package:erp_smart/TOTAL_ERP/login/sign_in_screen.dart' as erp;
+import 'package:erp_smart/TOTAL_ERP/home/terms_conditions_screen.dart';
 
 class DynamicDrawer extends StatefulWidget {
   final String? moduleName;
@@ -329,7 +329,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                         _buildSectionHeader("Preference"),
                         // Dark Mode removed per user request
                         ValueListenableBuilder<Locale>(
-                          valueListenable: main.localeNotifier,
+                          valueListenable: localeNotifier,
                           builder: (context, locale, child) {
                             return _DrawerTile(
                               icon: Icons.language_outlined,
@@ -361,7 +361,13 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                         _DrawerTile(
                           icon: Icons.policy_outlined,
                           title: "Terms & Policies",
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TermsConditionsScreen()),
+                            );
+                          },
                           trailing: const Icon(Icons.chevron_right, size: 20),
                         ),
                         
@@ -413,7 +419,13 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     List<Widget> items = [];
 
     if (widget.moduleName != null) {
-      final subMenus = provider.getSubMenus(widget.moduleName!);
+      final subMenus = provider.getSubMenus(widget.moduleName!).where((item) {
+        final name = (item['name'] ?? '').toString().toUpperCase();
+        if (name.contains("CREATE") && (name.contains("QC") || name.contains("INSPECTION"))) {
+          return false;
+        }
+        return true;
+      }).toList();
       return subMenus.map((item) => _buildDynamicTile(context, item, provider, widget.moduleName)).toList();
     }
 
@@ -548,16 +560,18 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 45,
-            backgroundColor: Colors.white,
-            child: ClipOval(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: (profilePhoto != null && profilePhoto!.isNotEmpty) 
-                    ? Image.network(profilePhoto!, fit: BoxFit.contain) 
-                    : Image.asset('assets/images/inventory.png', fit: BoxFit.contain), // Default logo
-              ),
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 70.w,
+              height: 70.w,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Icon(Icons.business, size: 50.sp, color: const Color(0xFF26A69A)),
             ),
           ),
           const SizedBox(width: 15),
@@ -656,7 +670,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     return ListTile(
       title: Text(title, style: GoogleFonts.outfit()),
       onTap: () {
-        main.localeNotifier.value = locale;
+        localeNotifier.value = locale;
         Navigator.pop(context);
       },
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:erp_smart/TOTAL_ERP/home/home.dart';
 // Purchase Imports
 import 'package:purchase_erp/create_pr.dart';
 import 'package:purchase_erp/Supplier%20Quotations/supplier_quotations.dart';
@@ -9,6 +9,7 @@ import 'package:purchase_erp/Supplier%20Quotations/quotation_comparison.dart';
 import 'package:purchase_erp/purchase_invoice.dart';
 import 'package:purchase_erp/Request%20Approvals/approvals.dart';
 import 'package:purchase_erp/purchase_orders/purchase_orders.dart';
+import 'package:purchase_erp/QC/qc_inspections_screen.dart';
 
 // Sales Imports
 import 'package:sale_management/sales_order_module/all_voice_screen.dart';
@@ -18,11 +19,15 @@ import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart';
 import 'package:sale_management/Direct_invoice_module/direct_generate_info.dart';
 import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
 import 'package:purchase_erp/dashboard.dart' as purchase;
-import 'package:crm/Home/dashboard_screen.dart' as crm;
+import 'package:crm/Screens/Home/dashboard_screen.dart' as crm;
+import 'package:crm/Screens/Leads/leads_screen.dart' as crm_leads;
+import 'package:crm/Screens/EnquiryScreen/enquiry_screen.dart' as crm_enquiry;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:hrm/views/home/settings.dart' as hrm_settings;
 import 'package:hrm/views/home_screen/leave_management.dart' as hrm_leave;
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
+import 'package:sale_management/Sales_Module/receipt_voucher_screen.dart';
+import 'package:manufacturing_erp/dashboard.dart' as mfg;
 
 class AppNavigation {
   static void handleNavigation(BuildContext context, String name, {String? moduleContext}) {
@@ -31,22 +36,13 @@ class AppNavigation {
     
     // Check for "Dashboard" specifically within a module context
     if (n == "DASHBOARD") {
-      if (m.contains("PURCHASE")) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => purchase.Dashboard(isEmbedded: true)));
-        return;
-      } else if (m.contains("SALES")) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const sales.DashboardPage(isEmbedded: true)));
-        return;
-      } else if (m.contains("CRM")) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.DashboardScreen(initialIndex: 0, isEmbedded: true)));
-        return;
-      } else if (m.contains("HRM")) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const hrm.MainRoot(isEmbedded: true)));
-        return;
-      } else if (m.contains("ACCOUNTING")) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const accounting.MainShell()));
-        return;
-      }
+      // User explicitly requested: when they click dashboard menu they go to the erp common dashboard
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
+      return;
     }
 
     // Purchase Module
@@ -58,7 +54,9 @@ class AppNavigation {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const RFQScreen()));
     } else if (n == "PURCHASE ORDER (PO)" || n == "PURCHASE ORDERS") {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const PurchaseOrdersScreen()));
-    } else if (n == "GRN INSPECTION/QC" || n == "GRN / QC") {
+    } else if (n.contains("QC") || n.contains("INSPECTION")) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const QCInspectionsScreen()));
+    } else if (n.contains("GRN") || n.contains("GOODS RECEIPT")) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const GRNScreen()));
     } else if (n == "REQUEST FOR APPROVAL" || n == "APPROVALS") {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const RequestApprovals()));
@@ -86,10 +84,10 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const DirectInvoiceGenerateInfoScreen()));
     } else if (n.contains("APPROVAL") || n.contains("RETURN")) {
        // Generic implementation for Sales Approval/Return as found in Sales_Module
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const sales.ApproveScreen()));
+       // Navigator.push(context, MaterialPageRoute(builder: (_) => const sales.ApproveScreen()));
     } 
     else if (n.contains("RECEIPT") || n.contains("VOUCHER")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const sales.ReceiptVoucherScreen()));
+       Navigator.push(context, MaterialPageRoute(builder: (_) => const ReceiptVoucherScreen()));
     }    
     // HRM Module
     else if (n.contains("LEAVE APPROVAL") || n.contains("LEAVE TYPES") || n == "LEAVE") {
@@ -98,6 +96,32 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_settings.SettingsScreen()));
     } else if (n.contains("PERMISSION")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_leave.LeaveManagementScreen()));
+    }
+    // Manufacturing Module
+    else if (n == "BOM" || n.contains("BILL OF MATERIAL")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.BomScreen()));
+    } else if (n.contains("JOB ORDER")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.JobOrderScreen()));
+    } else if (n.contains("JOB CARD")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.JobCardScreen()));
+    } else if (n.contains("MATERIAL INTENT") || n.contains("MATERIAL REQUEST")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.MaterialRequestScreen()));
+    } else if (n.contains("PRODUCTION")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.ProductionEntryScreen()));
+    } else if (n.contains("QUALITY") || n == "QC") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg.QcScreen()));
+    }
+    // CRM Module
+    else if (n == "LEAD" || n == "LEADS") {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_leads.LeadsScreen()));
+    } else if (n == "ENQUIRY" || n == "ENQUIRIES" || n == "LEAD/ENQUIRY") {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_enquiry.EnquiryScreen()));
+    } else if (n == "DEAL" || n == "DEALS") {
+       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.DealsScreen()));
+    } else if (n == "FOLLOW UP" || n == "FOLLOW UPS") {
+       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.FollowUpScreen()));
+    } else if (n == "MEETING" || n == "MEETINGS" || n == "VISIT") {
+       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.MeetingVisitScreen()));
     }
     // Generic
     else {
@@ -117,6 +141,7 @@ class AppNavigation {
     if (n.contains("CRM")) return Icons.contact_mail_outlined;
     if (n.contains("ACCOUNTING")) return Icons.account_balance_wallet_outlined;
     if (n.contains("WAREHOUSE")) return Icons.warehouse_outlined;
+    if (n.contains("MANUFACTURING")) return Icons.precision_manufacturing_outlined;
     
     // Action Icons
     if (n.contains("CREATE PR") || n == "PR" || n.contains("PURCHASE REQUEST")) return Icons.add_shopping_cart_rounded;
@@ -133,6 +158,11 @@ class AppNavigation {
     if (n.contains("SETTINGS")) return Icons.settings_outlined;
     if (n.contains("REPORT")) return Icons.analytics_outlined;
     if (n.contains("DASHBOARD")) return Icons.dashboard_customize_outlined;
+    if (n.contains("LEAD")) return Icons.person_add_alt_1_rounded;
+    if (n.contains("ENQUIRY")) return Icons.headset_mic_rounded;
+    if (n.contains("DEAL")) return Icons.handshake_rounded;
+    if (n.contains("FOLLOW")) return Icons.event_note_rounded;
+    if (n.contains("MEETING")) return Icons.groups_rounded;
     
     return Icons.circle_outlined;
   }

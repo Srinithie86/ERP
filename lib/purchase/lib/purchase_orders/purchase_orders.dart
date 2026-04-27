@@ -126,6 +126,7 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
           titleSpacing: 0,
           backgroundColor: primaryTeal,
           elevation: 0,
+          centerTitle: false,
           title: Text("Purchase Orders", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18)),
           leading: widget.isEmbedded ? null : IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),

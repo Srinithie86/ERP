@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart';
+import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart';
 import 'package:sale_management/Proforma_Invoice_Module/generate_info.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
-import 'package:erp_smart/providers/menu_provider.dart';
-import 'package:erp_smart/utils/app_navigation.dart';
-import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
-import 'package:erp_smart/utils/widgets/profile_details_sheet.dart';
+import 'package:sale_management/Sales_Module/approve_screen.dart';
+import 'package:sale_management/widgets/app_drawer.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../widgets/app_theme.dart';
+import 'package:sale_management/widgets/app_theme.dart';
+import 'package:erp_localization/erp_localization.dart';
 import 'notification_screen.dart';
 import 'inventory_catalog_screen.dart';
-import '../profile module/profile_screen.dart';
+import 'package:sale_management/profile module/profile_screen.dart';
 import 'receipt_voucher_screen.dart';
-import '../Direct_invoice_module/direct_generate_info.dart';
+import 'package:sale_management/Direct_invoice_module/direct_generate_info.dart';
 
-import '../sales_order_module/generate_info.dart';
-import '../sales_order_module/all_voice_screen.dart';
-import '../sales_invoice_module/all_voice_screen.dart';
-import '../sales_invoice_module/generate_info.dart';
-import '../Proforma_Invoice_Module/generate_info.dart';
+import 'package:sale_management/sales_order_module/generate_info.dart';
+import 'package:sale_management/sales_order_module/all_voice_screen.dart';
+import 'package:sale_management/sales_invoice_module/all_voice_screen.dart';
+import 'package:sale_management/sales_invoice_module/generate_info.dart';
+import 'package:sale_management/Proforma_Invoice_Module/generate_info.dart';
 
 export 'approve_screen.dart';
 export 'receipt_voucher_screen.dart';
@@ -68,7 +72,6 @@ class _DashboardPageState extends State<DashboardPage> {
     const _DashboardBody(),
     const ReceiptVoucherScreen(),
     const SalesOrderInventoryCatalogScreen(),
-   // const ProfileScreen(),
   ];
 
   @override
@@ -77,8 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
       value: AppTheme.statusBarTeal,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        drawer: const DynamicDrawer(moduleName: "SALES"),
-        endDrawer: const DynamicDrawer(), 
+        drawer: const AppDrawer(),
         body: _tabPages[_selectedIndex],
         bottomNavigationBar: _BottomNavBar(
           selectedIndex: _selectedIndex,
@@ -190,23 +192,88 @@ class _BottomNavItem {
 }
 
 // ─── DASHBOARD BODY ───────────────────────────────────────────────────────────
-class _DashboardBody extends StatelessWidget {
+class _DashboardBody extends StatefulWidget {
   const _DashboardBody();
 
   @override
+  State<_DashboardBody> createState() => _DashboardBodyState();
+}
+
+class _DashboardBodyState extends State<_DashboardBody> {
+  Map<String, dynamic>? _dashboardData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
+  }
+
+  Future<void> _fetchDashboardData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final uid = prefs.getString('uid') ?? '1';
+      final roleId = prefs.getString('role_id') ?? '1';
+      final deviceId = prefs.getString('device_id') ?? 'abc123';
+      final token = prefs.getString('token') ?? 'gjfhh';
+      final lt = prefs.getString('lt') ?? '123';
+      final ln = prefs.getString('ln') ?? '123';
+
+      final response = await http.post(
+        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        body: {
+          'type': '8016',
+          'cid': cid,
+          'role_id': roleId,
+          'lt': lt,
+          'ln': ln,
+          'device_id': deviceId,
+          'uid': uid,
+          'token': token,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _dashboardData = data;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching dashboard data: $e");
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF26A69A)));
+    }
+
+    final counts = _dashboardData?['counts'] ?? {};
+    final revenueData = _dashboardData?['monthly_revenue'] ?? {};
+    final topProducts = (_dashboardData?['top_products'] as List?) ?? [];
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
         _buildAppBar(context),
         const SliverToBoxAdapter(child: SizedBox(height: 1)),
-        _buildStatsGrid(context),
-        _buildSectionLabel('Quick Actions'),
+        _buildStatsGrid(context, counts),
+        _buildSectionLabel(AppLocalization.of('Quick Actions')),
         _buildQuickActions(context),
         _buildReportsAnalyticsBanner(),
-        _buildSectionLabel('Monthly Revenue Trend'),
-        _buildRevenueChart(),
-        _buildOrderStatusSection(),
+        _buildRevenueChart(revenueData),
+        _buildSectionLabel(AppLocalization.of('Monthly Revenue Trend')),
+        _buildTopProductsSection(topProducts),
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
@@ -224,44 +291,31 @@ class _DashboardBody extends StatelessWidget {
           onPressed: () => Scaffold.of(context).openDrawer(),
         ),
       ),
-      title: const Text(
-        'Sales Management',
-        style: TextStyle(
+      title: Text(
+        AppLocalization.of('Sales Management'),
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 18,
           fontWeight: FontWeight.w600,
           fontFamily: 'Poppins',
         ),
       ),
-      actions: [
-        IconButton(
-          onPressed: () {
-             Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) => const NotificationPage()),
-             );
-          },
-          icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
-        ),
-        const SizedBox(width: 4),
-        Builder(
-          builder: (context) => GestureDetector(
-            onTap: () => Scaffold.of(context).openEndDrawer(),
-            child: const CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.white24,
-              child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-      ],
+      actions: const [],
     );
   }
 
   SliverToBoxAdapter _buildQuickActions(BuildContext context) {
-    final menuProvider = context.watch<MenuProvider>();
-    final subMenus = menuProvider.getSubMenus("SALES");
+    // Modular fix: Use a local list of sub-menus instead of the global MenuProvider
+    // to avoid dependency on the erp_smart main app.
+    final List<Map<String, dynamic>> subMenus = [
+      {'name': 'Sales Order'},
+      {'name': 'Sales Invoice'},
+      {'name': 'Proforma Invoice'},
+      {'name': 'Direct Invoice'},
+      {'name': 'Delivery Challan'},
+      {'name': 'Approval'},
+      {'name': 'Receipt Voucher'},
+    ];
 
     return SliverToBoxAdapter(
       child: Container(
@@ -301,10 +355,10 @@ class _DashboardBody extends StatelessWidget {
                   final String trimmedName = name.trim();
 
                   return _QuickActionButton(
-                    icon: AppNavigation.getIcon(trimmedName),
+                    icon: _getLocalIcon(trimmedName),
                     label: _getShortLabel(trimmedName),
                     color: _getActionColor(trimmedName),
-                    onTap: () => AppNavigation.handleNavigation(context, trimmedName, moduleContext: "SALES"),
+                    onTap: () => _handleLocalNavigation(context, trimmedName),
                   );
                 },
               ),
@@ -407,7 +461,8 @@ class _DashboardBody extends StatelessWidget {
     );
   }
 
-  SliverToBoxAdapter _buildStatsGrid(BuildContext context) {
+  SliverToBoxAdapter _buildStatsGrid(
+      BuildContext context, Map<String, dynamic> counts) {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -422,7 +477,7 @@ class _DashboardBody extends StatelessWidget {
             StatCard(
               icon: Icons.shopping_cart,
               title: 'Sales Orders',
-              value: '248',
+              value: counts['sales_order']?.toString() ?? '0',
               change: '+8.3%',
               isPositive: true,
               accentColor: const Color(0xFFFF2D55),
@@ -440,8 +495,8 @@ class _DashboardBody extends StatelessWidget {
             ),
             StatCard(
               icon: Icons.description,
-              title: 'Invoice Issued',
-              value: '12',
+              title: 'Sales Invoice',
+              value: counts['invoice']?.toString() ?? '0',
               change: '+5.7%',
               isPositive: true,
               accentColor: const Color(0xFF5856D6),
@@ -459,8 +514,8 @@ class _DashboardBody extends StatelessWidget {
             ),
             StatCard(
               icon: Icons.monetization_on,
-              title: 'Collections',
-              value: '28',
+              title: 'Delivery Challan',
+              value: counts['delivery_challan']?.toString() ?? '0',
               change: '+8.0%',
               isPositive: true,
               accentColor: const Color(0xFF00D1FF),
@@ -469,11 +524,18 @@ class _DashboardBody extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const DeliveryChallanAllScreen()));
+              },
             ),
             StatCard(
               icon: Icons.track_changes,
-              title: 'Sales Returns',
-              value: '16',
+              title: 'Proforma Invoice',
+              value: counts['proforma']?.toString() ?? '0',
               change: '-12%',
               isPositive: false,
               accentColor: const Color(0xFFD81B60),
@@ -482,6 +544,14 @@ class _DashboardBody extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProformaAllInvoicePage(
+                              title: 'Proforma Invoice',
+                            )));
+              },
             ),
           ],
         ),
@@ -489,16 +559,16 @@ class _DashboardBody extends StatelessWidget {
     );
   }
 
-  SliverToBoxAdapter _buildRevenueChart() {
-    return const SliverToBoxAdapter(
+  SliverToBoxAdapter _buildRevenueChart(Map<String, dynamic> revenueData) {
+    return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: RevenueChartCard(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: RevenueChartCard(revenueData: revenueData),
       ),
     );
   }
 
-  SliverToBoxAdapter _buildOrderStatusSection() {
+  SliverToBoxAdapter _buildTopProductsSection(List<dynamic> products) {
     return SliverToBoxAdapter(
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 24, 16, 0),
@@ -518,7 +588,7 @@ class _DashboardBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Order Status',
+              'Top Products',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -526,31 +596,88 @@ class _DashboardBody extends StatelessWidget {
                 fontFamily: 'Poppins',
               ),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                SizedBox(
-                  width: 160,
-                  height: 160,
-                  child: CustomPaint(
-                    painter: PieChartPainter(),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _buildLegendItem('Rejected', const Color(0xFF00CED1)),
-                      _buildLegendItem('Completed', const Color(0xFFCD853F)),
-                      _buildLegendItem('Pending', const Color(0xFFF0E68C)),
-                      _buildLegendItem('Process', const Color(0xFF003D4D)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: 16),
+            if (products.isEmpty)
+              const Center(child: Text("No product data available"))
+            else
+              ...products.map((p) => _buildProductItem(p)).toList(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductItem(Map<String, dynamic> product) {
+    final name = product['product_name'] ?? 'Unknown';
+    final qty = product['quantity']?.toString() ?? '0';
+    final perc = (product['percentage'] as num?)?.toDouble() ?? 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A2E),
+                    fontFamily: 'Poppins',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                '$qty units',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF26A69A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Stack(
+            children: [
+              Container(
+                height: 6,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: (perc / 100).clamp(0.0, 1.0),
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF26A69A), Color(0xFF4DB6AC)],
+                    ),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${perc.toStringAsFixed(1)}% of total sales',
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -578,6 +705,51 @@ class _DashboardBody extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _getLocalIcon(String name) {
+    final String n = name.toUpperCase();
+    if (n.contains("ORDER")) return Icons.local_offer_outlined;
+    if (n.contains("INVOICE")) return Icons.receipt_long_outlined;
+    if (n.contains("PROFORMA")) return Icons.description_outlined;
+    if (n.contains("DIRECT")) return Icons.bolt_rounded;
+    if (n.contains("CHALLAN")) return Icons.local_shipping_outlined;
+    if (n.contains("RETURN")) return Icons.assignment_return_outlined;
+    if (n.contains("APPROVAL")) return Icons.assignment_ind_outlined;
+    if (n.contains("RECEIPT") || n.contains("VOUCHER"))
+      return Icons.account_balance_wallet_outlined;
+    return Icons.circle_outlined;
+  }
+
+  void _handleLocalNavigation(BuildContext context, String name) {
+    final String n = name.trim().toUpperCase();
+    if (n.contains("SALES ORDER")) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const AllSalesOrderPage()));
+    } else if (n.contains("SALES INVOICE")) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const SalesInvoiceAllScreen()));
+    } else if (n.contains("DELIVERY CHALLAN")) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const DeliveryChallanAllScreen()));
+    } else if (n.contains("PROFORMA INVOICE")) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  const ProformaAllInvoicePage(title: 'Proforma Invoice')));
+    } else if (n.contains("DIRECT INVOICE")) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const DirectInvoiceGenerateInfoScreen()));
+    } else if (n.contains("APPROVAL")) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const ApproveScreen()));
+    } else if (n.contains("RECEIPT") || n.contains("VOUCHER")) {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const ReceiptVoucherScreen()));
+    }
   }
 }
 
@@ -741,19 +913,41 @@ class StatCard extends StatelessWidget {
 }
 
 class RevenueChartCard extends StatelessWidget {
-  const RevenueChartCard({super.key});
-
-  // Heights as fractions of the chart area (ascending)
-  static const _data = [
-    _BarData('January',  0.28, Color(0xFFFFAA00), '+12.2'),
-    _BarData('February', 0.44, Color(0xFFFF2D85), '+23.5'),
-    _BarData('March',    0.60, Color(0xFFCC00EE), '+32.5'),
-    _BarData('April',    0.76, Color(0xFF5500DD), '+43.3'),
-    _BarData('May',      0.92, Color(0xFF3300AA), '+55.5'),
-  ];
+  final Map<String, dynamic> revenueData;
+  const RevenueChartCard({super.key, required this.revenueData});
 
   @override
   Widget build(BuildContext context) {
+    final rawData = (revenueData['data'] as List?) ?? [];
+    List<_BarData> chartData = [];
+
+    double maxRevenue = 0;
+    for (var d in rawData) {
+      double rev = (d['total_revenue'] as num?)?.toDouble() ?? 0.0;
+      if (rev > maxRevenue) maxRevenue = rev;
+    }
+
+    if (maxRevenue == 0) maxRevenue = 1.0; // Avoid division by zero
+
+    for (var d in rawData) {
+      double rev = (d['total_revenue'] as num?)?.toDouble() ?? 0.0;
+      chartData.add(_BarData(
+          d['month']?.toString().substring(0, 3) ?? '',
+          rev / maxRevenue,
+          _getMonthColor(d['month_num'] ?? 0),
+          '₹${(rev / 1000).toStringAsFixed(1)}k'));
+    }
+
+    // Default bars if empty
+    if (chartData.isEmpty) {
+      chartData = [
+        const _BarData('No Data', 0.1, Color(0xFF26A69A), '0'),
+      ];
+    }
+
+    final totalRevenue = revenueData['total_revenue'] ?? 0;
+    final financialYear = revenueData['financial_year'] ?? 'N/A';
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
@@ -770,9 +964,9 @@ class RevenueChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '₹2.85M',
-            style: TextStyle(
+          Text(
+            '₹${((totalRevenue as num) / 100000).toStringAsFixed(2)}L',
+            style: const TextStyle(
               color: Colors.black,
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -780,26 +974,38 @@ class RevenueChartCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
-            'Total Revenue FY 2025-26',
-            style: TextStyle(
+          Text(
+            'Total Revenue FY $financialYear',
+            style: const TextStyle(
               color: Color(0xFF26A69A),
               fontSize: 12,
               fontWeight: FontWeight.w500,
               fontFamily: 'Poppins',
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 34),
           SizedBox(
             height: 240,
             child: CustomPaint(
-              painter: _BarChartPainter(_data),
+              painter: _BarChartPainter(chartData),
               child: const SizedBox.expand(),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Color _getMonthColor(int num) {
+    List<Color> colors = [
+      const Color(0xFFFFAA00),
+      const Color(0xFFFF2D85),
+      const Color(0xFFCC00EE),
+      const Color(0xFF5500DD),
+      const Color(0xFF3300AA),
+      const Color(0xFF26A69A)
+    ];
+    return colors[num % colors.length];
   }
 }
 
@@ -818,7 +1024,7 @@ class _BarChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const labelHeight = 28.0;
-    const dotArea = 24.0;
+    const dotArea = 48.0; // Increased to prevent overshooting at the top
     final chartH = size.height - labelHeight - dotArea;
     final barW = size.width / data.length;
     final halfBar = barW * 0.32;
@@ -925,84 +1131,4 @@ class _BarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-
-class PieChartPainter extends CustomPainter {
-  // Segments: [Process=40%, Rejected=22%, Completed=20%, Pending=18%]
-  static const _segments = [
-    _PieSegment(0.40, Color(0xFF00586A), '40%'),  // Process  – dark teal
-    _PieSegment(0.22, Color(0xFF2ECFCF), '22%'),  // Rejected – cyan
-    _PieSegment(0.20, Color(0xFFBF8C3A), '20%'),  // Completed – golden-brown
-    _PieSegment(0.18, Color(0xFFE8D580), '18%'),  // Pending  – yellow cream
-  ];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width < size.height ? size.width : size.height) / 2 - 4;
-
-    double startAngle = -math.pi / 2; // Start at top
-
-    for (final seg in _segments) {
-      final sweepAngle = seg.fraction * 2 * math.pi;
-      final paint = Paint()
-        ..color = seg.color
-        ..style = PaintingStyle.fill;
-
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paint,
-      );
-
-      // White gap separator line
-      canvas.drawLine(
-        center,
-        Offset(
-          center.dx + radius * math.cos(startAngle),
-          center.dy + radius * math.sin(startAngle),
-        ),
-        Paint()
-          ..color = Colors.white
-          ..strokeWidth = 2.5
-          ..style = PaintingStyle.stroke,
-      );
-
-      // Percentage label in the middle of the slice
-      final midAngle = startAngle + sweepAngle / 2;
-      final labelR = radius * 0.65;
-      final lx = center.dx + labelR * math.cos(midAngle);
-      final ly = center.dy + labelR * math.sin(midAngle);
-
-      final tp = TextPainter(
-        text: TextSpan(
-          text: seg.label,
-          style: TextStyle(
-            color: seg.color == const Color(0xFFE8D580)
-                ? const Color(0xFF7A6A00)
-                : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(lx - tp.width / 2, ly - tp.height / 2));
-
-      startAngle += sweepAngle;
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-class _PieSegment {
-  final double fraction;
-  final Color color;
-  final String label;
-  const _PieSegment(this.fraction, this.color, this.label);
 }

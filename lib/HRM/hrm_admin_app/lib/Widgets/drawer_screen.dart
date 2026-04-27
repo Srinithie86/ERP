@@ -156,7 +156,7 @@ class AdminDrawer extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.only(
         top: 60.h,
-        bottom: 20.h,
+        bottom: 30.h,
         left: 20.w,
         right: 20.w,
       ),
@@ -167,18 +167,18 @@ class AdminDrawer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 35.r,
-            backgroundColor: Colors.white24,
-            child: Icon(
-              Icons.admin_panel_settings,
+          Image.asset(
+            "assets/images/logo.png",
+            height: 50.h,
+            errorBuilder: (_, __, ___) => Icon(
+              Icons.business,
               color: Colors.white,
-              size: 40.sp,
+              size: 50.sp,
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 16.h),
           Text(
-            "Harish",
+            "Global ERP",
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 18.sp,
@@ -186,7 +186,7 @@ class AdminDrawer extends StatelessWidget {
             ),
           ),
           Text(
-            "Adminstrator Account",
+            "HRM Management System",
             style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.sp),
           ),
         ],

@@ -159,7 +159,82 @@ class MenuProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("MenuProvider => Error fetching menu: $e");
+      
+      // FALLBACK to the user provided JSON if fetch fails
+      _useProvidedFallback();
     }
+  }
+
+  void _useProvidedFallback() {
+    final Map<String, dynamic> fallback = {
+      "ERP SERVICE": [
+        {"id": 4616, "name": "STORE SUPPORT"},
+        {"id": 4617, "name": "Depot"},
+        {"id": 4619, "name": "RATE & REVIEW"},
+        {"id": 4624, "name": "IN-OFFICE SERVICE"},
+        {"id": 4630, "name": "TOOLKIT MANAGEMENT"},
+        {"id": 4636, "name": "SERVICE INVOICE"},
+        {"id": 4640, "name": "SERVICE DETAILS"},
+        {"id": 4643, "name": "SERVICE TICKETS"},
+        {"id": 4649, "name": "SPARE DISPATCH"},
+        {"id": 4655, "name": "ENGINEER SPARE ENTRY "},
+        {"id": 4661, "name": "STANDBY MANAGE & TRACK"},
+        {"id": 4667, "name": "AFTER SALES SUPPORT"},
+        {
+          "id": 3714, "name": "SERVICE TICKETS",
+          "sub_menu": [
+            {"id": 4644, "name": "Closed Tickets"},
+            {"id": 4645, "name": "In Progress"},
+            {"id": 4646, "name": "Assigned Tickets"},
+            {"id": 4647, "name": "Verified Tickets"},
+            {"id": 4648, "name": "All Tickets"}
+          ]
+        },
+        {
+          "id": 3721, "name": "SERVICE DETAILS",
+          "sub_menu": [
+            {"id": 4641, "name": "Service History"},
+            {"id": 4642, "name": "Dashboard"}
+          ]
+        }
+      ],
+      "HRM": [
+        {"id": 4607, "name": "Employee Life Cycle"},
+        {
+          "id": 2542, "name": "Employee Life Cycle",
+          "sub_menu": [
+            {"id": 4608, "name": "Resignation Process"},
+            {"id": 4609, "name": "Transfer Management"},
+            {"id": 4610, "name": "Confirmation Process"},
+            {"id": 4611, "name": "Employee Details"},
+            {"id": 4612, "name": "Memo&Termination"},
+            {"id": 4613, "name": "SOP"}
+          ]
+        }
+      ],
+      "CRM": [
+        {"id": 4588, "name": "Dashboard"},
+        {"id": 4589, "name": "Lead/Enquiry"}
+      ],
+      "PURCHASE": [
+        {"id": 4576, "name": "Dashboard"},
+        {"id": 4577, "name": "Purchase Order (PO)"}
+      ],
+      "SALES": [
+        {"id": 4573, "name": "Sales Dashboard"},
+        {"id": 4568, "name": "Sales Invoice"}
+      ],
+      "MANUFACTURING": [
+        {"id": 5001, "name": "Dashboard"},
+        {"id": 5002, "name": "BOM"},
+        {"id": 5003, "name": "Job Order"},
+        {"id": 5004, "name": "Job Card"},
+        {"id": 5005, "name": "Material Intent"},
+        {"id": 5006, "name": "Productions"},
+        {"id": 5007, "name": "Quality"}
+      ]
+    };
+    setMenu(fallback);
   }
 }
 

@@ -22,7 +22,7 @@ class SalesInvoicePaymentScreen extends StatefulWidget {
     required this.totalAmount,
     required this.selectedProducts,
     this.taxType = 'IGST',
-    this.priceType = 'Exclude tax',
+    this.priceType = 'Exclude Tax',
     this.selectedCustomer,
     this.invoiceNo,
   });
@@ -81,8 +81,10 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
         'trans_type': '1',
         'trans_name': '',
         'b_name': c?['Ledger_Name'] ?? '',
-        'b_gst': c?['gst'] ?? '',
-        'b_add1': c?['address'] ?? '',
+        'b_gst': (c?['gst'] ?? c?['gstin'] ?? c?['GSTIN'] ?? '').toString(),
+        'b_add1': (c?['address'] ?? c?['Address'] ?? c?['b_add1'] ?? '').toString(),
+        'customer_gstin': (c?['gst'] ?? c?['gstin'] ?? c?['GSTIN'] ?? '').toString(),
+        'address': (c?['address'] ?? c?['Address'] ?? c?['b_add1'] ?? '').toString(),
         'b_loc': c?['location'] ?? '',
         'b_pin': c?['pin']?.toString() ?? c?['pincode']?.toString() ?? '',
         'b_scode': c?['state_code']?.toString() ?? '',
@@ -96,8 +98,8 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
         'mtax': _taxType == 'IGST' ? '1' : '2',
         'price_type': _priceType == 'Include tax' ? '2' : '1',
         'discount': s.discount.toStringAsFixed(2),
-        'tds_type': '20',
-        'tcs_type': '40',
+        'tds_type': '0',
+        'tcs_type': '0',
         'total_tds': '0.00',
         'total_tcs': '0.00',
         'bid': '1',
@@ -137,7 +139,8 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
       if (res['error'] == false) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'Invoice inserted successfully')),
+            SnackBar(content: Text(res['message'] ?? 'Invoice inserted successfully'),backgroundColor: AppColors.green,),
+            
           );
           
           Navigator.push(
@@ -404,7 +407,7 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
 
   final List<String> _invoiceTypes = ['Retail', 'Wholesale B-B', 'Bill of Supply', 'Branch Supply', 'CS Retail'];
   final List<String> _taxTypes     = ['IGST', 'CGST + SGST', 'None'];
-  final List<String> _priceTypes = ['Exclude tax', 'Include tax'];
+  final List<String> _priceTypes = ['Exclude Tax', 'Include Tax'];
   final List<String> _paymentModes = ['Cash', 'UPI', 'NEFT', 'Cheque'];
 
   @override

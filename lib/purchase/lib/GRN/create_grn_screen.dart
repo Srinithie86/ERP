@@ -14,6 +14,8 @@ class GRNItemData {
   final TextEditingController acceptedQtyController = TextEditingController(text: "0");
   final TextEditingController rejectedQtyController = TextEditingController(text: "0");
   final TextEditingController remarksController = TextEditingController();
+  String? color;
+  String? qcLabel;
 
   void dispose() {
     itemCodeController.dispose();
@@ -27,7 +29,8 @@ class GRNItemData {
 }
 
 class CreateGRNScreen extends StatefulWidget {
-  const CreateGRNScreen({super.key});
+  final String? initialPoNo;
+  const CreateGRNScreen({super.key, this.initialPoNo});
 
   @override
   State<CreateGRNScreen> createState() => _CreateGRNScreenState();
@@ -45,6 +48,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
   final TextEditingController poNoController = TextEditingController();
   final TextEditingController invoiceNoController = TextEditingController();
   final TextEditingController vehicleNoController = TextEditingController();
+  final TextEditingController driverNameController = TextEditingController();
   final TextEditingController warehouseLocationController = TextEditingController();
 
   List<String> poList = [];
@@ -78,6 +82,13 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
 
     _fetchGrnNo();
     _fetchAllSuppliers();
+    if (widget.initialPoNo != null) {
+      setState(() {
+        selectedPoNo = widget.initialPoNo;
+        poNoController.text = widget.initialPoNo!;
+      });
+      _fetchPoItems(widget.initialPoNo!);
+    }
   }
 
   Future<void> _fetchAllSuppliers() async {
@@ -166,6 +177,25 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       return;
     }
 
+    // Confirmation Dialog
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Confirm Submission", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to save this Goods Received Note (GRN)?", style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff22A79A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: Text("Confirm & Save", style: GoogleFonts.outfit(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -184,11 +214,13 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
         "ln": deviceData['ln'] ?? '0.0',
         "lt": deviceData['lt'] ?? '0.0',
         "grn_no": grnNoController.text.trim(),
-        "gnr_date": gnrDateController.text.trim(),
+        "gnr_date": gnrDateController.text.trim(), // API parameter often uses 'gnr' or 'grn'
+        "grn_date": gnrDateController.text.trim(), // Adding both for compatibility
         "po_no": poNoController.text.trim(),
         "supplier_id": supplierIdController.text.trim(),
         "invoice_no": invoiceNoController.text.trim(),
         "vehicle_no": vehicleNoController.text.trim(),
+        "driver_name": driverNameController.text.trim(),
         "received_by": receivedByController.text.trim(),
         "warehouse_location": warehouseLocationController.text.trim(),
         "purchase_type": selectedPurchaseType ?? '',
@@ -197,6 +229,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
 
       for (int i = 0; i < itemsList.length; i++) {
         final item = itemsList[i];
+        // Indexed parameters for multiple items
         body["item_code[$i]"] = item.itemCodeController.text.trim();
         body["product_name[$i]"] = item.productNameController.text.trim();
         body["ordered_qty[$i]"] = item.orderedQtyController.text.trim();
@@ -204,6 +237,17 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
         body["accepted_qty[$i]"] = item.acceptedQtyController.text.trim();
         body["rejected_qty[$i]"] = item.rejectedQtyController.text.trim();
         body["remarks[$i]"] = item.remarksController.text.trim();
+
+        // Also send flat parameters for the first item (requested by specification)
+        if (i == 0) {
+          body["item_code"] = item.itemCodeController.text.trim();
+          body["product_name"] = item.productNameController.text.trim();
+          body["ordered_qty"] = item.orderedQtyController.text.trim();
+          body["received_qty"] = item.receivedQtyController.text.trim();
+          body["accepted_qty"] = item.acceptedQtyController.text.trim();
+          body["rejected_qty"] = item.rejectedQtyController.text.trim();
+          body["remarks"] = item.remarksController.text.trim();
+        }
       }
 
       final response = await http.post(
@@ -218,7 +262,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(data['message'] ?? "GRN Saved Successfully"), backgroundColor: Colors.green),
             );
-            Navigator.pop(context);
+            Navigator.pop(context, true);
           }
         } else {
           _showSnackBar(data['message'] ?? "Submission failed");
@@ -246,6 +290,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
     poNoController.dispose();
     invoiceNoController.dispose();
     vehicleNoController.dispose();
+    driverNameController.dispose();
     receivedByController.dispose();
     warehouseLocationController.dispose();
     for (var item in itemsList) { item.dispose(); }
@@ -453,6 +498,8 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
               newItem.itemCodeController.text = row['item_code']?.toString() ?? '';
               newItem.productNameController.text = row['pro_name']?.toString() ?? '';
               newItem.orderedQtyController.text = row['quantity']?.toString() ?? '0';
+              newItem.color = row['color']?.toString();
+              newItem.qcLabel = row['qc_label']?.toString();
               itemsList.add(newItem);
             }
           });
@@ -471,7 +518,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
         title: Text("Create New GRN", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: const Color(0xff22A79A),
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: _isLoadingSuppliers 
@@ -504,10 +551,10 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
                         _buildLabeledField("INVOICE NO", _buildTextField("Enter Invoice No", invoiceNoController)),
                         _buildLabeledField("VEHICLE NO", _buildTextField("Enter Vehicle No", vehicleNoController)),
                         _buildLabeledField("TRANSPORT TYPE", _buildDropdown("Select Mode", selectedTransportType, ["Lorry", "Van", "Courier"], (val) => setState(() => selectedTransportType = val))),
+                        _buildLabeledField("DRIVER NAME", _buildTextField("Enter Driver Name", driverNameController)),
+                        _buildLabeledField("DC NO / LOCATION", _buildTextField("Enter DC/Location", warehouseLocationController)),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildLabeledField("DC NO / LOCATION", _buildTextField("Enter DC No or Warehouse Location", warehouseLocationController)),
                     
                     const SizedBox(height: 32),
                     Row(
@@ -515,11 +562,6 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
                       children: [
                         _buildSectionTitle("ITEMS TO RECEIVE"),
                         if (_isLoadingPoItems) const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-                        TextButton.icon(
-                          onPressed: () => setState(() => itemsList.add(GRNItemData())),
-                          icon: const Icon(Icons.add_circle_outline_rounded, size: 20, color: Color(0xff22A79A)),
-                          label: Text("Add Item", style: GoogleFonts.outfit(color: const Color(0xff22A79A), fontWeight: FontWeight.bold)),
-                        ),
                       ],
                     ),
 
@@ -572,9 +614,9 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: (item.qcLabel != null && item.qcLabel!.isNotEmpty) ? const Color(0xffFFFDE7) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: (item.qcLabel != null && item.qcLabel!.isNotEmpty) ? const Color(0xffF9A825).withOpacity(0.3) : Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -582,9 +624,44 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("ITEM #${index + 1}", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade500)),
+              Row(
+                children: [
+                  Text("ITEM #${index + 1}",
+                      style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.grey.shade500)),
+                  if (item.qcLabel != null && item.qcLabel!.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _parseColor(item.color).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                            color: _parseColor(item.color).withOpacity(0.5)),
+                      ),
+                      child: Text(
+                        item.qcLabel!,
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _parseColor(item.color),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               if (itemsList.length > 1)
-                IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20), onPressed: () => setState(() { item.dispose(); itemsList.removeAt(index); })),
+                IconButton(
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: Colors.red, size: 20),
+                    onPressed: () => setState(() {
+                          item.dispose();
+                          itemsList.removeAt(index);
+                        })),
             ],
           ),
           const SizedBox(height: 12),
@@ -612,5 +689,16 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
         ],
       ),
     );
+  }
+
+  Color _parseColor(String? hexColor) {
+    if (hexColor == null || hexColor.isEmpty) return Colors.grey.shade400;
+    try {
+      String cleanHex = hexColor.replaceAll('#', '');
+      if (cleanHex.length == 6) cleanHex = 'FF$cleanHex';
+      return Color(int.parse(cleanHex, radix: 16));
+    } catch (e) {
+      return Colors.grey.shade400;
+    }
   }
 }

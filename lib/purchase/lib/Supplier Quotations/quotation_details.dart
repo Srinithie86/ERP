@@ -5,6 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'quotation_comparison.dart';
 import '../purchase_request_pdf_viewer.dart';
+import 'package:erp_localization/erp_localization.dart';
+import 'approve_quotation_screen.dart';
 
 class QuotationDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> quotationData;
@@ -44,76 +46,12 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
   }
 
   Future<void> _approveQuotation() async {
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Confirm Selection"),
-          content: Text("Are you sure you want to select ${currentData['supplier_name'] ?? 'this supplier'} and approve this quotation?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff26A69A)),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Yes, Select", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ApproveQuotationScreen(quotationData: currentData),
+      ),
     );
-
-    if (confirmed != true) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? cid = prefs.getString('cid');
-      final String? deviceId = prefs.getString('device_id');
-      final String? lt = prefs.getString('lt');
-      final String? ln = prefs.getString('ln');
-
-      final url = Uri.parse("https://erpsmart.in/total/api/m_api/");
-      final response = await http.post(
-        url,
-        body: {
-          "type": "4033",
-          "cid": cid ?? "44555666",
-          "lt": lt ?? "123",
-          "ln": ln ?? "123",
-          "device_id": deviceId ?? "123",
-          "id": currentData['id'].toString(),
-          "status": "Approved",
-        },
-      );
-
-      final Map<String, dynamic> result = json.decode(response.body);
-      if (result['error'] == false) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Approved Successfully!")),
-        );
-        setState(() {
-           currentData['status'] = "Approved";
-        });
-        
-        // Navigate to Compare Menu
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const QuotationComparisonScreen()),
-            );
-          }
-        });
-      } else {
-        throw result['message'] ?? "Failed to approve quotation";
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
   }
 
   double _calculateGrandTotal() {
@@ -153,7 +91,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Quotation Details",
+          AppLocalization.of("Quotation Details"),
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -189,11 +127,11 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Date: ${currentData['dtime']?.toString().split(' ')[0] ?? ''}",
+                          "${AppLocalization.of('Date')}: ${currentData['dtime']?.toString().split(' ')[0] ?? ''}",
                           style: TextStyle(color: Colors.white70, fontSize: 13.sp),
                         ),
                       ],
-                                       ),
+                                        ),
                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -218,24 +156,24 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
 
             Row(
               children: [
-                Expanded(child: infoBox("SUPPLIER", currentData['supplier_name'] ?? "")),
+                Expanded(child: infoBox(AppLocalization.of("SUPPLIER"), currentData['supplier_name'] ?? "")),
                 const SizedBox(width: 12),
-                Expanded(child: infoBox("DELIVERY", currentData['delivery_period'] ?? "")),
+                Expanded(child: infoBox(AppLocalization.of("DELIVERY"), currentData['delivery_period'] ?? "")),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: infoBox("VALID TILL", currentData['valid_till']?.toString() ?? "")),
+                Expanded(child: infoBox(AppLocalization.of("VALID TILL"), currentData['valid_till']?.toString() ?? "")),
                 const SizedBox(width: 12),
-                Expanded(child: infoBox("RFQ REF", currentData['rfq_no'] ?? "")),
+                Expanded(child: infoBox(AppLocalization.of("RFQ REF"), currentData['rfq_no'] ?? "")),
               ],
             ),
 
             const SizedBox(height: 24),
 
             Text(
-              "PRODUCT RATES",
+              AppLocalization.of("PRODUCT RATES"),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16.sp,
@@ -257,12 +195,12 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        Expanded(flex: 2, child: centerText("PRODUCT", isHeader: true)),
-                        Expanded(child: centerText("RATE", isHeader: true)),
-                        Expanded(child: centerText("QTY", isHeader: true)),
-                        Expanded(child: centerText("DIS %", isHeader: true)),
-                        Expanded(child: centerText("GST %", isHeader: true)),
-                        Expanded(flex: 2, child: centerText("TOTAL", isHeader: true)),
+                        Expanded(flex: 2, child: centerText(AppLocalization.of("PRODUCT"), isHeader: true)),
+                        Expanded(child: centerText(AppLocalization.of("RATE"), isHeader: true)),
+                        Expanded(child: centerText(AppLocalization.of("QTY"), isHeader: true)),
+                        Expanded(child: centerText(AppLocalization.of("DIS %"), isHeader: true)),
+                        Expanded(child: centerText(AppLocalization.of("GST %"), isHeader: true)),
+                        Expanded(flex: 2, child: centerText(AppLocalization.of("TOTAL"), isHeader: true)),
                       ],
                     ),
                   ),
@@ -300,7 +238,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Grand Total (incl. GST)",
+                    AppLocalization.of("Grand Total (incl. GST)"),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15.sp,
@@ -339,7 +277,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                     const Icon(Icons.check, color: Color(0xff046259), size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      "Select this Supplier",
+                      AppLocalization.of("Select this Supplier"),
                       style: TextStyle(
                         color: Color(0xff046259),
                         fontWeight: FontWeight.bold,
@@ -366,7 +304,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "Export PDF",
+                        AppLocalization.of("Export PDF"),
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -396,7 +334,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                         border: Border.all(color: const Color(0xff22A79A)),
                       ),
                       child: Text(
-                        "Compare All",
+                        AppLocalization.of("Compare All"),
                         style: TextStyle(
                           color: Color(0xff22A79A),
                           fontWeight: FontWeight.bold,

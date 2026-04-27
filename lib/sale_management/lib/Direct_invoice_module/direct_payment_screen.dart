@@ -23,7 +23,7 @@ class DirectInvoicePaymentScreen extends StatefulWidget {
     required this.totalAmount,
     required this.selectedProducts,
     this.taxType = 'IGST',
-    this.priceType = 'Exclude tax',
+    this.priceType = 'Exclude Tax',
     this.selectedCustomer,
     this.invoiceNo,
     this.selectedDate,
@@ -42,7 +42,7 @@ class _DirectInvoicePaymentScreenState extends State<DirectInvoicePaymentScreen>
   DateTime _selectedDate = DateTime.now();
   bool   _advancedOpen  = false;
   String _invoiceType   = 'Retail';
-  final List<String> _priceTypes   = ['Exclude tax', 'Include tax'];
+  final List<String> _priceTypes   = ['Exclude Tax', 'Include Tax'];
   final List<String> _invoiceTypes = ['Retail', 'Wholesale B-B', 'Bill of Supply', 'Branch Supply', 'CS Retail'];
   final List<String> _taxTypes     = ['IGST', 'CGST + SGST', 'None'];
   Map<String, dynamic>? _selectedCustomer;
@@ -75,18 +75,21 @@ class _DirectInvoicePaymentScreenState extends State<DirectInvoicePaymentScreen>
         'cid': cid,
         'invoice_no': widget.invoiceNo ?? '',
         'date': "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}",
-        'mobile': _selectedCustomer?['Mobile']?.toString() ?? '',
         'cus_id': _selectedCustomer?['id']?.toString() ?? '',
         'cat': '1',
+        'customer_name': (_selectedCustomer?['Ledger_Name'] ?? '').toString(),
+        'customer_gstin': (_selectedCustomer?['gst'] ?? _selectedCustomer?['GSTIN'] ?? _selectedCustomer?['gstin'] ?? '').toString(),
+        'address': (_selectedCustomer?['address'] ?? _selectedCustomer?['Address'] ?? _selectedCustomer?['b_add1'] ?? '').toString(),
+        'mobile': (_selectedCustomer?['phone'] ?? _selectedCustomer?['Mobile'] ?? '').toString(),
         'trans_type': '1',
         'trans_name': '',
-        'b_name': _selectedCustomer?['Ledger_Name']?.toString() ?? '',
-        'b_gst': _selectedCustomer?['gst']?.toString() ?? '',
-        'b_add1': _selectedCustomer?['address']?.toString() ?? '',
-        'b_loc': '',
-        'b_pin': '',
-        'b_scode': '',
-        'taxable_total': s.taxableAmount.toStringAsFixed(2),
+        'b_name': (_selectedCustomer?['Ledger_Name'] ?? '').toString(),
+        'b_gst': (_selectedCustomer?['gst'] ?? _selectedCustomer?['GSTIN'] ?? _selectedCustomer?['gstin'] ?? '').toString(),
+        'b_add1': (_selectedCustomer?['address'] ?? _selectedCustomer?['Address'] ?? _selectedCustomer?['b_add1'] ??  '').toString(),
+        'b_loc': (_selectedCustomer?['city'] ?? _selectedCustomer?['location'] ?? '').toString(),
+        'b_pin': (_selectedCustomer?['pin'] ?? _selectedCustomer?['pincode'] ?? '').toString(),
+        'b_scode': (_selectedCustomer?['state_code'] ?? '').toString(),
+        'taxable_total': widget.totalAmount.toStringAsFixed(2),
         'cgst': s.cgst.toStringAsFixed(2),
         'sgst': s.sgst.toStringAsFixed(2),
         'igst': s.igst.toStringAsFixed(2),

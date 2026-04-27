@@ -41,15 +41,15 @@ dependencies:
   http: ^1.2.2
   provider: ^6.1.1
   crm:
-    path: lib/CRM
+    path: lib/CRM-ERP-main
   purchase_erp:
     path: lib/purchase
   hrm:
     path: lib/HRM
   sale_management:
     path: lib/sale_management
-  # crm_admin_app:
-  #   path: lib/crm/CRM-ADMIN-APP
+  crm_admin_app:
+    path: lib/CRM-ERP-main/CRM-ADMIN-APP
   geolocator: ^14.0.2
   device_info_plus: ^12.3.0
   battery_plus: ^7.0.0
@@ -67,11 +67,15 @@ dependencies:
     path: lib/manufacturing
   dealermanagment:
     path: lib/dealer_management
+  service_ticket:
+    path: lib/Service
   share_plus: ^12.0.1
   path_provider: ^2.1.4
   syncfusion_flutter_pdfviewer: ^28.2.7
   dio: ^5.7.0
   sms_autofill: ^2.4.0
+  erp_localization:
+    path: lib/erp_localization
 
 dependency_overrides:
   device_info_plus: ^11.1.0

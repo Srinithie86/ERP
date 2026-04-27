@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import '../../providers/warehouse_provider.dart';
@@ -72,7 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        drawer: widget.isEmbedded ? null : const DynamicDrawer(moduleName: "WAREHOUSE"),
+        drawer: widget.isEmbedded ? null : const DashboardDrawer(),
         appBar: AppBar(
           backgroundColor: const Color(0xFF26A69A),
           elevation: 0,
@@ -101,10 +100,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
-          ),
           const Padding(
             padding: EdgeInsets.only(right: 16.0),
             child: CircleAvatar(

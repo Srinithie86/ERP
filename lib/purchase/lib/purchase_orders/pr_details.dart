@@ -161,7 +161,7 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
                                     style: TextStyle(color: lightGrey, fontSize: 13.sp),
                                   ),
                                   Text(
-                                    (master?.requestedBy != null && master!.requestedBy!.isNotEmpty) ? master.requestedBy! : "Thanu sri",
+                                    (master?.requestedBy != null && master!.requestedBy!.isNotEmpty) ? master.requestedBy! : "Admin",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15.sp,
@@ -203,7 +203,7 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
                                     style: TextStyle(color: lightGrey, fontSize: 13.sp),
                                   ),
                                   Text(
-                                    (master?.approverName != null && master!.approverName!.isNotEmpty) ? master.approverName! : "Manager-IT",
+                                    (master?.approverName != null && master!.approverName!.isNotEmpty) ? master.approverName! : "Manager",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15.sp,
@@ -410,7 +410,7 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "${master?.approvedByName ?? 'Thanu sri'} ${master?.approvedDate ?? '01-03-2026'}",
+                            "${master?.approvedByName ?? 'Approver'} ${master?.approvedDate ?? ''}",
                             style: const TextStyle(
                               color: Color(0xff43A047),
                               fontSize: 14,

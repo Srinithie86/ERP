@@ -33,7 +33,7 @@ class VerifyWithOtp extends StatefulWidget {
   State<VerifyWithOtp> createState() => _VerifyWithOtpState();
 }
 
-class _VerifyWithOtpState extends State<VerifyWithOtp> with CodeAutoFill {
+class _VerifyWithOtpState extends State<VerifyWithOtp> {
   final List<TextEditingController> _controllers = List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
@@ -45,18 +45,9 @@ class _VerifyWithOtpState extends State<VerifyWithOtp> with CodeAutoFill {
   void initState() {
     super.initState();
     _startTimer();
-    listenForCode();
+    // listenForCode(); // Removed to prevent unwanted autofill as per user request
   }
 
-  @override
-  void codeUpdated() {
-    if (code != null && code!.length == 6) {
-      for (int i = 0; i < 6; i++) {
-        _controllers[i].text = code![i];
-      }
-      _verifyOtp();
-    }
-  }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -110,7 +101,7 @@ class _VerifyWithOtpState extends State<VerifyWithOtp> with CodeAutoFill {
   @override
   void dispose() {
     _timer?.cancel();
-    cancel();
+    // cancel(); // Removed as CodeAutoFill is disabled
     for (var c in _controllers) c.dispose();
     for (var n in _focusNodes) n.dispose();
     super.dispose();

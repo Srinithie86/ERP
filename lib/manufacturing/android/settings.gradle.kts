@@ -1,6 +1,3 @@
-rootProject.name = "manufacturing-android"
-rootProject.name = "lib/manufacturing/android/settings.gradle.kts"
-
 pluginManagement {
     val flutterSdkPath =
         run {

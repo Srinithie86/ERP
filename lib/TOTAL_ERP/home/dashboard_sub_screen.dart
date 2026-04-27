@@ -8,7 +8,7 @@ class DashboardSubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF26A69A);
+    final primaryColor = Theme.of(context).primaryColor;
     
     return Stack(
       children: [
@@ -70,7 +70,11 @@ class DashboardSubScreen extends StatelessWidget {
                 children: [
                   Text(
                     'Key Metrics',
-                    style: GoogleFonts.outfit(fontSize: 22.sp, fontWeight: FontWeight.w800),
+                    style: GoogleFonts.outfit(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onBackground,
+                    ),
                   ),
                   Text(
                     'Last 30 days',
@@ -292,7 +296,11 @@ class DashboardSubScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.w800),
+                style: GoogleFonts.outfit(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               if (action != null) action,
             ],
@@ -339,8 +347,8 @@ class DashboardSubScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(flex: 1, child: Text(id, style: GoogleFonts.outfit(color: const Color(0xFF26A69A), fontWeight: FontWeight.bold, fontSize: 12.sp))),
-          Expanded(flex: 3, child: Text(user, style: GoogleFonts.outfit(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13.sp, fontWeight: FontWeight.w600))),
+          Expanded(flex: 1, child: Text(id, style: GoogleFonts.outfit(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12.sp))),
+          Expanded(flex: 3, child: Text(user, style: GoogleFonts.outfit(color: Theme.of(context).colorScheme.onSurface, fontSize: 13.sp, fontWeight: FontWeight.w600))),
           Expanded(
             flex: 2, 
             child: Container(

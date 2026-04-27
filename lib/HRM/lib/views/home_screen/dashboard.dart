@@ -25,6 +25,7 @@ import '../home/payroll.dart';
 import '../../services/api_client.dart';
 import '../home/hrm_drawer.dart';
 import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
+import 'package:erp_smart/utils/widgets/language_selector.dart';
 
 
 class Dashboard extends StatefulWidget {
@@ -749,38 +750,7 @@ class _DashboardState extends State<Dashboard> {
             );
           }
         ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AnnouncementScreen(userName: userName),
-                ),
-              );
-            },
-            icon: Image.asset(
-              "assets/icons/announcement.png",
-              color: Colors.white,
-              width: isTablet ? 30 : 25,
-              height: isTablet ? 30 : 25,
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => NotificationApp()),
-              );
-            },
-            icon: Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: isTablet ? 30 : 26,
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
+        actions: const [],
       ),
       body: RefreshIndicator(
         color: const Color(0xFF26A69A),

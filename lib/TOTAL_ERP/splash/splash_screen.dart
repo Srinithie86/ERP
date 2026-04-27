@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../home/security_pin_screen.dart';
-import 'notification_screen.dart';
+import 'walkthrough_screen.dart';
 import '../home/home.dart';
+import '../../utils/widgets/location_dialog.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -39,21 +40,85 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (serviceEnabled) {
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied) {
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => LocationPermissionDialog(
+            isServiceDisabled: true,
+            onAllow: () {},
+            onOpenSettings: () => Geolocator.openLocationSettings(),
+          ),
+        );
+        // Re-check after returning from settings
+        serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        
+        // Show friendly dialog first instead of jumping straight to system prompt
+        bool? shouldRequest = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => LocationPermissionDialog(
+            onAllow: () => Navigator.pop(context, true),
+            onOpenSettings: () => Geolocator.openAppSettings(),
+          ),
+        );
+
+        if (shouldRequest == true) {
           permission = await Geolocator.requestPermission();
         }
-        if (permission != LocationPermission.deniedForever && permission != LocationPermission.denied) {
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => LocationPermissionDialog(
+            isPermanent: true,
+            onAllow: () {}, // Not used for permanent
+            onOpenSettings: () => Geolocator.openAppSettings(),
+          ),
+        );
+      }
+
+      if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+        try {
           Position position = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 10),
+            ),
           );
           ln = position.longitude.toString();
           lt = position.latitude.toString();
+        } catch (e) {
+          debugPrint("Splash Location Fix Error: $e");
+          if (mounted) {
+            await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text("Location Error"),
+                content: const Text("Could not get your real-time location. Please check your GPS signal."),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+            );
+          }
         }
       }
     } catch (e) {
-      debugPrint("Location error: $e");
+      debugPrint("Location error in Splash: $e");
     }
 
     await prefs.setString('ln', ln);
@@ -82,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       );
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+        MaterialPageRoute(builder: (context) => const WalkthroughScreen()),
       );
     }
   }

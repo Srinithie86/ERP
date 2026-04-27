@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:erp_smart/utils/widgets/language_selector.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../Order Managment/orderdetails_screen.dart';
@@ -95,13 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
-                ),
-                icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-              ),
+              const LanguageSelector(),
               const Padding(
                 padding: EdgeInsets.only(right: 16),
                 child: CircleAvatar(
@@ -198,13 +193,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           Row(
             children: [
-              IconButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NotificationScreen()),
-                ),
-                icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-              ),
               const CircleAvatar(
                 radius: 16,
                 backgroundImage: AssetImage('assets/Profile.png'),

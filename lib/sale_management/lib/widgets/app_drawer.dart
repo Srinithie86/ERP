@@ -97,7 +97,7 @@ class AppDrawer extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const AllInvoicePage(),
+                              const DirectInvoiceGenerateInfoScreen(),
                         ),
                       );
                     },

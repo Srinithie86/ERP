@@ -317,8 +317,8 @@ class _SalesOrderPaymentScreenState extends State<SalesOrderPaymentScreen> {
       'invoice_no': orderNo,
       'date': invoiceDate,
       'customer_name': cusName,
-      'customer_gstin': _selectedCustomer?['gst']?.toString() ?? '',
-      'address': _selectedCustomer?['address']?.toString() ?? '',
+      'customer_gstin': (_selectedCustomer?['gst'] ?? _selectedCustomer?['GSTIN'] ?? _selectedCustomer?['gstin'] ?? '').toString(),
+      'address': (_selectedCustomer?['address'] ?? _selectedCustomer?['Address'] ?? _selectedCustomer?['b_add1'] ?? '').toString(),
       'price_type': _priceTypeIds[_priceType]?.toString() ?? '1',
       'tax_type': _taxTypeIds[_taxType]?.toString() ?? '2',
       'grand_total': finalPayable.toString(),
@@ -329,9 +329,9 @@ class _SalesOrderPaymentScreenState extends State<SalesOrderPaymentScreen> {
       'igst': '0',        
       'round_off': roundOff.toString(),
       'tds': '0',
-      'tds_type': '25',
+      'tds_type': '0',
       'tcs': '0',
-      'tcs_type': '35',
+      'tcs_type': '0',
       'delivery_date': "${_deliveryDate.year}-${_deliveryDate.month.toString().padLeft(2, '0')}-${_deliveryDate.day.toString().padLeft(2, '0')}", 
       'reference': _referenceController.text,
       'product_name': firstProduct?.name ?? '',
@@ -400,7 +400,7 @@ class _SalesOrderPaymentScreenState extends State<SalesOrderPaymentScreen> {
   }
 
   final List<String> _invoiceTypes = ['Tax Invoice', 'Proforma Invoice', 'Credit Note'];
-  final List<String> _priceTypes   = ['Exclude tax', 'Include tax'];
+  final List<String> _priceTypes   = ['Exclude Tax', 'Include Tax'];
   final List<String> _taxTypes     = ['IGST', 'CGST + SGST', 'None'];
   final List<String> _paymentModes = ['Cash', 'UPI', 'NEFT', 'Cheque'];
 

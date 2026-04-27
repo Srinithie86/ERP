@@ -357,15 +357,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       elevation: 0,
       automaticallyImplyLeading: false,
       leading: IconButton(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
-        ),
-        onPressed: widget.onBackToHrm ?? () => Navigator.pop(context),
+        icon: const Icon(Icons.menu_rounded, color: Colors.white),
+        onPressed: () => effectiveKey.currentState?.openDrawer(),
       ),
       centerTitle: true,
       title: Text(
@@ -376,48 +369,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           color: Colors.white,
         ),
       ),
-      actions: [
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
-              onPressed: () {},
-            ),
-            Positioned(
-              right: 12,
-              top: 12,
-              child: Container(
-                height: 8,
-                width: 8,
-                decoration: BoxDecoration(
-                  color: Colors.redAccent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF26A69A), width: 1.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(width: 4.w),
-        IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Colors.white),
-          onPressed: () => effectiveKey.currentState?.openDrawer(),
-        ),
-        GestureDetector(
-          onTap: () {
-            // Return to TOTAL ERP Dashboard
-            Navigator.of(context).pop();
-          },
-          child: Container(
-            margin: EdgeInsets.only(right: 16.w),
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
-            ),
-          ),
-        ),
-      ],
     );
   }
 

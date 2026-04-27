@@ -6,6 +6,7 @@ import 'package:purchase_erp/utils/device_services.dart';
 
 class QCItemData {
   final TextEditingController itemCodeController = TextEditingController();
+  final TextEditingController productNameController = TextEditingController();
   final TextEditingController testResultController = TextEditingController();
   String qcStatus = "Select";
   final TextEditingController rejectedQtyController = TextEditingController(text: "0");
@@ -13,6 +14,7 @@ class QCItemData {
 
   void dispose() {
     itemCodeController.dispose();
+    productNameController.dispose();
     testResultController.dispose();
     rejectedQtyController.dispose();
     remarksController.dispose();
@@ -37,6 +39,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
 
   List<QCItemData> itemsList = [QCItemData()];
   bool isSubmitting = false;
+  bool isFetchingItems = false;
 
   @override
   void initState() {
@@ -67,38 +70,112 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
     super.dispose();
   }
 
+  Future<void> _fetchGrnItems() async {
+    final grnNo = grnNoController.text.trim();
+    if (grnNo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a GRN No first")));
+      return;
+    }
+
+    setState(() => isFetchingItems = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final deviceData = await DeviceServices.getAndStoreDeviceInfo();
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "type": "4034",
+          "cid": cid,
+          "device_id": deviceData['device_id'] ?? 'Unknown',
+          "ln": deviceData['ln'] ?? '0.0',
+          "lt": deviceData['lt'] ?? '0.0',
+          "status": "pending", // Usually search in pending
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null) {
+          final List<dynamic> allGrns = data['data'];
+          final match = allGrns.firstWhere(
+            (g) => g['grn_no'].toString().toLowerCase() == grnNo.toLowerCase(),
+            orElse: () => null,
+          );
+
+          if (match != null) {
+            final items = match['items'] as List? ?? [];
+            if (items.isNotEmpty) {
+              setState(() {
+                for (var it in itemsList) it.dispose();
+                itemsList.clear();
+                for (var item in items) {
+                  final newItem = QCItemData();
+                  newItem.itemCodeController.text = item['item_code'] ?? '';
+                  newItem.productNameController.text = item['product_name'] ?? item['pro_name'] ?? '';
+                  newItem.remarksController.text = ""; // Reset remarks
+                  itemsList.add(newItem);
+                }
+                // Also set inspector name if available or other fields
+                if (match['inspector_name'] != null) {
+                   inspectorNameController.text = match['inspector_name'];
+                }
+                if (match['id'] != null) {
+                   inspectionIdController.text = match['id'].toString();
+                }
+              });
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Found ${items.length} items for $grnNo")));
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No items found for this GRN in pending list")));
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GRN No not found in pending inspections")));
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch Items Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error fetching items: $e")));
+    } finally {
+      if (mounted) setState(() => isFetchingItems = false);
+    }
+  }
+
   Future<void> _submitQC() async {
     setState(() => isSubmitting = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '';
-      final uid = prefs.getString('id') ?? '';
+      final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '1';
+      final roleId = prefs.getString('role_id') ?? '1';
+      
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       final ln = deviceData['ln'] ?? '0.0';
       final lt = deviceData['lt'] ?? '0.0';
       final deviceId = deviceData['device_id'] ?? 'Unknown';
 
-      // Manually construct x-www-form-urlencoded body with indexed array elements
       Map<String, String> body = {
-        "type": "4011",
+        "type": "4037",
         "cid": cid,
-        "device_id": deviceId,
-        "uid": uid,
         "ln": ln,
         "lt": lt,
-        "requ_no": inspectionIdController.text, // mapped as requested
-        "date": inspectorDateController.text,
-        "department": grnNoController.text, // derived mapping
-        "req_by": inspectorNameController.text,
+        "device_id": deviceId,
+        "uid": uid,
+        "role_id": roleId,
+        "prid": "1",
+        "inspection_id": inspectionIdController.text,
+        "grn_no": grnNoController.text,
+        "inspector_name": inspectorNameController.text,
+        "inspection_date": inspectorDateController.text,
       };
 
-      // Depending on API, arrays might need index mapping e.g., item_code[0]
       for (int i = 0; i < itemsList.length; i++) {
         var item = itemsList[i];
         body['item_code[$i]'] = item.itemCodeController.text;
-        body['product_name[$i]'] = item.testResultController.text; 
-        body['uom[$i]'] = item.qcStatus;
-        body['current_order_quantity[$i]'] = item.rejectedQtyController.text;
+        body['qc_test_result[$i]'] = item.testResultController.text; 
+        body['qc_status[$i]'] = item.qcStatus;
+        body['rejected_qty[$i]'] = item.rejectedQtyController.text;
         body['remarks[$i]'] = item.remarksController.text;
       }
 
@@ -110,14 +187,17 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
       
       if (response.statusCode == 200) {
         final decoded = json.decode(strResponse);
-        if (decoded['error'] == false) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("QC Inserted Successfully!"), backgroundColor: Color(0xff2AAA98)));
+        if (decoded['error'] == false || decoded['error'].toString().toLowerCase() == 'false') {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(decoded['message'] ?? "QC Inserted Successfully!"), backgroundColor: const Color(0xff2AAA98)));
            Navigator.pop(context);
         } else {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(decoded['error_msg'] ?? "QC Insert Failed"), backgroundColor: Colors.red));
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(decoded['message'] ?? decoded['error_msg'] ?? "QC Insert Failed"), backgroundColor: Colors.red));
         }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Server error: ${response.statusCode}"), backgroundColor: Colors.red));
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connection error: $e"), backgroundColor: Colors.red));
       debugPrint("QC Submit Error: $e");
     } finally {
       if (mounted) setState(() => isSubmitting = false);
@@ -142,11 +222,12 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
     );
   }
 
-  Widget _buildTextField(String hint, {bool isPlaceholder = true, TextEditingController? controller}) {
+  Widget _buildTextField(String hint, {bool isPlaceholder = true, TextEditingController? controller, Widget? suffixIcon, bool readOnly = false}) {
     return SizedBox(
       height: 38,
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
@@ -154,6 +235,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
             color: isPlaceholder ? Colors.grey.shade400 : Colors.black87,
             fontWeight: isPlaceholder ? FontWeight.normal : FontWeight.w500,
           ),
+          suffixIcon: suffixIcon,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
@@ -254,7 +336,12 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
 
     List<Widget> headerFields = [
       _buildLabeledField("Inspection ID", _buildTextField("Inspection ID", controller: inspectionIdController)),
-      _buildLabeledField("GRN No", _buildTextField("GRN No", controller: grnNoController)),
+      _buildLabeledField("GRN No", _buildTextField("GRN No", controller: grnNoController, suffixIcon: InkWell(
+        onTap: isFetchingItems ? null : _fetchGrnItems,
+        child: isFetchingItems 
+          ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor)))
+          : const Icon(Icons.search, color: primaryColor, size: 20),
+      ))),
       _buildLabeledField("Inspector Name", _buildTextField("Inspector Name", controller: inspectorNameController)),
       _buildLabeledField("Inspector Date", _buildTextField("YYYY-MM-DD", isPlaceholder: false, controller: inspectorDateController)),
     ];
@@ -297,7 +384,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withOpacity(0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -324,7 +411,8 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade200),
+                          color: const Color(0xffFFFDE7),
+                          border: Border.all(color: const Color(0xffF9A825).withOpacity(0.3)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -354,6 +442,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
                                 return _buildFlexibleGrid(
                                   constraints: constraints,
                                   children: [
+                                    _buildLabeledField("Product Name", _buildTextField("Product Name", controller: item.productNameController, readOnly: true)),
                                     _buildLabeledField("Item Code", _buildTextField("Enter Item Code", controller: item.itemCodeController)),
                                     _buildLabeledField("QC Test Result", _buildTextField("QC Test Result", controller: item.testResultController)),
                                     _buildLabeledField("QC Status", _buildDropdown("Select", item)),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 class GrnDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> grnData;
@@ -22,8 +23,8 @@ class GrnDetailsScreen extends StatelessWidget {
     String vehicleNo = grnData['vehicle_no'] ?? 'N/A';
     String driverName = grnData['driver_name'] ?? 'N/A';
     String dcNo = grnData['supplier_dc_no'] ?? grnData['warehouse_location'] ?? 'N/A';
-    String remarks = grnData['remarks'] ?? 'No remarks';
-    String? pdfLink = grnData['pdf_link'];
+    String remarks = grnData['remarks']?.toString() ?? 'No remarks';
+    String? pdfLink = grnData['pdf_link']?.toString();
     List<dynamic> items = grnData['items'] ?? [];
 
     Widget buildDetailRow(
@@ -141,6 +142,24 @@ class GrnDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (pdfLink != null && pdfLink.isNotEmpty) ...[
+              Container(
+                height: 400,
+                decoration: BoxDecoration(
+                  border: Border.all(color: primaryColor, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SfPdfViewer.network(
+                    pdfLink,
+                    canShowScrollHead: false,
+                    canShowScrollStatus: false,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             /// Top Green Card
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -294,13 +313,20 @@ class GrnDetailsScreen extends StatelessWidget {
                   );
                 }
               },
-              child: const Text(
-                "Print / View PDF",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.picture_as_pdf, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    "View PDF Document",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),

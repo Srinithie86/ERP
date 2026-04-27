@@ -35,8 +35,7 @@ class CustomBottomNavBar extends StatelessWidget {
           children: [
             Expanded(child: navItem(context, Icons.dashboard, "Dashboard", 0)),
             Expanded(child: navItem(context, Icons.assignment_add, "PR", 1)),
-            Expanded(child: navItem(context, Icons.check_circle, "PR Approvals", 2)),
-            Expanded(child: navItem(context, Icons.shopping_cart, "PO", 3)),
+            Expanded(child: navItem(context, Icons.check_circle, "Approve", 2)),
             ],
           ),
         ),

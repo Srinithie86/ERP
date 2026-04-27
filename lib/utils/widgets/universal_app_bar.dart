@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_details_sheet.dart';
+import '../../theme/theme_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'language_selector.dart';
 
 class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -27,7 +31,6 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    const tealColor = Color(0xFF26A69A);
     final titleColor = isDark ? Colors.white : const Color(0xFF1A1F71);
     
     return Container(
@@ -40,7 +43,7 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         child: Row(
           children: [
-            if (showBackButton)
+            if (showBackButton) ...[
               IconButton(
                 onPressed: onBackTap ?? () => Navigator.of(context).pop(),
                 icon: Icon(
@@ -48,73 +51,58 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: isDark ? Colors.white : Colors.black87,
                   size: 20.sp,
                 ),
-              )
-            else
-              IconButton(
-                onPressed: onMenuPressed,
-                icon: Icon(
-                  Icons.menu_rounded,
-                  color: isDark ? Colors.white : Colors.black87,
-                  size: 26.sp,
-                ),
               ),
-            
-            SizedBox(width: 12.w),
+              SizedBox(width: 8.w),
+            ],
             
             Expanded(
-              child: Row(
-                children: [
-                  Image.asset(
-                    "assets/images/logo.png",
-                    height: 32.h,
-                    errorBuilder: (_, __, ___) => Icon(Icons.business, size: 30.sp, color: const Color(0xFF26A69A)),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: GoogleFonts.outfit(
-                            color: titleColor,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18.sp,
-                            letterSpacing: -0.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (subtitle != null)
-                          Text(
-                            subtitle ?? '',
-                            style: GoogleFonts.outfit(
-                              color: Colors.grey,
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                      ],
+              child: GestureDetector(
+                onTap: onMenuPressed,
+                child: Row(
+                  children: [
+                    Image.asset(
+                      "assets/images/logo.png",
+                      height: 32.h,
+                      errorBuilder: (_, __, ___) => Icon(Icons.business, size: 30.sp, color: const Color(0xFF26A69A)),
                     ),
-                  ),
-                ],
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: GoogleFonts.outfit(
+                              color: titleColor,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16.sp,
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (subtitle != null)
+                            Text(
+                              subtitle ?? '',
+                              style: GoogleFonts.outfit(
+                                color: Colors.grey,
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             
-            // Render custom actions first
-            if (actions != null)
-              ...?actions
-            else 
-              IconButton(
-                icon: Icon(
-                  Icons.notifications_none_rounded,
-                  color: isDark ? Colors.white : Colors.black87,
-                  size: 26.sp,
-                ),
-                onPressed: () {},
-              ),
+            const SizedBox(width: 16),
           ],
         ),
       ),
@@ -124,4 +112,3 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => Size.fromHeight(60.h);
 }
-

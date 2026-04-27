@@ -22,7 +22,7 @@ class ProformaInvoicePaymentScreen extends StatefulWidget {
     required this.selectedProducts,
     this.title = 'Invoice',
     this.taxType = 'IGST',
-    this.priceType = 'Exclude tax',
+    this.priceType = 'Exclude Tax',
     this.selectedCustomer,
   });
   @override
@@ -324,8 +324,8 @@ class _ProformaInvoicePaymentScreenState
       'invoice_date':
           "${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}",
       'customer_name': _selectedCustomer?['Ledger_Name'] ?? '',
-      'customer_gstin': _selectedCustomer?['gst'] ?? '',
-      'address': _selectedCustomer?['address'] ?? '',
+      'customer_gstin': (_selectedCustomer?['gst'] ?? _selectedCustomer?['GSTIN'] ?? _selectedCustomer?['gstin'] ?? '').toString(),
+      'address': (_selectedCustomer?['address'] ?? _selectedCustomer?['Address'] ?? _selectedCustomer?['b_add1'] ?? '').toString(),
       'price_type': _priceTypeIds[activePriceType] ?? '1',
       'tax_type': _taxTypeIds[activeTaxType] ?? '1',
       'grand_total': s.finalPayable.toString(),
@@ -529,7 +529,7 @@ class _ProformaInvoicePaymentScreenState
     );
   }
 
-  final List<String> _priceTypes = ['Exclude tax', 'Include tax'];
+  final List<String> _priceTypes = ['Exclude Tax', 'Include Tax'];
   final List<String> _invoiceTypes = [
     'Retail',
     'Wholesale B-B',

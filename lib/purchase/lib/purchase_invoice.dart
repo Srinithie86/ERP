@@ -1,23 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'utils/device_services.dart';
+import 'invoice_item_details_screen.dart';
 
 class InvoiceItem {
   final TextEditingController productNameController = TextEditingController();
+  final TextEditingController productIdController = TextEditingController();
   final TextEditingController hsnCodeController = TextEditingController();
   final TextEditingController qtyController = TextEditingController();
   final TextEditingController discountController = TextEditingController();
   final TextEditingController uomController = TextEditingController();
   final TextEditingController unitPriceController = TextEditingController();
   final TextEditingController taxableValueController = TextEditingController();
+  final TextEditingController taxPercentageController = TextEditingController(text: "0");
   final TextEditingController totalAmountController = TextEditingController();
 
   void dispose() {
     productNameController.dispose();
+    productIdController.dispose();
     hsnCodeController.dispose();
     qtyController.dispose();
     discountController.dispose();
     uomController.dispose();
     unitPriceController.dispose();
     taxableValueController.dispose();
+    taxPercentageController.dispose();
     totalAmountController.dispose();
   }
 }
@@ -30,14 +42,20 @@ class PurchaseInvoiceScreen extends StatefulWidget {
 }
 
 class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
-  final List<InvoiceItem> _items = [InvoiceItem()];
+  final List<InvoiceItem> _items = [];
 
   // Header Controllers
-  final TextEditingController _invoiceNoController = TextEditingController(text: "SMM/PO-/25-26/0005");
-  final TextEditingController _invoiceDateController = TextEditingController(text: "10-04-2026");
-  final TextEditingController _customerNameController = TextEditingController();
-  final TextEditingController _customerGstinController = TextEditingController();
+  final TextEditingController _invoiceNoController = TextEditingController();
+  final TextEditingController _invoiceDateController = TextEditingController();
+  final TextEditingController _supplierNameController = TextEditingController();
+  final TextEditingController _supplierGstinController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _cusIdController = TextEditingController();
+  final TextEditingController _transTypeController = TextEditingController(text: "1");
+  final TextEditingController _transNameController = TextEditingController();
+  final TextEditingController _bLocController = TextEditingController();
+  final TextEditingController _bPinController = TextEditingController();
+  final TextEditingController _bScodeController = TextEditingController();
   final TextEditingController _grnNoController = TextEditingController();
   final TextEditingController _dcNoController = TextEditingController();
 
@@ -59,15 +77,26 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _invoiceDateController.text = "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+    _calculateAll();
+  }
+
+  @override
   void dispose() {
     for (var item in _items) {
       item.dispose();
     }
     _invoiceNoController.dispose();
     _invoiceDateController.dispose();
-    _customerNameController.dispose();
-    _customerGstinController.dispose();
+    _supplierNameController.dispose();
+    _supplierGstinController.dispose();
     _addressController.dispose();
+    _cusIdController.dispose();
+    _transTypeController.dispose();
+    _transNameController.dispose();
+    _bLocController.dispose();
     _grnNoController.dispose();
     _dcNoController.dispose();
     _grandTotalController.dispose();
@@ -81,32 +110,450 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     super.dispose();
   }
 
-  void _addItem() {
-    setState(() {
-      _items.add(InvoiceItem());
-    });
+  void _calculateAll() {
+    double totalTaxable = 0;
+    double totalCgst = 0;
+    double totalSgst = 0;
+    double totalIgst = 0;
+    double grandTotal = 0;
+
+    for (var item in _items) {
+      double qty = double.tryParse(item.qtyController.text) ?? 0;
+      double rate = double.tryParse(item.unitPriceController.text) ?? 0;
+      double disc = double.tryParse(item.discountController.text) ?? 0;
+      double taxPer = double.tryParse(item.taxPercentageController.text) ?? 0;
+
+      double taxable = (qty * rate) - disc;
+      double taxAmount = taxable * (taxPer / 100);
+      double total = taxable + taxAmount;
+
+      item.taxableValueController.text = taxable.toStringAsFixed(2);
+      item.totalAmountController.text = total.toStringAsFixed(2);
+
+      totalTaxable += taxable;
+      if (_selectedTaxType == "CGST/SGST") {
+        totalCgst += taxAmount / 2;
+        totalSgst += taxAmount / 2;
+      } else {
+        totalIgst += taxAmount;
+      }
+    }
+
+    grandTotal = totalTaxable + totalCgst + totalSgst + totalIgst;
+
+    _taxableTotalController.text = totalTaxable.toStringAsFixed(2);
+    _cgstController.text = totalCgst.toStringAsFixed(2);
+    _sgstController.text = totalSgst.toStringAsFixed(2);
+    _igstController.text = totalIgst.toStringAsFixed(2);
+    _totalGstController.text = (totalCgst + totalSgst + totalIgst).toStringAsFixed(2);
+    _grandTotalController.text = grandTotal.toStringAsFixed(2);
   }
 
-  void _removeItem(int index) {
-    if (_items.length > 1) {
+  void _addItem() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InvoiceItemDetailsScreen(),
+      ),
+    );
+    if (result != null) {
       setState(() {
-        _items[index].dispose();
-        _items.removeAt(index);
+        final newItem = InvoiceItem();
+        newItem.productNameController.text = result['productName'];
+        newItem.productIdController.text = result['productId'];
+        newItem.hsnCodeController.text = result['hsnCode'];
+        newItem.qtyController.text = result['qty'];
+        newItem.discountController.text = result['discount'];
+        newItem.uomController.text = result['uom'];
+        newItem.unitPriceController.text = result['unitPrice'];
+        newItem.taxPercentageController.text = result['taxPercentage'];
+        newItem.taxableValueController.text = result['taxableValue'];
+        newItem.totalAmountController.text = result['totalAmount'];
+        _items.add(newItem);
+        _calculateAll();
       });
     }
   }
 
+  void _editItem(int index) async {
+    final item = _items[index];
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvoiceItemDetailsScreen(
+          initialData: {
+            'productName': item.productNameController.text,
+            'productId': item.productIdController.text,
+            'hsnCode': item.hsnCodeController.text,
+            'qty': item.qtyController.text,
+            'discount': item.discountController.text,
+            'uom': item.uomController.text,
+            'unitPrice': item.unitPriceController.text,
+            'taxPercentage': item.taxPercentageController.text,
+            'taxableValue': item.taxableValueController.text,
+            'totalAmount': item.totalAmountController.text,
+          },
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        item.productNameController.text = result['productName'];
+        item.productIdController.text = result['productId'];
+        item.hsnCodeController.text = result['hsnCode'];
+        item.qtyController.text = result['qty'];
+        item.discountController.text = result['discount'];
+        item.uomController.text = result['uom'];
+        item.unitPriceController.text = result['unitPrice'];
+        item.taxPercentageController.text = result['taxPercentage'];
+        item.taxableValueController.text = result['taxableValue'];
+        item.totalAmountController.text = result['totalAmount'];
+        _calculateAll();
+      });
+    }
+  }
+
+  void _removeItem(int index) {
+    if (index >= 0 && index < _items.length) {
+      setState(() {
+        _items[index].dispose();
+        _items.removeAt(index);
+        _calculateAll();
+      });
+    }
+  }
+
+  Future<void> _fetchGRNDetails() async {
+    final grnNo = _grnNoController.text.trim();
+    if (grnNo.isEmpty) {
+      _selectGRN(); // If empty, open selection dialog
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      
+      final Map<String, String> body = {
+        "cid": cid,
+        "type": "4043",
+        "device_id": "123",
+        "ln": "145",
+        "lt": "145",
+        "grn_no": grnNo,
+      };
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null) {
+          final grnSource = data['data'];
+          final master = grnSource['master'] ?? grnSource;
+          final List<dynamic> fetchedItems = grnSource['items'] ?? master['items'] ?? [];
+          
+          setState(() {
+            // Autofill Header Data from master or root
+            _supplierNameController.text = master['supplier_name']?.toString() ?? master['b_name']?.toString() ?? master['vendor_name']?.toString() ?? _supplierNameController.text;
+            _supplierGstinController.text = master['gst_no']?.toString() ?? master['b_gst']?.toString() ?? master['vendor_gst']?.toString() ?? _supplierGstinController.text;
+            _addressController.text = master['address']?.toString() ?? master['b_add1']?.toString() ?? master['vendor_address']?.toString() ?? _addressController.text;
+            _cusIdController.text = master['supplier_id']?.toString() ?? master['cus_id']?.toString() ?? master['vendor_id']?.toString() ?? _cusIdController.text;
+            _dcNoController.text = master['invoice_no']?.toString() ?? master['dc_no']?.toString() ?? _dcNoController.text;
+
+            // Clear existing items before autofilling
+            for (var item in _items) {
+              item.dispose();
+            }
+            _items.clear();
+
+            for (var itemData in fetchedItems) {
+              final newItem = InvoiceItem();
+              newItem.productNameController.text = itemData['product_name']?.toString() ?? itemData['p_name']?.toString() ?? "";
+              newItem.productIdController.text = itemData['item_code']?.toString() ?? itemData['product_id']?.toString() ?? "";
+              
+              // Qty priority: Accepted Qty > Received Qty > Ordered Qty
+              newItem.qtyController.text = itemData['acc_qty']?.toString() ?? itemData['rec_qty']?.toString() ?? itemData['qty']?.toString() ?? "0";
+              
+              newItem.uomController.text = itemData['uom']?.toString() ?? "nos";
+              newItem.taxPercentageController.text = itemData['tax']?.toString() ?? itemData['tax_per']?.toString() ?? "0";
+              
+              // Rate priority: unit_rate > rate > price
+              newItem.unitPriceController.text = itemData['unit_rate']?.toString() ?? itemData['rate']?.toString() ?? itemData['price']?.toString() ?? "0.00";
+              
+              _items.add(newItem);
+            }
+            _calculateAll();
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Autofilled ${fetchedItems.length} items from GRN"), backgroundColor: Colors.green),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? "No data found for this GRN"), backgroundColor: Colors.red),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching GRN: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _selectGRN() async {
+    final selectedGRN = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _GRNSelectionSheet(),
+    );
+
+    if (selectedGRN != null) {
+      if (mounted) {
+        setState(() {
+          _grnNoController.text = selectedGRN;
+        });
+        _fetchGRNDetails();
+      }
+    }
+  }
+
+  Future<void> _selectSupplier() async {
+    final selectedSupplier = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const _SupplierSelectionSheet(),
+    );
+
+    if (selectedSupplier != null) {
+      setState(() {
+        _supplierNameController.text = selectedSupplier['Ledger_Name']?.toString() ?? "";
+        _supplierGstinController.text = selectedSupplier['gst']?.toString() ?? "";
+        _addressController.text = selectedSupplier['address']?.toString() ?? "";
+        _cusIdController.text = selectedSupplier['id']?.toString() ?? "";
+        _bPinController.text = selectedSupplier['pincode']?.toString() ?? "";
+        _bScodeController.text = selectedSupplier['state']?.toString() ?? "";
+      });
+    }
+  }
+
+  Future<List<dynamic>> _getSupplierSuggestions(String query) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4010",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": query,
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) return data['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint("Supplier suggestions error: $e");
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> _getGRNSuggestions(String query) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4046",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": query,
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) return data['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint("GRN suggestions error: $e");
+    }
+    return [];
+  }
+
   Future<void> _saveInvoice() async {
     setState(() => _isLoading = true);
-    // Mimic saving logic
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isLoading = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Purchase Invoice saved successfully!")),
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final deviceData = await DeviceServices.getAndStoreDeviceInfo();
+      
+      final Map<String, String> body = {
+        "cid": cid,
+        "type": "4020",
+        "invoice_no": _invoiceNoController.text,
+        "date": _invoiceDateController.text,
+        "cus_id": _cusIdController.text,
+        "trans_type": _transTypeController.text,
+        "trans_name": _transNameController.text,
+        "b_name": _supplierNameController.text,
+        "b_gst": _supplierGstinController.text,
+        "b_add1": _addressController.text,
+        "b_loc": _bLocController.text,
+        "b_pin": _bPinController.text,
+        "b_scode": _bScodeController.text,
+        "taxable_total": _taxableTotalController.text,
+        "cgst": _cgstController.text,
+        "sgst": _sgstController.text,
+        "igst": _igstController.text,
+        "taxtotal": _totalGstController.text,
+        "g_total": _grandTotalController.text,
+        "ln": deviceData['ln'] ?? '1',
+        "lt": deviceData['lt'] ?? '1',
+        "device_id": deviceData['device_id'] ?? '11',
+      };
+
+      for (int i = 0; i < _items.length; i++) {
+        body["pro_name[$i]"] = _items[i].productNameController.text;
+        body["product_id[$i]"] = _items[i].productIdController.text;
+        body["hsn[$i]"] = _items[i].hsnCodeController.text;
+        body["qty[$i]"] = _items[i].qtyController.text;
+        body["uom[$i]"] = _items[i].uomController.text;
+        body["rate[$i]"] = _items[i].unitPriceController.text;
+        body["taxable[$i]"] = _items[i].taxableValueController.text;
+        body["tax[$i]"] = _items[i].taxPercentageController.text;
+        body["total[$i]"] = _items[i].totalAmountController.text;
+      }
+
+      debugPrint("PURCHASE INVOICE REQUEST: $body");
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: body,
       );
-      Navigator.pop(context);
+
+      debugPrint("PURCHASE INVOICE RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          if (mounted) {
+            _showSuccessDialog(data['message'] ?? "Invoice Inserted Successfully", data['items'] ?? []);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? "Failed to save invoice"), backgroundColor: Colors.red),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Server Error: ${response.statusCode}"), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Save Invoice Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSuccessDialog(String message, List<dynamic> items) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 10),
+            Text("Success"),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Divider(),
+              const Text("Returned Item Details (Cleaned):", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  itemBuilder: (context, idx) {
+                    final item = items[idx];
+                    // Clean the high precision decimals for display
+                    double taxAmt = double.tryParse(item['tax_amount']?.toString() ?? "0") ?? 0;
+                    double cgst = double.tryParse(item['cgst']?.toString() ?? "0") ?? 0;
+                    double sgst = double.tryParse(item['sgst']?.toString() ?? "0") ?? 0;
+                    
+                    return Card(
+                      color: Colors.grey[50],
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("${item['pname']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text("Qty: ${item['qty']} ${item['uom']} | Total: ${item['total']}"),
+                            Text("Tax: ${taxAmt.toStringAsFixed(2)} (CGST: ${cgst.toStringAsFixed(2)}, SGST: ${sgst.toStringAsFixed(2)})", 
+                              style: const TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Back to previous screen
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -114,22 +561,16 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Purchase Invoice",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp),
         ),
         backgroundColor: const Color(0xff26A69A),
+        centerTitle: false,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.list_alt_rounded),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SafeArea(
         child: Column(
@@ -166,10 +607,10 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
-        color: Color(0xff512DA8),
+      style: GoogleFonts.outfit(
+        color: const Color(0xFF1E293B),
         fontWeight: FontWeight.bold,
-        fontSize: 18,
+        fontSize: 16.sp,
       ),
     );
   }
@@ -180,15 +621,69 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          _buildTextField("Invoice No", _invoiceNoController),
+          Row(
+            children: [
+              Expanded(child: _buildTextField("Invoice No", _invoiceNoController)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildTextField(
+                  "Invoice Date", 
+                  _invoiceDateController, 
+                  readOnly: true,
+                  onTap: () async {
+                    DateTime? date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      setState(() {
+                        _invoiceDateController.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+                      });
+                    }
+                  },
+                  suffixIcon: const Icon(Icons.calendar_today, size: 16),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
-          _buildTextField("Invoice Date", _invoiceDateController),
+          _buildTextField(
+            "Supplier Name",
+            _supplierNameController,
+            readOnly: true,
+            onTap: _selectSupplier,
+            suffixIcon: const Icon(Icons.arrow_drop_down),
+          ),
           const SizedBox(height: 12),
-          _buildTextField("Customer Name", _customerNameController),
+          _buildTextField("Supplier GSTIN", _supplierGstinController),
           const SizedBox(height: 12),
-          _buildTextField("Customer GSTIN", _customerGstinController),
+          _buildTextField("Address", _addressController, maxLines: 2),
           const SizedBox(height: 12),
-          _buildTextField("Address", _addressController, maxLines: 3),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTypeAheadField(
+                  "GRN NO", 
+                  _grnNoController,
+                  _getGRNSuggestions,
+                  (suggestion) {
+                    setState(() {
+                      _grnNoController.text = suggestion['grn_no']?.toString() ?? "";
+                    });
+                    _fetchGRNDetails();
+                  },
+                  itemBuilder: (context, suggestion) => ListTile(
+                    title: Text(suggestion['grn_no'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    subtitle: Text("ID: ${suggestion['id']}", style: const TextStyle(fontSize: 11)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTextField("DC / Inv No", _dcNoController)),
+            ],
+          ),
         ],
       ),
     );
@@ -202,23 +697,74 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
         children: [
           _buildDropdown("Price Type", _selectedPriceType, ["Exclude Tax", "Include Tax"], (val) {
             setState(() => _selectedPriceType = val!);
+            _calculateAll();
           }),
           const SizedBox(height: 12),
           _buildDropdown("Tax Type", _selectedTaxType, ["CGST/SGST", "IGST"], (val) {
             setState(() => _selectedTaxType = val!);
+            _calculateAll();
           }),
-          const SizedBox(height: 12),
-          _buildTextField("GRN NO", _grnNoController),
-          const SizedBox(height: 12),
-          _buildTextField("DC / Invoice No", _dcNoController),
-          const SizedBox(height: 12),
-          _buildDropdown("TCS", _selectedTcs, ["NO TCS", "TCS @ 0.1%", "TCS @ 1%"], (val) {
-            setState(() => _selectedTcs = val!);
-          }),
-          const SizedBox(height: 12),
-          _buildDropdown("TDS", _selectedTds, ["NO TDS", "TDS @ 1%", "TDS @ 2%"], (val) {
-            setState(() => _selectedTds = val!);
-          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemCard(int index) {
+    final item = _items[index];
+    final name = item.productNameController.text;
+    final qty = item.qtyController.text;
+    final total = item.totalAmountController.text;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: const Color(0xff26A69A).withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xff26A69A), size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name.isEmpty ? "Unnamed Product" : name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text("QTY: $qty  |  TOTAL: ₹$total", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => _editItem(index),
+                  child: const Text("Edit", style: TextStyle(color: Color(0xff26A69A), fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+              Container(width: 1, height: 20, color: Colors.grey.shade200),
+              Expanded(
+                child: TextButton(
+                  onPressed: () => _removeItem(index),
+                  child: const Text("Remove", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -228,84 +774,50 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildSectionHeader("Product Details"),
-            ElevatedButton.icon(
-              onPressed: _addItem,
-              icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: const Text("Add", style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
+        _buildSectionHeader("Product Details"),
         const SizedBox(height: 12),
-        ..._items.asMap().entries.map((entry) {
-          int idx = entry.key;
-          InvoiceItem item = entry.value;
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(12),
+        if (_items.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
+              border: Border.all(color: Colors.grey.shade100),
             ),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundColor: const Color(0xff26A69A),
-                      child: Text("${idx + 1}", style: const TextStyle(color: Colors.white, fontSize: 12)),
-                    ),
-                    if (_items.length > 1)
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
-                        onPressed: () => _removeItem(idx),
-                        constraints: const BoxConstraints(),
-                        padding: EdgeInsets.zero,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildSmallTextField("Product Name", item.productNameController),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _buildSmallTextField("HSN Code", item.hsnCodeController)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildSmallTextField("Quantity", item.qtyController, keyboardType: TextInputType.number)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _buildSmallTextField("Discount", item.discountController, keyboardType: TextInputType.number)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildSmallTextField("UOM", item.uomController)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _buildSmallTextField("Unit Price", item.unitPriceController, keyboardType: TextInputType.number)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildSmallTextField("Taxable Value", item.taxableValueController, readOnly: true)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                _buildSmallTextField("Total Amount", item.totalAmountController, readOnly: true),
+                Icon(Icons.add_shopping_cart_outlined, size: 48, color: Colors.grey.shade300),
+                const SizedBox(height: 16),
+                Text("No products added yet", style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w500)),
               ],
             ),
-          );
-        }),
+          )
+        else
+          ...List.generate(_items.length, (index) => _buildItemCard(index)),
+        const SizedBox(height: 16),
+        Center(
+          child: InkWell(
+            onTap: _addItem,
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xff26A69A).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: const Color(0xff26A69A), width: 1.5),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_circle_outline, color: Color(0xff26A69A), size: 20),
+                  SizedBox(width: 8),
+                  Text("Add More Product", style: TextStyle(color: Color(0xff26A69A), fontWeight: FontWeight.bold, fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -326,23 +838,11 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
           const Divider(),
           _buildTotalRow("Total GST", _totalGstController),
           const Divider(),
-          Row(
-            children: [
-              Expanded(child: _buildTotalRow("CGST", _cgstController)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildTotalRow("SGST", _sgstController)),
-            ],
-          ),
+          _buildTotalRow("CGST", _cgstController),
           const Divider(),
-          Row(
-            children: [
-              Expanded(child: _buildTotalRow("IGST", _igstController)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildTotalRow("TCS", _tcsTotalController)),
-            ],
-          ),
+          _buildTotalRow("SGST", _sgstController),
           const Divider(),
-          _buildTotalRow("Round Off", _roundOffController),
+          _buildTotalRow("IGST", _igstController),
         ],
       ),
     );
@@ -382,21 +882,36 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {int maxLines = 1}) {
+  Widget _buildTextField(
+    String label, 
+    TextEditingController controller, {
+    int maxLines = 1, 
+    TextInputType? keyboardType, 
+    Widget? suffixIcon,
+    VoidCallback? onTap,
+    bool readOnly = false,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.w500)),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           maxLines: maxLines,
+          keyboardType: keyboardType,
+          readOnly: readOnly,
+          onTap: onTap,
+          style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[300]!)),
+            suffixIcon: suffixIcon,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[200]!)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[200]!)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xff26A69A))),
+            fillColor: const Color(0xffFDFDFD),
+            filled: true,
           ),
         ),
       ],
@@ -428,7 +943,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     );
   }
 
-  Widget _buildSmallTextField(String label, TextEditingController controller, {bool readOnly = false, TextInputType? keyboardType}) {
+  Widget _buildSmallTextField(String label, TextEditingController controller, {bool readOnly = false, TextInputType? keyboardType, ValueChanged<String>? onChanged}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -438,6 +953,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
           controller: controller,
           readOnly: readOnly,
           keyboardType: keyboardType,
+          onChanged: onChanged,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             isDense: true,
@@ -457,7 +973,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       children: [
         Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87))),
         SizedBox(
-          width: 100,
+          width: 120,
           child: TextField(
             controller: controller,
             readOnly: true,
@@ -467,6 +983,410 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTypeAheadField(
+    String label, 
+    TextEditingController controller,
+    Future<List<dynamic>> Function(String) suggestionsCallback,
+    void Function(dynamic) onSuggestionSelected, {
+    required Widget Function(BuildContext, dynamic) itemBuilder,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        TypeAheadField<dynamic>(
+          builder: (context, controller, focusNode) {
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: "Type to search...",
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[200]!)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey[200]!)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xff26A69A))),
+                fillColor: const Color(0xffFDFDFD),
+                filled: true,
+              ),
+            );
+          },
+          controller: controller,
+          suggestionsCallback: (search) => suggestionsCallback(search),
+          itemBuilder: itemBuilder,
+          onSelected: onSuggestionSelected,
+          loadingBuilder: (context) => const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          emptyBuilder: (context) => const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text('No results found'),
+          ),
+          decorationBuilder: (context, child) => Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(8),
+            child: child,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GRNSelectionSheet extends StatefulWidget {
+  const _GRNSelectionSheet();
+
+  @override
+  State<_GRNSelectionSheet> createState() => _GRNSelectionSheetState();
+}
+
+class _GRNSelectionSheetState extends State<_GRNSelectionSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _allGRNs = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGRNs("");
+  }
+
+  Future<void> _fetchGRNs(String query) async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4046",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": query,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          setState(() {
+            _allGRNs = data['data'] ?? [];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch GRN List Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              children: [
+                Text(
+                  "Select GRN Number",
+                  style: GoogleFonts.outfit(fontSize: 20.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: Colors.grey[400]),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: GoogleFonts.outfit(fontSize: 14.sp),
+                decoration: InputDecoration(
+                  hintText: "Search by GRN Number...",
+                  hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xff26A69A)),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(onPressed: () { _searchController.clear(); _fetchGRNs(""); }, icon: const Icon(Icons.clear)) 
+                    : null,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                ),
+                onChanged: _fetchGRNs,
+              ),
+            ),
+          ),
+          Expanded(
+            child: _isLoading && _allGRNs.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: Color(0xff26A69A)))
+              : _allGRNs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_outlined, size: 60.sp, color: Colors.grey[200]),
+                        SizedBox(height: 16.h),
+                        Text(
+                          "No GRNs Found",
+                          style: GoogleFonts.outfit(color: Colors.grey[400], fontWeight: FontWeight.w600, fontSize: 16.sp),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    itemCount: _allGRNs.length,
+                    itemBuilder: (context, index) {
+                      final grn = _allGRNs[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          onTap: () => Navigator.pop(context, grn['grn_no']),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff26A69A).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.description_outlined, color: Color(0xff26A69A), size: 22),
+                          ),
+                          title: Text(
+                            grn['grn_no'] ?? "N/A",
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp, color: const Color(0xFF334155)),
+                          ),
+                          subtitle: Text(
+                            "ID: ${grn['id']}",
+                            style: GoogleFonts.outfit(fontSize: 12.sp, color: Colors.grey[500]),
+                          ),
+                          trailing: Icon(Icons.chevron_right, color: Colors.grey[300]),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SupplierSelectionSheet extends StatefulWidget {
+  const _SupplierSelectionSheet();
+
+  @override
+  State<_SupplierSelectionSheet> createState() => _SupplierSelectionSheetState();
+}
+
+class _SupplierSelectionSheetState extends State<_SupplierSelectionSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _allSuppliers = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSuppliers("");
+  }
+
+  Future<void> _fetchSuppliers(String query) async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4010",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": query,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          setState(() {
+            _allSuppliers = data['data'] ?? [];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch Supplier List Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            child: Row(
+              children: [
+                Text(
+                  "Select Supplier",
+                  style: GoogleFonts.outfit(fontSize: 20.sp, fontWeight: FontWeight.bold, color: const Color(0xFF1E293B)),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: Colors.grey[400]),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(20.w),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: GoogleFonts.outfit(fontSize: 14.sp),
+                decoration: InputDecoration(
+                  hintText: "Search by Name or Mobile...",
+                  hintStyle: GoogleFonts.outfit(color: Colors.grey[400]),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xff26A69A)),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(onPressed: () { _searchController.clear(); _fetchSuppliers(""); }, icon: const Icon(Icons.clear)) 
+                    : null,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                ),
+                onChanged: _fetchSuppliers,
+              ),
+            ),
+          ),
+          Expanded(
+            child: _isLoading && _allSuppliers.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: Color(0xff26A69A)))
+              : _allSuppliers.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline_rounded, size: 60.sp, color: Colors.grey[200]),
+                        SizedBox(height: 16.h),
+                        Text(
+                          "No Suppliers Found",
+                          style: GoogleFonts.outfit(color: Colors.grey[400], fontWeight: FontWeight.w600, fontSize: 16.sp),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    itemCount: _allSuppliers.length,
+                    itemBuilder: (context, index) {
+                      final supplier = _allSuppliers[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                          onTap: () => Navigator.pop(context, supplier),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff26A69A).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.storefront_outlined, color: Color(0xff26A69A), size: 22),
+                          ),
+                          title: Text(
+                            supplier['Ledger_Name'] ?? "N/A",
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp, color: const Color(0xFF334155)),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (supplier['gst'] != null && supplier['gst'] != "0")
+                                Text("GST: ${supplier['gst']}", style: GoogleFonts.outfit(fontSize: 12.sp, color: const Color(0xff26A69A))),
+                              if (supplier['address'] != null && supplier['address'].toString().isNotEmpty)
+                                Text(
+                                  supplier['address'],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(fontSize: 12.sp, color: Colors.grey[500]),
+                                ),
+                            ],
+                          ),
+                          trailing: Icon(Icons.chevron_right, color: Colors.grey[300]),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

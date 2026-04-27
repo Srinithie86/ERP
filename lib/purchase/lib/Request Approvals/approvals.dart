@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../dashboard.dart';
 import 'request_approval_details.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import '../QC/grn_inspection_screen.dart';
+import '../QC/modern_qc_inspection_screen.dart';
+import '../GRN/create_grn_screen.dart';
+import 'package:erp_smart/theme/app_theme.dart'; // Though we use Theme.of(context), keeping as fallback if needed 
 
 class RequestApprovals extends StatefulWidget {
   static List<dynamic> cachedApprovals = [];
@@ -27,6 +31,8 @@ class RequestApprovals extends StatefulWidget {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
+      final uid = prefs.getString('uid') ?? '118';
+      final roleId = prefs.getString('role_id') ?? '1';
 
       final results = await Future.wait([
         http.post(
@@ -42,8 +48,10 @@ class RequestApprovals extends StatefulWidget {
         http.post(
           Uri.parse(apiUrl),
           body: {
-            'type': '4006',
+            'type': '4036',
             'cid': cid,
+            'uid': uid,
+            'role_id': roleId,
             'device_id': '123',
             'ln': '123',
             'lt': '34',
@@ -77,7 +85,8 @@ class RequestApprovals extends StatefulWidget {
           final jsonResponse = json.decode(prResponse.body);
           if (jsonResponse['error'] == false ||
               jsonResponse['error']?.toString().toLowerCase() == 'false') {
-            cachedApprovals = jsonResponse['data'] ?? [];
+            final List<dynamic> rawData = jsonResponse['data'] ?? [];
+            cachedApprovals = _groupPRItems(rawData);
             hasCachedData = true;
           }
         } catch (e) {
@@ -91,6 +100,84 @@ class RequestApprovals extends StatefulWidget {
     }
   }
 
+  static List<Map<String, dynamic>> _groupPOItems(List<dynamic> rawList) {
+    if (rawList.isEmpty) return [];
+    final Map<String, Map<String, dynamic>> grouped = {};
+
+    for (var item in rawList) {
+      final String poNo = (item['po_no'] ?? item['id'] ?? '').toString();
+      if (poNo.isEmpty) continue;
+
+      if (!grouped.containsKey(poNo)) {
+        grouped[poNo] = {
+          'master_po': {
+            'id': item['id'],
+            'po_no': poNo,
+            'po_date': item['po_date'],
+            'supplier_name': item['supplier_name'],
+            'grand_total': 0.0,
+            'status': item['status'],
+            'pdf_link': item['pdf_link'],
+          },
+          'items': [],
+        };
+      }
+
+      double lineTot = 0.0;
+      try {
+        lineTot = double.parse((item['tot_amt'] ?? '0').toString());
+      } catch (_) {}
+      grouped[poNo]!['master_po']['grand_total'] += lineTot;
+
+      grouped[poNo]!['items'].add(item);
+    }
+    return grouped.values.map((v) => Map<String, dynamic>.from(v)).toList();
+  }
+
+  static List<dynamic> _groupPRItems(List<dynamic> rawList) {
+    if (rawList.isEmpty) return [];
+    final Map<String, Map<String, dynamic>> grouped = {};
+
+    for (var item in rawList) {
+      final String prNo = (item['no'] ?? item['requ_no'] ?? item['id'] ?? '').toString();
+      if (prNo.isEmpty) continue;
+
+      if (!grouped.containsKey(prNo)) {
+        grouped[prNo] = {
+          'master': {
+            'id': item['id'],
+            'no': prNo,
+            'date': item['req_date'] ?? item['date'] ?? item['dtime'] ?? 'N/A',
+            'department': item['department'] ?? 'N/A',
+            'requested_by': item['requested_by'] ?? item['req_by'] ?? 'N/A',
+            'pdf_link': item['pdf_link'],
+          },
+          'items': [],
+          '_itemCodes': <String>{}, // Helper to de-duplicate
+        };
+      }
+
+      final String code = (item['item_code'] ?? '').toString();
+      if (code.isNotEmpty && grouped[prNo]!['_itemCodes'].contains(code)) {
+        continue; // Skip duplicate item in same PR
+      }
+      if (code.isNotEmpty) grouped[prNo]!['_itemCodes'].add(code);
+
+      grouped[prNo]!['items'].add({
+        'item_code': code.isEmpty ? 'N/A' : code,
+        'product_name': item['product_name'] ?? 'N/A',
+        'uom': item['uom'] ?? 'N/A',
+        'qty': item['item_qty'] ?? item['qty'] ?? '0',
+        'current_stock_qty': item['current_stock_qty'] ?? item['stock_qty'] ?? '0',
+        'dod_date': item['dod_date'] ?? item['req_date'] ?? item['date'] ?? 'N/A',
+      });
+    }
+    return grouped.values.map((v) {
+      v.remove('_itemCodes'); // Cleanup
+      return v;
+    }).toList();
+  }
+
   @override
   State<RequestApprovals> createState() => _RequestApprovalsState();
 }
@@ -101,6 +188,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
   List<Map<String, dynamic>> qcApprovals = [];
   Map<String, String> userMap = Map.from(RequestApprovals.cachedUserMap);
   bool isLoading = !RequestApprovals.hasCachedData;
+  bool _isSearching = false;
+  String _searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -133,14 +223,20 @@ class _RequestApprovalsState extends State<RequestApprovals> {
           'lt': '34',
         },
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['error'] == false) {
-          userMap.clear();
-          for (var user in data['data']) {
-            userMap[user['id'].toString()] = user['name'].toString();
+      debugPrint("Users Response Code: ${response.statusCode}");
+      debugPrint("Users Response Body: ${response.body}");
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        try {
+          final data = json.decode(response.body);
+          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+            userMap.clear();
+            for (var user in data['data']) {
+              userMap[user['id'].toString()] = user['name'].toString();
+            }
+            RequestApprovals.cachedUserMap = Map.from(userMap);
           }
-          RequestApprovals.cachedUserMap = Map.from(userMap);
+        } catch (e) {
+          debugPrint("User decode error: $e");
         }
       }
     } catch (e) {
@@ -155,23 +251,32 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final response = await http.post(
         Uri.parse(RequestApprovals.apiUrl),
         body: {
-          'type': '4006',
+          'type': '4036',
           'cid': cid,
+          'uid': prefs.getString('uid') ?? '118',
+          'role_id': prefs.getString('role_id') ?? '1',
           'device_id': '123',
           'ln': '123',
           'lt': '34',
         },
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['error'] == false) {
-          if (mounted) {
-            setState(() {
-              prApprovals = data['data'] ?? [];
-              RequestApprovals.cachedApprovals = prApprovals;
-              RequestApprovals.hasCachedData = true;
-            });
+      debugPrint("PR Response Code: ${response.statusCode}");
+      debugPrint("PR Response Body: ${response.body}");
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        try {
+          final data = json.decode(response.body);
+          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+            final List<dynamic> rawData = data['data'];
+            if (mounted) {
+              setState(() {
+                prApprovals = RequestApprovals._groupPRItems(rawData);
+                RequestApprovals.cachedApprovals = prApprovals;
+                RequestApprovals.hasCachedData = true;
+              });
+            }
           }
+        } catch (e) {
+          debugPrint("PR decode error: $e");
         }
       }
     } catch (e) {
@@ -186,23 +291,30 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final response = await http.post(
         Uri.parse(RequestApprovals.apiUrl),
         body: {
-          'type': '4027',
+          'type': '4044',
           'cid': cid,
           'device_id': '123',
-          'uid': prefs.getString('uid') ?? '2',
+          'uid': prefs.getString('uid') ?? '118',
           'role_id': '1',
           'lt': '123',
           'ln': '123',
         },
       );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['error'] == false) {
-          if (mounted) {
-            setState(() {
-              poApprovals = List<Map<String, dynamic>>.from(data['data'] ?? []);
-            });
+      debugPrint("PO Response Code: ${response.statusCode}");
+      debugPrint("PO Response Body: ${response.body}");
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        try {
+          final data = json.decode(response.body);
+          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+            final List<dynamic> rawData = data['data'];
+            if (mounted) {
+              setState(() {
+                poApprovals = RequestApprovals._groupPOItems(rawData);
+              });
+            }
           }
+        } catch (e) {
+          debugPrint("PO decode error: $e");
         }
       }
     } catch (e) {
@@ -215,50 +327,27 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       
-      // Fetch from both PO (25601) and PR (25001) sources for QC
-      final results = await Future.wait([
-        http.post(
-          Uri.parse("https://erpsmart.in/total/api/m_api/"),
-          body: {
-            "type": "2083",
-            "cid": cid,
-            "device_id": "123",
-            "lt": "123",
-            "ln": "123",
-            "form": "sm_main_form_25601",
-            "select": "*",
-            "where": "qc_status like '%Pend%'",
-          },
-        ),
-        http.post(
-          Uri.parse("https://erpsmart.in/total/api/m_api/"),
-          body: {
-            "type": "2083",
-            "cid": cid,
-            "device_id": "123",
-            "lt": "123",
-            "ln": "123",
-            "form": "sm_main_form_25001",
-            "select": "*",
-            "where": "qc_status like '%Pend%'",
-          },
-        ),
-      ]);
+      final response = await http.post(
+        Uri.parse(RequestApprovals.apiUrl),
+        body: {
+          "type": "4034",
+          "cid": cid,
+          "device_id": "123",
+          "lt": "123",
+          "ln": "123",
+          "uid": prefs.getString('uid') ?? '2',
+        },
+      );
 
-      List<Map<String, dynamic>> combinedQC = [];
-      for (var response in results) {
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['error'] == false && data['data'] != null) {
-            combinedQC.addAll(List<Map<String, dynamic>>.from(data['data']));
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          if (mounted) {
+            setState(() {
+              qcApprovals = List<Map<String, dynamic>>.from(data['data']);
+            });
           }
         }
-      }
-
-      if (mounted) {
-        setState(() {
-          qcApprovals = combinedQC;
-        });
       }
     } catch (e) {
       debugPrint("Fetch QC error: $e");
@@ -291,6 +380,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
             SnackBar(content: Text("PO $poNo $status successfully"), backgroundColor: Colors.green),
           );
           _fetchAll();
+          if (status == "Approved") {
+            _showGRNPrompt(poNo);
+          }
         }
       }
     } catch (e) {
@@ -300,162 +392,298 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: PopScope(
-        canPop: !widget.isEmbedded,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Dashboard()));
-        },
-        child: Scaffold(
-          backgroundColor: const Color(0xffF8FAFB),
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: const Color(0xFF26A69A),
-            leading: widget.isEmbedded ? null : IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-              onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const Dashboard())),
-            ),
-            title: Text("Approvals", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 20)),
-            bottom: TabBar(
-              indicatorColor: Colors.white,
-              indicatorWeight: 3,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white.withOpacity(0.7),
-              labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
-              unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13),
-              tabs: const [
-                Tab(text: "PR"),
-                Tab(text: "PO"),
-                Tab(text: "QC"),
-                Tab(text: "All"),
-              ],
-            ),
+  void _showGRNPrompt(String poNo) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Approved Successfully", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text("Purchase Order $poNo has been approved. Would you like to create a GRN for this order now?", style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Later", style: GoogleFonts.outfit(color: Colors.grey)),
           ),
-          body: TabBarView(
-            children: [
-              _buildApprovalList("PR"),
-              _buildApprovalList("PO"),
-              _buildApprovalList("QC"),
-              _buildApprovalList("All"),
-            ],
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => CreateGRNScreen(initialPoNo: poNo)));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: Text("Create GRN", style: GoogleFonts.outfit(color: Colors.white)),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildApprovalList(String category) {
-    final list = _getFilteredList(category);
-    if (isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)));
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: _tabs.length,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF1F5F9),
+        appBar: AppBar(
+          centerTitle: false,
+          leading: widget.isEmbedded ? null : IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: _isSearching
+              ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 16.sp),
+                  decoration: const InputDecoration(
+                    hintText: "Search approvals...",
+                    hintStyle: TextStyle(color: Colors.white70),
+                    border: InputBorder.none,
+                  ),
+                  onChanged: (val) {
+                    setState(() => _searchQuery = val.toLowerCase());
+                  },
+                )
+              : Text(
+                  "Approvals",
+                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp),
+                ),
+          actions: [
+            IconButton(
+              icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white),
+              onPressed: () {
+                setState(() {
+                  _isSearching = !_isSearching;
+                  if (!_isSearching) {
+                    _searchQuery = "";
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+          ],
+          bottom: TabBar(
+            onTap: (index) {
+              setState(() {
+                _currentTab = _tabs[index];
+              });
+            },
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white.withOpacity(0.7),
+            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13.sp),
+            unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13.sp),
+            tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
+          ),
+        ),
+        body: _buildMainContent(),
+      ),
+    );
+  }
+
+  String _currentTab = "All";
+  final List<String> _tabs = ["All", "PR", "PO", "QC"];
+
+  Widget _buildMainContent() {
+    final list = _getFilteredList(_currentTab);
+    
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF14B8A6)));
+    }
+
     if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.assignment_turned_in_outlined, size: 64, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text("No $category pending", style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16)),
+            Container(
+              padding: EdgeInsets.all(24.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20),
+                ],
+              ),
+              child: Icon(Icons.assignment_turned_in_rounded, size: 64.sp, color: Colors.teal.shade50),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              "All Caught Up!",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18.sp, color: Colors.blueGrey.shade800),
+            ),
+            Text(
+              "No pending ${_currentTab == 'All' ? 'approvals' : _currentTab} found",
+              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14.sp),
+            ),
           ],
         ),
       );
     }
+
     return RefreshIndicator(
       onRefresh: _fetchAll,
-      color: const Color(0xFF26A69A),
+      color: const Color(0xFF14B8A6),
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         itemCount: list.length,
-        itemBuilder: (context, index) => _buildCard(list[index]),
+        itemBuilder: (context, index) => _buildModernCard(list[index], _currentTab),
       ),
     );
   }
 
-  Widget _buildCard(dynamic data) {
-    String prefix = (data['no'] ?? data['po_no'] ?? data['grn_no'] ?? 'N/A').toString();
-    bool isPR = data.containsKey('master') || (prefix.startsWith("PR"));
-    bool isPO = prefix.contains("PO") && !data.containsKey('grn_no');
-    bool isQC = data.containsKey('grn_no');
+  Widget _buildModernCard(dynamic data, String category) {
+    dynamic master = data.containsKey('master') ? data['master'] : (data.containsKey('master_po') ? data['master_po'] : data);
+    List items = data.containsKey('items') ? data['items'] : [];
+    
+    String itemCode = (items.isNotEmpty) ? (items[0]['item_code'] ?? items[0]['item_no'] ?? '').toString() : '';
+    if (itemCode == 'N/A') itemCode = '';
 
-    String date = (data['date'] ?? data['po_date'] ?? data['dtime'] ?? 'N/A').toString();
+    String prefix = (itemCode.isNotEmpty 
+        ? itemCode 
+        : (master['grn_no'] ?? master['no'] ?? master['po_no'] ?? master['requ_no'] ?? master['id'] ?? 'N/A')).toString();
+    
+    bool isQC = (data['grn_no'] != null || category == "QC");
+    bool isPO = !isQC && (data['po_no'] != null || data['master_po'] != null);
+    bool isPR = !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
+
+    // Re-evaluate based on specific keys if the tab isn't forced
+    if (category == "All") {
+      isQC = data['grn_no'] != null;
+      isPO = !isQC && (data['po_no'] != null || data['master_po'] != null);
+      isPR = !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
+    }
+
+    String date = (master['date'] ?? master['po_date'] ?? master['dtime'] ?? master['req_date'] ?? (items.isNotEmpty ? (items[0]['date'] ?? items[0]['req_date'] ?? 'N/A') : 'N/A')).toString();
     if (date.contains(' ')) date = date.split(' ')[0];
 
     String title = "Purchase Request";
-    String dept = "N/A";
-    String requester = "N/A";
+    String subtitle = "N/A";
+    String meta = "N/A";
 
-    if (isPR) {
-      final master = data['master'] ?? data;
-      final items = data['items'] ?? [];
-      title = items.isNotEmpty ? (items[0]['product_name'] ?? 'Purchase Item') : 'Purchase Item';
-      dept = master['department'] ?? 'N/A';
-      requester = userMap[master['requested_by']?.toString()] ?? master['requested_by']?.toString() ?? 'N/A';
+    if (isQC) {
+      final qcItems = data['items'] ?? [];
+      String qcTitle = "QC Inspection";
+      if (data['pro_name'] != null && data['pro_name'].toString().isNotEmpty) {
+        qcTitle = data['pro_name'].toString();
+      } else if (data['product_name'] != null && data['product_name'].toString().isNotEmpty) {
+        qcTitle = data['product_name'].toString();
+      } else if (qcItems.isNotEmpty && qcItems[0]['product_name'] != null) {
+        qcTitle = qcItems[0]['product_name'].toString();
+      }
+      title = qcTitle;
+      subtitle = "GRN: ${(data['grn_no'] ?? 'N/A')}";
+      String status = data['qc_status'] ?? 'Pending';
+      meta = "Status: $status ${data['inspector_name'] != null ? '| By: ' + data['inspector_name'].toString() : ''}";
     } else if (isPO) {
       title = "Purchase Order Request";
-      dept = data['supplier_name'] ?? 'N/A';
-      requester = "Total: ₹${data['tot_amt'] ?? '0'}";
-    } else if (isQC) {
-      title = (data['pro_name'] ?? data['product_name'] ?? "QC Inspection").toString();
-      dept = (data['supplier_name'] ?? data['po_no'] ?? data['no'] ?? 'N/A').toString();
-      String amount = data['tot_amt'] != null ? " | ₹${data['tot_amt']}" : "";
-      requester = "Qty: ${data['qty'] ?? data['quantity_required'] ?? '0'}$amount";
+      subtitle = master['supplier_name'] ?? 'N/A';
+      meta = "Total: ₹${master['grand_total'] ?? master['tot_amt'] ?? '0'}";
+    } else if (isPR) {
+      final itemsList = data['items'] ?? [];
+      title = itemsList.isNotEmpty ? (itemsList[0]['product_name'] ?? 'Purchase Item') : 'Purchase Item';
+      subtitle = master['department'] ?? 'N/A';
+      meta = userMap[master['requested_by']?.toString()] ?? master['requested_by']?.toString() ?? 'N/A';
     }
 
-    Color accentColor = isPR ? const Color(0xFF26A69A) : (isPO ? const Color(0xFF5C6BC0) : const Color(0xFFFFA726));
-    IconData icon = isPR ? Icons.description : (isPO ? Icons.shopping_bag : Icons.fact_check);
+    Color accentColor = isPR ? const Color(0xFF0EA5E9) : (isPO ? const Color(0xFFF59E0B) : const Color(0xFF8B5CF6));
+    IconData icon = isPR ? Icons.description_rounded : (isPO ? Icons.shopping_cart_rounded : Icons.fact_check_rounded);
+    String typeLabel = isQC ? "QC" : (isPO ? "PO" : "PR");
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: accentColor.withOpacity(0.1),
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-            title: Text(prefix, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
-            subtitle: Text(date, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey)),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-              child: Text(isPR ? "PR" : (isPO ? "PO" : "QC"), style: GoogleFonts.outfit(color: accentColor, fontWeight: FontWeight.bold, fontSize: 10)),
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.all(16.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 4),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(Icons.business, size: 14, color: Colors.grey.shade400),
-                    const SizedBox(width: 4),
-                    Flexible(
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8.w),
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(icon, color: accentColor, size: 18.sp),
+                        ),
+                        SizedBox(width: 12.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              prefix,
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp, color: Colors.blueGrey.shade900),
+                            ),
+                            Text(
+                              date,
+                              style: GoogleFonts.outfit(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: accentColor.withOpacity(0.2)),
+                      ),
                       child: Text(
-                        dept,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600),
+                        typeLabel,
+                        style: GoogleFonts.outfit(color: accentColor, fontWeight: FontWeight.bold, fontSize: 10.sp),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.person_outline, size: 14, color: Colors.grey.shade400),
-                    const SizedBox(width: 4),
-                    Flexible(
+                  ],
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16.sp, color: Colors.blueGrey.shade800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Icon(Icons.business_center_rounded, size: 14.sp, color: Colors.grey.shade400),
+                    SizedBox(width: 6.w),
+                    Expanded(
                       child: Text(
-                        requester,
+                        subtitle,
+                        style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 12.sp, fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600),
-                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Icon(Icons.person_pin_rounded, size: 14.sp, color: Colors.grey.shade400),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        meta,
+                        style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 12.sp, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -463,55 +691,51 @@ class _RequestApprovalsState extends State<RequestApprovals> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
+              border: Border(top: BorderSide(color: Colors.grey.shade100)),
+            ),
             child: Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      if (isPR) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => RequestApprovalDetailsScreen(masterData: data['master'] ?? data, itemsData: data['items'] ?? []))).then((_) => _fetchAll());
-                      } else if (isPO) {
-                        _handlePOAction(data['id']?.toString() ?? '', "Approved", prefix);
-                      } else if (isQC) {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => GrnInspectionScreen(inspectionData: data))).then((_) => _fetchAll());
+                      if (isPR || isPO) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RequestApprovalDetailsScreen(
+                              masterData: isPR ? (data['master'] ?? data) : (data['master_po'] ?? data),
+                              itemsData: data['items'] ?? [],
+                              isPO: isPO,
+                            ),
+                          ),
+                        ).then((_) => _fetchAll());
+                      } else {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => ModernQCInspectionScreen(inspectionData: data))).then((_) => _fetchAll());
                       }
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF43A047), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
-                    child: Text(isQC ? "Inspect" : "Approve", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                if (!isQC) ...[
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (isPR) {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => RequestApprovalDetailsScreen(masterData: data['master'] ?? data, itemsData: data['items'] ?? []))).then((_) => _fetchAll());
-                        } else if (isPO) {
-                          _handlePOAction(data['id']?.toString() ?? '', "Rejected", prefix);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
-                      child: Text("Reject", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF26A69A),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                  ),
-                ],
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () {
-                    if (isPR) {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => RequestApprovalDetailsScreen(masterData: data['master'] ?? data, itemsData: data['items'] ?? []))).then((_) => _fetchAll());
-                    } else if (isQC) {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => GrnInspectionScreen(inspectionData: data))).then((_) => _fetchAll());
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.visibility_outlined, size: 20, color: Colors.grey),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(isQC ? Icons.fact_check_outlined : Icons.check_circle_outline, size: 18.sp),
+                        SizedBox(width: 8.w),
+                        Text(
+                          isQC ? "Inspect Items" : "Review & Approve",
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13.sp),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -523,19 +747,37 @@ class _RequestApprovalsState extends State<RequestApprovals> {
   }
 
   List<dynamic> _getFilteredList(String category) {
-    if (category == "PR") return prApprovals;
-    if (category == "PO") return poApprovals;
-    if (category == "QC") return qcApprovals;
+    List<dynamic> listToFilter = [];
+    if (category == "PR") {
+      listToFilter = prApprovals;
+    } else if (category == "PO") {
+      listToFilter = poApprovals;
+    } else if (category == "QC") {
+      listToFilter = qcApprovals;
+    } else {
+      listToFilter = [...prApprovals, ...poApprovals, ...qcApprovals];
+      listToFilter.sort((a, b) {
+        String dateA = (a['date'] ?? (a['master']?['date']) ?? (a['master_po']?['po_date']) ?? a['grn_date'] ?? a['dtime'] ?? '0').toString();
+        String dateB = (b['date'] ?? (b['master']?['date']) ?? (b['master_po']?['po_date']) ?? b['grn_date'] ?? b['dtime'] ?? '0').toString();
+        return dateB.compareTo(dateA);
+      });
+    }
 
-    List<dynamic> all = [];
-    all.addAll(prApprovals);
-    all.addAll(poApprovals);
-    all.addAll(qcApprovals);
-    all.sort((a, b) {
-      String dateA = (a['date'] ?? a['po_date'] ?? a['dtime'] ?? '0').toString();
-      String dateB = (b['date'] ?? b['po_date'] ?? b['dtime'] ?? '0').toString();
-      return dateB.compareTo(dateA);
-    });
-    return all;
+    if (_searchQuery.isEmpty) return listToFilter;
+
+    return listToFilter.where((item) {
+      dynamic master = item.containsKey('master') ? item['master'] : (item.containsKey('master_po') ? item['master_po'] : item);
+      List items = item.containsKey('items') ? item['items'] : [];
+      
+      String searchContent = [
+        master['no'], master['po_no'], master['requ_no'], master['id'],
+        master['supplier_name'], master['department'],
+        master['requested_by'],
+        item['product_name'], item['pro_name'], item['item_code'],
+        ...items.map((i) => "${i['product_name']} ${i['item_code']}")
+      ].join(" ").toLowerCase();
+
+      return searchContent.contains(_searchQuery);
+    }).toList();
   }
 }

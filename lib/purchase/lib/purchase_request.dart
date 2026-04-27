@@ -83,6 +83,7 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
         appBar: AppBar(
           elevation: 0,
           backgroundColor: const Color(0xFF26A69A),
+          centerTitle: false,
           leading: widget.isEmbedded ? null : IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const Dashboard())),

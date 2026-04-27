@@ -20,7 +20,7 @@ class DeliveryChallanPaymentScreen extends StatefulWidget {
     required this.totalAmount,
     required this.selectedProducts,
     this.taxType = 'IGST',
-    this.priceType = 'Exclude tax',
+    this.priceType = 'Exclude Tax',
     this.selectedCustomer,
   });
 
@@ -162,7 +162,8 @@ class _DeliveryChallanPaymentScreenState
         'expected_delivery_date': metadata['expected_delivery_date'] ?? '',
         'prepared_by': "Admin",
         'approved_by': "Manager",
-        'address': _selectedCustomer?['address'] ?? '',
+        'address': (_selectedCustomer?['address'] ?? _selectedCustomer?['Address'] ?? _selectedCustomer?['b_add1'] ?? '').toString(),
+        'customer_gstin': (_selectedCustomer?['gst'] ?? _selectedCustomer?['GSTIN'] ?? _selectedCustomer?['gstin'] ?? '').toString(),
         'status': 'active',
         'products': json.encode(productsJson),
       };
@@ -533,7 +534,7 @@ class _DeliveryChallanPaymentScreenState
     'CS Retail'
   ];
   final List<String> _taxTypes = ['IGST', 'CGST + SGST', 'None'];
-  final List<String> _priceTypes = ['Exclude tax', 'Include tax'];
+  final List<String> _priceTypes = ['Exclude Tax', 'Include Tax'];
   final List<String> _paymentModes = ['Cash', 'UPI', 'NEFT', 'Cheque'];
 
   @override

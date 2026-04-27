@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../main.dart'; // Import themeNotifier and localeNotifier
+import '../../main.dart';
 import 'security_pin_screen.dart';
-import '../../utils/localization.dart';
+import 'package:erp_localization/erp_localization.dart';
 import '../login/sign_in_screen.dart';
 import 'switch_account_screen.dart';
+import '../../theme/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class SettingsSubScreen extends StatefulWidget {
   const SettingsSubScreen({super.key});
@@ -121,11 +123,9 @@ class _SettingsSubScreenState extends State<SettingsSubScreen> {
                         iconFgColor: const Color(0xFF616161),
                         title: AppLocalization.of('Dark Mode'),
                         isSwitch: true,
-                        switchValue: themeNotifier.value == ThemeMode.dark,
+                        switchValue: context.watch<ThemeProvider>().isDarkMode,
                         onSwitchChanged: (val) {
-                          setState(() {
-                            themeNotifier.value = val ? ThemeMode.dark : ThemeMode.light;
-                          });
+                          context.read<ThemeProvider>().toggleTheme();
                         },
                       ),
                       _buildDivider(),

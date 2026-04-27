@@ -94,6 +94,8 @@ class _RFQScreenState extends State<RFQScreen> {
           ),
         ),
         actions: [
+          // "Add New" button hidden temporarily per user request (API not ready)
+          /*
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: TextButton.icon(
@@ -112,6 +114,7 @@ class _RFQScreenState extends State<RFQScreen> {
               ),
             ),
           ),
+          */
         ],
       ),
       body: Column(

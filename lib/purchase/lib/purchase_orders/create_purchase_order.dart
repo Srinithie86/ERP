@@ -33,7 +33,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   String? lt;
   String? ln;
   bool isSaving = false;
+  bool isLoadingTerms = false;
   String selectedStatus = "Pending";
+  String? selectedPaymentTerm;
+  List<Map<String, dynamic>> paymentTermsOptions = [];
   String grandTotalValue = "₹0.00";
 
   @override
@@ -48,11 +51,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       if (!mounted) return;
       setState(() {
         cid = prefs.getString('cid') ?? '';
-        mid = prefs.getString('mid') ?? '0'; // Added mid
+        mid = prefs.getString('mid') ?? '0';
         deviceId = prefs.getString('device_id') ?? 'Unknown';
-        lt = prefs.getString('lt') ?? '0';
-        ln = prefs.getString('ln') ?? '0';
+        lt = prefs.getString('lt') ?? '145';
+        ln = prefs.getString('ln') ?? '145';
       });
+
+      _fetchPaymentTerms(); // Fetch payment terms on load
 
       DeviceServices.getAndStoreDeviceInfo().then((deviceData) {
         if (mounted) {
@@ -68,13 +73,42 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     }
   }
 
+  Future<void> _fetchPaymentTerms() async {
+    if (cid == null) return;
+    setState(() => isLoadingTerms = true);
+    try {
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "type": "4045",
+          "cid": cid!,
+          "device_id": deviceId ?? "123",
+          "lt": lt ?? "145",
+          "ln": ln ?? "145",
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false && data['data'] != null) {
+          setState(() {
+            paymentTermsOptions = List<Map<String, dynamic>>.from(data['data']);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch payment terms error: $e");
+    } finally {
+      if (mounted) setState(() => isLoadingTerms = false);
+    }
+  }
+
   Future<Map<String, dynamic>> _calculateItem(Map<String, dynamic> input) async {
     if (cid == null) return {};
     try {
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {
-          "type": "4008", // Type provided in user's request
+          "type": "4008",
           "cid": cid!,
           "device_id": deviceId ?? "",
           "ln": ln ?? "0",
@@ -87,7 +121,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // The user's snippet expected success: true and data['items']
         if (data['success'] == true && data['items'] != null && data['items'].isNotEmpty) {
           return data['items'][0];
         }
@@ -176,12 +209,35 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       _showSnackBar("Please select a supplier");
       return;
     }
+    if (selectedPaymentTerm == null) {
+      _showSnackBar("Please select payment terms");
+      return;
+    }
+
+    // Confirmation Dialog
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Confirm Purchase Order", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to create this Purchase Order? This will notify the supplier and update the records.", style: GoogleFonts.outfit()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff22A79A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: Text("Confirm & Create", style: GoogleFonts.outfit(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
 
     setState(() => isSaving = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      String uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
-      final roleId = prefs.getString('role_id') ?? '';
+      String uid = prefs.getString('uid') ?? prefs.getString('id') ?? '1';
+      final roleId = prefs.getString('role_id') ?? '1';
       
       List<Map<String, dynamic>> itemsJson = [];
       for (var item in itemsList) {
@@ -204,12 +260,13 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         "uid": uid,
         "mid": mid ?? "0",
         "role_id": roleId,
-        "ln": ln ?? "0",
-        "lt": lt ?? "0",
-        "device_id": deviceId ?? "",
+        "ln": ln ?? "145",
+        "lt": lt ?? "145",
+        "device_id": deviceId ?? "123",
         "po_no": poNumberController.text,
         "quotation_ref": quotationRefController.text.trim(),
         "delivery_date": deliveryDateController.text,
+        "payment_terms": selectedPaymentTerm ?? "", // Added Payment Terms
         "status": selectedStatus,
         "supplier_id": selectedSupplierId ?? "0",
         "supplier_name": supplierNameController.text.trim(),
@@ -321,7 +378,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         onSelected: (suggestion) {
           setState(() {
             supplierNameController.text = suggestion['Ledger_Name'] ?? '';
-            selectedSupplierId = suggestion['id']?.toString() ?? '0'; // Capture ID
+            selectedSupplierId = suggestion['id']?.toString() ?? '0';
             deliveryAddressController.text = suggestion['address'] ?? '';
           });
         },
@@ -351,7 +408,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         title: Text("Create Purchase Order", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: const Color(0xff22A79A),
         elevation: 0,
-        centerTitle: true,
+        centerTitle: false,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Stack(
@@ -377,24 +434,27 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                 const SizedBox(height: 16),
                 _buildLabeledField("DELIVERY ADDRESS", _buildTextField("Enter Address", deliveryAddressController)),
                 const SizedBox(height: 16),
-                _buildLabeledField("PO STATUS", Container(
+                _buildLabeledField("PAYMENT TERMS", Container(
                   height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey.shade200),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      isExpanded: true,
-                      value: selectedStatus,
-                      items: ["Pending", "Approved", "Closed"]
-                          .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.outfit(fontSize: 13))))
-                          .toList(),
-                      onChanged: (val) => setState(() => selectedStatus = val!),
-                    ),
-                  ),
+                  child: isLoadingTerms 
+                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                    : DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          hint: Text("Select Terms", style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey)),
+                          value: selectedPaymentTerm,
+                          items: paymentTermsOptions
+                              .map((t) => DropdownMenuItem(value: t['name'].toString(), child: Text(t['name'].toString(), style: GoogleFonts.outfit(fontSize: 13))))
+                              .toList(),
+                          onChanged: (val) => setState(() => selectedPaymentTerm = val),
+                        ),
+                      ),
                 )),
                 
                 const SizedBox(height: 32),

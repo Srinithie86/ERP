@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../splash/notification_screen.dart';
+import '../splash/walkthrough_screen.dart';
 
 class SecurityPinScreen extends StatefulWidget {
   final bool isSetup; // Setting up the PIN for the first time
@@ -68,7 +68,7 @@ class _SecurityPinScreenState extends State<SecurityPinScreen> {
         if (!mounted) { return; }
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const NotificationScreen()),
+          MaterialPageRoute(builder: (context) => const WalkthroughScreen()),
         );
       } else {
         _showErrorAndReset('Incorrect PIN. Try again.');

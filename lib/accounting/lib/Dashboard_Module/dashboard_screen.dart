@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
+import 'package:erp_smart/utils/widgets/language_selector.dart';
 import 'dart:math' as math;
 import '../Drawer_Module/receipt_voucher.dart';
 import '../Drawer_Module/payment_voucher.dart';
@@ -296,14 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 fontSize: 18)),
-        actions: [
-          IconButton(
-            icon:
-            const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: const [],
       ),
 
       // ── Body ──

@@ -21,7 +21,7 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SignInScreenState extends State<SignInScreen> {
+class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _mobileController = TextEditingController();
@@ -73,6 +73,37 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  @override
+  void codeUpdated() {
+    setState(() {
+      final code = codeValue;
+      if (code != null && code.length == 6) {
+        for (int i = 0; i < 6; i++) {
+          _otpControllers[i].text = code[i];
+        }
+        _verifyOtp();
+      }
+    });
+  }
+
+  Future<void> _pickPhoneNumber() async {
+    try {
+      final String? phone = await SmsAutoFill().hint;
+      if (phone != null && phone.isNotEmpty) {
+        // Extract 10 digits if needed
+        String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+        if (cleanPhone.length > 10) {
+          cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
+        }
+        setState(() {
+          _mobileController.text = cleanPhone;
+        });
+      }
+    } catch (e) {
+      debugPrint("Phone hint error: $e");
+    }
+  }
+
   Future<void> _initDevice() async {
     await DeviceService.initDeviceInfo();
   }
@@ -81,6 +112,7 @@ class _SignInScreenState extends State<SignInScreen> {
     try {
       final sig = await SmsAutoFill().getAppSignature;
       setState(() => _appSignature = sig);
+      debugPrint("App Signature for SMS: $sig");
     } catch (_) {}
   }
 
@@ -165,6 +197,8 @@ class _SignInScreenState extends State<SignInScreen> {
             _showOtpView = true;
           });
           
+          await listenForCode();
+          
           // Autofill OTP if provided in response
           if (otp.length == 6) {
             for (int i = 0; i < 6; i++) {
@@ -213,6 +247,8 @@ class _SignInScreenState extends State<SignInScreen> {
           _currentToken = token;
           _showOtpView = true;
         });
+
+        await listenForCode();
 
         // Autofill OTP if provided in response
         if (otp.length == 6) {
@@ -411,7 +447,13 @@ class _SignInScreenState extends State<SignInScreen> {
         Text(_isMobileLogin ? "Enter your mobile number to continue" : "Enter your user id and password to continue", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
         SizedBox(height: 16.h),
         if (_isMobileLogin)
-          _buildField("Phone Number", _mobileController, isPhone: true)
+          GestureDetector(
+            onTap: _pickPhoneNumber,
+            child: AbsorbPointer(
+              absorbing: false,
+              child: _buildField("Phone Number", _mobileController, isPhone: true),
+            ),
+          )
         else ...[
           _buildField("User ID", _usernameController),
           SizedBox(height: 16.h),
@@ -473,7 +515,28 @@ class _SignInScreenState extends State<SignInScreen> {
         SizedBox(height: 60.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(6, (i) => _buildOtpField(i)),
+          children: [
+            Expanded(
+              child: PinFieldAutoFill(
+                currentCode: _otpControllers.map((c) => c.text).join(),
+                decoration: BoxLooseDecoration(
+                  radius: Radius.circular(10.r),
+                  strokeColorBuilder: FixedColorBuilder(const Color(0xFF26A69A).withOpacity(0.3)),
+                  bgColorBuilder: FixedColorBuilder(Colors.white),
+                  textStyle: GoogleFonts.outfit(fontSize: 22.sp, fontWeight: FontWeight.bold, color: Colors.black),
+                ),
+                onCodeChanged: (code) {
+                  if (code != null && code.length == 6) {
+                    for (int i = 0; i < 6; i++) {
+                      _otpControllers[i].text = code[i];
+                    }
+                    _verifyOtp();
+                  }
+                },
+                codeLength: 6,
+              ),
+            ),
+          ],
         ),
         if (_errorText != null) Padding(padding: EdgeInsets.only(top: 16.h), child: Text(_errorText!, style: GoogleFonts.outfit(color: Colors.red, fontSize: 13.sp))),
         SizedBox(height: 40.h),

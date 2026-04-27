@@ -221,12 +221,14 @@ class _DirectInvoiceViewScreenState extends State<DirectInvoiceViewScreen> {
         'date': invoiceDate.toString(),
         'cus_id': (c?['id'] ?? '').toString(),
         'customer_name': (c?['Ledger_Name'] ?? '').toString(),
+        'customer_gstin': (c?['gst'] ?? c?['gstin'] ?? c?['GSTIN'] ?? '').toString(),
+        'address': (c?['address'] ?? c?['Address'] ?? c?['b_add1'] ??  '').toString(),
         'mobile': (c?['phone'] ?? c?['Mobile'] ?? '').toString(),
         'trans_type': '1',
         'trans_name': '',
         'b_name': (c?['Ledger_Name'] ?? '').toString(),
-        'b_gst': (c?['gst'] ?? '').toString(),
-        'b_add1': (c?['address'] ?? '').toString(),
+        'b_gst': (c?['gst'] ?? c?['gstin'] ?? c?['GSTIN'] ?? '').toString(),
+        'b_add1': (c?['address'] ?? c?['Address'] ?? c?['b_add1'] ?? '').toString(),
         'b_loc': (c?['city'] ?? c?['location'] ?? '').toString(),
         'b_pin': (c?['pin'] ?? c?['pincode'] ?? '').toString(),
         'b_scode': (c?['state_code'] ?? '').toString(),
@@ -241,7 +243,7 @@ class _DirectInvoiceViewScreenState extends State<DirectInvoiceViewScreen> {
         'discount': '0.00',
         's_type': '1',
         'mtax': s.taxType == 'IGST' ? '1' : '2',
-        'price_type': s.priceType == 'Include tax' ? '2' : '1',
+        'price_type': s.priceType == 'Include Tax' ? '2' : '1',
         'tds_type': '20',
         'tcs_type': '40',
         'total_tds': '0.00',
@@ -823,23 +825,23 @@ class _DirectInvoiceViewScreenState extends State<DirectInvoiceViewScreen> {
                 ],
               ),
               SizedBox(height: 30 * vp),
-              _sectionHeader('CONVERT', const Color(0xFF005BBF), sp),
+             _sectionHeader('CONVERT', const Color(0xFF005BBF), sp),
               SizedBox(height: 20 * vp),
               Wrap(
                 spacing: 20 * hp,
                 runSpacing: 20 * vp,
                 children: [
-                  _OptionItem(
-                    icon: Icons.replay_rounded,
-                    label: 'Convert',
-                    iconColor: AppColors.primary,
-                    sp: sp,
-                    vp: vp,
-                    onTap: () {
-                      Navigator.pop(context);
-                      _showConvertPopup(context);
-                    },
-                  ),
+                  // _OptionItem(
+                  //   icon: Icons.replay_rounded,
+                  //   label: 'Convert',
+                  //   iconColor: AppColors.primary,
+                  //   sp: sp,
+                  //   vp: vp,
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     _showConvertPopup(context);
+                  //   },
+                  // ),
                   _OptionItem(icon: Icons.local_shipping_outlined, label: 'Delivery Challan', iconColor: const Color(0xFFFFA726), sp: sp, vp: vp),
                   _OptionItem(icon: Icons.qr_code_2, label: 'Generate QR Code', iconColor: const Color(0xFF26C6DA), sp: sp, vp: vp),
                   _OptionItem(icon: Icons.receipt_long, label: 'Convert E-Way Bill', iconColor: const Color(0xFF9CCC65), sp: sp, vp: vp),

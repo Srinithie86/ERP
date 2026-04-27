@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:erp_localization/erp_localization.dart';
 
 // ═══════════════════════════════════════════
 //  THEME COLORS (same as Payment Voucher)
@@ -146,10 +147,10 @@ class _DebitScreenState extends State<DebitScreen> {
     _clearForm();
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Row(children: [
-        Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-        SizedBox(width: 8),
-        Text('Saved successfully!', style: TextStyle(fontWeight: FontWeight.w600)),
+      content: Row(children: [
+        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+        const SizedBox(width: 8),
+        Text(AppLocalization.of('Saved successfully!'), style: const TextStyle(fontWeight: FontWeight.w600)),
       ]),
       backgroundColor: T.success,
       behavior: SnackBarBehavior.floating,
@@ -181,13 +182,13 @@ class _DebitScreenState extends State<DebitScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Delete Record',
+        title: Text(AppLocalization.of('Delete Record'),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to delete this record?'),
+        content: Text(AppLocalization.of('Are you sure you want to delete this record?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: T.textMid)),
+            child: Text(AppLocalization.of('Cancel'), style: TextStyle(color: T.textMid)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -201,7 +202,7 @@ class _DebitScreenState extends State<DebitScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Delete'),
+            child: Text(AppLocalization.of('Delete')),
           ),
         ],
       ),
@@ -293,7 +294,7 @@ class _DebitScreenState extends State<DebitScreen> {
         onPressed: () => Navigator.pop(context),
       ),
     ),
-    title: const Text('Debit Voucher',
+    title: Text(AppLocalization.of('Debit Voucher'),
         style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
@@ -311,8 +312,8 @@ class _DebitScreenState extends State<DebitScreen> {
         ),
         child: Row(
           children: [
-            _buildTab(0, Icons.edit_note_rounded,  'Entry'),
-            _buildTab(1, Icons.list_alt_rounded,   'Records'),
+            _buildTab(0, Icons.edit_note_rounded,  AppLocalization.of('Entry')),
+            _buildTab(1, Icons.list_alt_rounded,   AppLocalization.of('Records')),
           ],
         ),
       ),
@@ -488,7 +489,7 @@ class _DebitScreenState extends State<DebitScreen> {
                   onChanged: (v) => setState(() => _searchQuery = v),
                   style: const TextStyle(fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'Search records...',
+                    hintText: AppLocalization.of('Search records...'),
                     hintStyle: const TextStyle(color: T.hint),
                     prefixIcon: const Icon(Icons.search, color: T.primary, size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
@@ -538,7 +539,7 @@ class _DebitScreenState extends State<DebitScreen> {
           child: Row(children: [
             const Icon(Icons.table_rows_rounded, color: Colors.white, size: 16),
             const SizedBox(width: 8),
-            const Text('Debit Records',
+            Text(AppLocalization.of('Debit Records'),
                 style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -594,14 +595,14 @@ class _DebitScreenState extends State<DebitScreen> {
             color: const Color(0xFFF1F8F7),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(children: [
-              const Text('Total Entries: ',
+              Text(AppLocalization.of('Total Entries') + ': ',
                   style: TextStyle(fontSize: 12, color: T.textMid,
                       fontWeight: FontWeight.w500)),
               Text('${records.length}',
                   style: const TextStyle(fontSize: 12, color: T.primary,
                       fontWeight: FontWeight.w800)),
               const Spacer(),
-              const Text('Total Amount: ',
+              Text(AppLocalization.of('Total Amount') + ': ',
                   style: TextStyle(fontSize: 12, color: T.textMid,
                       fontWeight: FontWeight.w500)),
               Text(

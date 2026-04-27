@@ -24,11 +24,12 @@ import 'package:http/http.dart' as http;
 import 'package:purchase_erp/utils/device_services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:erp_smart/providers/menu_provider.dart';
-import 'package:erp_smart/utils/localization.dart';
+import 'package:erp_localization/erp_localization.dart';
 import 'package:erp_smart/utils/app_navigation.dart';
 import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 import 'package:hrm/main.dart'; // HRM module entry
 import 'package:crm/main.dart'; // CRM module entry
+import 'package:erp_smart/utils/widgets/language_selector.dart';
 
 class Dashboard extends StatefulWidget {
   final bool isEmbedded;
@@ -336,6 +337,8 @@ class _DashboardState extends State<Dashboard> {
         return RequestApprovals(isEmbedded: widget.isEmbedded);
       case 3:
         return PurchaseOrdersScreen(isEmbedded: widget.isEmbedded);
+      case 4:
+        return const QCInspectionsScreen();
       case 0:
       default:
         return _buildDashboardBody();
@@ -359,10 +362,11 @@ class _DashboardState extends State<Dashboard> {
         }
       },
       child: Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _currentIndex != 0 ? null : AppBar(
         backgroundColor: const Color(0xff26A69A),
         elevation: 0,
+        centerTitle: false,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 28),
@@ -373,41 +377,10 @@ class _DashboardState extends State<Dashboard> {
           "Purchase Management",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 28,
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          Builder(
-            builder: (context) => GestureDetector(
-              onTap: () {
-                Scaffold.of(context).openEndDrawer();
-              },
-              child: const CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white24,
-                child: Icon(Icons.person_rounded, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
+        actions: const [],
       ),
 
         drawer: const DynamicDrawer(moduleName: "PURCHASE"),
-        endDrawer: const DynamicDrawer(), // Global settings in end drawer
 
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _currentIndex,
@@ -499,7 +472,7 @@ class _DashboardState extends State<Dashboard> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -974,7 +947,14 @@ class _DashboardState extends State<Dashboard> {
 
   List<Widget> _buildDynamicQuickActions(BuildContext context, String moduleName) {
     final menuProvider = context.read<MenuProvider>();
-    final subMenus = menuProvider.getSubMenus(moduleName);
+    final subMenus = menuProvider.getSubMenus(moduleName).where((item) {
+      final name = (item['name'] ?? '').toString().toUpperCase();
+      // Exclude menu items specifically for "Create QC" to satisfy user request
+      if (name.contains("CREATE") && (name.contains("QC") || name.contains("INSPECTION"))) {
+        return false;
+      }
+      return true;
+    }).toList();
     
     return subMenus.map((item) {
       final String name = (item['name'] ?? '').toString();
@@ -1036,8 +1016,8 @@ class ActionItem extends StatelessWidget {
     if (n.contains("PURCHASE REQUEST") || n == "PR") return "Create PR";
     if (n.contains("PURCHASE ORDER")) return "PO";
     if (n.contains("RFQ")) return "RFQ";
+    if (n.contains("QC") || n.contains("INSPECTION")) return "QC/Inspect";
     if (n.contains("GRN")) return "GRN";
-    if (n.contains("QC")) return "QC";
     if (n.contains("APPROVAL")) return "PR Approval";
     if (n.contains("COMPARISON")) return "Compare";
     if (n.contains("QUOTATION")) return "SQ";

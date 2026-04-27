@@ -420,7 +420,7 @@ class _CreatePurchaseRequestScreenState
         "ln": ln,
         "date": date,
         "department": selectedDeptId ?? '',
-        "req_by": selectedReqBy ?? name, // Use selected value
+        "req_by": name, // Use stored login name
         "priority": selectedPriorityId ?? '',
         "remarks": remarksController.text, // Global remarks
       };
@@ -543,6 +543,7 @@ class _CreatePurchaseRequestScreenState
             fontWeight: FontWeight.w600,
           ),
         ),
+        centerTitle: false,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -630,6 +631,9 @@ class _CreatePurchaseRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Hidden from UI but functional for logic
+          _buildInputLabel("Requested By"),
+          _buildTextField("Requested By", controller: reqByController, readOnly: true),
+          const SizedBox(height: 16),
           _buildInputLabel("Department"),
           _buildDepartmentDropdown(width),
           const SizedBox(height: 16),

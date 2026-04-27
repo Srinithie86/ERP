@@ -10,17 +10,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'l10n/app_localizations.dart';
 import 'utils/device_service.dart';
-import 'utils/theme_provider.dart';
+import 'theme/theme_provider.dart';
+import 'theme/app_theme.dart';
 import 'providers/menu_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'TOTAL_ERP/home/home.dart';
 import 'TOTAL_ERP/home/security_pin_screen.dart';
-import 'TOTAL_ERP/splash/notification_screen.dart';
-
-
-// Top-level ValueNotifier available throughout the application
-final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('en'));
+import 'TOTAL_ERP/splash/walkthrough_screen.dart';
+import 'package:erp_localization/erp_localization.dart'; // import from new package
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +42,7 @@ void main() async {
       isAppLock: true,
     );
   } else {
-    initialScreen = const NotificationScreen();
+    initialScreen = const WalkthroughScreen();
   }
 
   runApp(
@@ -65,113 +62,34 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initialise ScreenUtil once for the whole app.
     return ScreenUtilInit(
       designSize: const Size(360, 690),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return ValueListenableBuilder<ThemeMode>(
-          valueListenable: themeNotifier,
-          builder: (_, ThemeMode currentMode, __) {
-            return ValueListenableBuilder<Locale>(
-              valueListenable: localeNotifier,
-              builder: (_, Locale currentLocale, __) {
-                return MaterialApp(
-                  title: 'Global Erp',
-                  debugShowCheckedModeBanner: false,
-                  themeMode: ThemeMode.light,
-                  locale: currentLocale,
-                  localizationsDelegates: const [
-                    AppLocalizations.delegate,
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  supportedLocales: const [
-                    Locale('en'), // English
-                    Locale('ta'), // Tamil
-                    Locale('hi'), // Hindi
-                  ],
-                  theme: ThemeData(
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFF26A69A),
-                    ),
-                    useMaterial3: true,
-                    textTheme: GoogleFonts.outfitTextTheme().copyWith(
-                      titleLarge: GoogleFonts.outfit(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                      bodyMedium: GoogleFonts.outfit(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    appBarTheme: AppBarTheme(
-                      backgroundColor: const Color(0xFF26A69A),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      centerTitle: false,
-                      titleTextStyle: GoogleFonts.outfit(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      iconTheme: const IconThemeData(color: Colors.white),
-                    ),
-                    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                      backgroundColor: Color(0xFF26A69A),
-                      selectedItemColor: Colors.white,
-                      unselectedItemColor: Colors.white60,
-                      selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
-                      type: BottomNavigationBarType.fixed,
-                      elevation: 10,
-                    ),
-                  ),
-                  darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFF26A69A),
-                      brightness: Brightness.dark,
-                    ),
-                    textTheme: GoogleFonts.outfitTextTheme().copyWith(
-                      titleLarge: GoogleFonts.outfit(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                        color: Colors.white,
-                      ),
-                      bodyMedium: GoogleFonts.outfit(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                    appBarTheme: AppBarTheme(
-                      backgroundColor: const Color(0xFF26A69A),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      centerTitle: false,
-                      titleTextStyle: GoogleFonts.outfit(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      iconTheme: const IconThemeData(color: Colors.white),
-                    ),
-                    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-                      backgroundColor: Color(0xFF26A69A),
-                      selectedItemColor: Colors.white,
-                      unselectedItemColor: Colors.white60,
-                      type: BottomNavigationBarType.fixed,
-                    ),
-                  ),
-                  home: initialScreen,
-                );
-              },
+        final themeProvider = Provider.of<ThemeProvider>(context);
+        return ValueListenableBuilder<Locale>(
+          valueListenable: localeNotifier,
+          builder: (_, Locale currentLocale, __) {
+            return MaterialApp(
+              title: 'Global Erp',
+              debugShowCheckedModeBanner: false,
+              themeMode: themeProvider.themeMode,
+              locale: currentLocale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'), // English
+                Locale('ta'), // Tamil
+                Locale('hi'), // Hindi
+              ],
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              home: initialScreen,
             );
           },
         );

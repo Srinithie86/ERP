@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../widgets/app_theme.dart';
-import '../Sales_Module/sale_dashboard.dart';
+import 'widgets/app_theme.dart';
+import 'Sales_Module/sale_dashboard.dart';
 
 // ─── ENTRY POINT ──────────────────────────────────────────────────────────────
 void main() {

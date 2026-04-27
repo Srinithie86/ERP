@@ -114,8 +114,8 @@ class _POItemDetailsScreenState extends State<POItemDetailsScreen> {
                   _itemNameController.text = suggestion['Item name'] ?? '';
                   _itemCodeController.text = suggestion['Item Code'] ?? '';
                   _uomController.text = suggestion['UOM'] ?? '';
-                  // Removed auto-filling of rate, tax and discount as per request
-                  _rateController.text = '0'; 
+                  // Autofilled rate, tax and discount from the item, but they are fully editable
+                  _rateController.text = (suggestion['rate'] ?? suggestion['Rate'] ?? suggestion['unit_rate'] ?? suggestion['price'] ?? '0').toString(); 
                   _taxPercController.text = (suggestion['Tax'] ?? suggestion['tax'] ?? '0').toString();
                   _discountPercController.text = (suggestion['Discount'] ?? suggestion['discount'] ?? '0').toString();
                 });
@@ -226,7 +226,11 @@ class _POItemDetailsScreenState extends State<POItemDetailsScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: _isCalculating ? null : () async {
+                  // Ensure calculation is completely finished before adding to the list
+                  await _performCalculation();
+                  if (!mounted) return;
+                  
                   Navigator.pop(context, {
                     'name': _itemNameController.text,
                     'code': _itemCodeController.text,
@@ -244,10 +248,12 @@ class _POItemDetailsScreenState extends State<POItemDetailsScreen> {
                   backgroundColor: primaryTeal,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: Text(
-                  widget.initialData == null ? "Add to List" : "Update Item",
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _isCalculating
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        widget.initialData == null ? "Add to List" : "Update Item",
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
           ],

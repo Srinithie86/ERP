@@ -109,6 +109,8 @@ class MainDrawer extends StatelessWidget {
               children: [
                 Text(
                   name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -117,6 +119,8 @@ class MainDrawer extends StatelessWidget {
                 ),
                 Text(
                   email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.8),

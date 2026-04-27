@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dashboard_sub_screen.dart';
 import 'settings_sub_screen.dart';
-import '../../utils/localization.dart';
+import 'package:erp_localization/erp_localization.dart';
+import '../../utils/widgets/location_dialog.dart';
+import '../../utils/device_service.dart';
 import '../../utils/constants/module_constants.dart';
 import '../../utils/models/module_model.dart';
 import '../../utils/widgets/universal_app_bar.dart';
@@ -27,6 +30,15 @@ class _HomeScreenState extends State<HomeScreen> {
   ModuleItem? _activeModule; // Store ModuleItem instead of instantiated Widget
   String? _activeModuleTitle;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    // Check location permission on start to ensure user friendliness
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeviceService.forceFetchLocation(context);
+    });
+  }
 
   void _onModuleSelected(ModuleItem module, String moduleTitle) {
     setState(() {

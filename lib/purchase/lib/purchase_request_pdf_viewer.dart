@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:share_plus/share_plus.dart';
@@ -22,34 +23,53 @@ class PurchaseRequestPdfViewer extends StatefulWidget {
 
 class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
   bool _isDownloading = false;
-  String? _localFilePath;
   bool _isLoading = true;
   String? _errorMessage;
+  Uint8List? _pdfBytes;
+  PdfViewerController? _pdfViewerController;
+  final GlobalKey<SfPdfViewerState> _pdfViewerKey = GlobalKey();
+  late String _finalPdfUrl;
 
   @override
   void initState() {
     super.initState();
-    _fetchAndLoadPdf();
+    _pdfViewerController = PdfViewerController();
+    _finalPdfUrl = widget.pdfUrl.trim();
+    _fetchPdfBytes();
   }
 
-  Future<void> _fetchAndLoadPdf() async {
+  Future<void> _fetchPdfBytes() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
       final dio = Dio();
-      final dir = await getTemporaryDirectory();
-      final filePath = "${dir.path}/${widget.prNumber.replaceAll('/', '_')}_temp.pdf";
-      
-      await dio.download(widget.pdfUrl, filePath);
-      
-      if (mounted) {
-        setState(() {
-          _localFilePath = filePath;
-          _isLoading = false;
-        });
+      final response = await dio.get<List<int>>(
+        _finalPdfUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        if (mounted) {
+          setState(() {
+            _pdfBytes = Uint8List.fromList(response.data!);
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw "Server returned status ${response.statusCode}";
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = "Failed to fetch PDF: $e";
+          if (e.toString().contains("404")) {
+            _errorMessage = "Document Not Found\n\nThis document (ID: ${widget.prNumber}) has not been generated on the server yet. Please wait a few moments or contact the administrator if this persists.";
+          } else {
+            _errorMessage = "Failed to load document: $e";
+          }
           _isLoading = false;
         });
       }
@@ -63,11 +83,14 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
       final dir = await getApplicationDocumentsDirectory();
       final filePath = "${dir.path}/${widget.prNumber.replaceAll('/', '_')}.pdf";
       
-      await dio.download(widget.pdfUrl, filePath);
+      await dio.download(_finalPdfUrl, filePath);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Downloaded to $filePath"), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text("File saved: ${widget.prNumber}.pdf"),
+            backgroundColor: const Color(0xFF26A69A),
+          ),
         );
       }
     } catch (e) {
@@ -82,79 +105,98 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
   }
 
   Future<void> _sharePdf() async {
-    if (_localFilePath == null) return;
+    setState(() => _isDownloading = true);
     try {
-      await Share.shareXFiles([XFile(_localFilePath!)], text: 'Document ${widget.prNumber}');
+      final dio = Dio();
+      final dir = await getTemporaryDirectory();
+      final filePath = "${dir.path}/temp_${widget.prNumber.replaceAll('/', '_')}.pdf";
+      
+      await dio.download(_finalPdfUrl, filePath);
+      
+      if (mounted) {
+        await Share.shareXFiles([XFile(filePath)], text: 'Document ${widget.prNumber}');
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Share failed: $e")),
+          SnackBar(content: Text("Share failed: $e"), backgroundColor: Colors.red),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isDownloading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
+        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          widget.prNumber,
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.prNumber,
+              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            Text(
+              "Document Viewer",
+              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11),
+            ),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: _isLoading ? null : _sharePdf,
-            tooltip: "Share",
-          ),
-          IconButton(
-            icon: _isDownloading 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Icon(Icons.download, color: Colors.white),
-            onPressed: _isDownloading || _isLoading ? null : _downloadPdf,
-            tooltip: "Download",
-          ),
+          if (_pdfBytes != null) ...[
+            IconButton(
+              icon: const Icon(Icons.share, color: Colors.white),
+              onPressed: _sharePdf,
+              tooltip: "Share",
+            ),
+            IconButton(
+              icon: _isDownloading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.download, color: Colors.white),
+              onPressed: _isDownloading ? null : _downloadPdf,
+              tooltip: "Download",
+            ),
+          ],
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)))
-        : _errorMessage != null
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                    const SizedBox(height: 16),
-                    Text(_errorMessage!, textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.red)),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _isLoading = true;
-                          _errorMessage = null;
-                        });
-                        _fetchAndLoadPdf();
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A)),
-                      child: const Text("Retry", style: TextStyle(color: Colors.white)),
-                    )
-                  ],
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)))
+          : _errorMessage != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey.shade800),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _fetchPdfBytes,
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A)),
+                          child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SfPdfViewer.memory(
+                  _pdfBytes!,
+                  key: _pdfViewerKey,
+                  controller: _pdfViewerController,
                 ),
-              ),
-            )
-          : SfPdfViewer.file(
-              File(_localFilePath!),
-              onDocumentLoadFailed: (details) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Failed to load PDF: ${details.description}")),
-                );
-              },
-            ),
     );
   }
 }

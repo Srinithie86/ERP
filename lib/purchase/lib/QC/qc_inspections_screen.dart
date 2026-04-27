@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'modern_qc_inspection_screen.dart';
 import 'grn_inspection_screen.dart';
 import 'create_qc_inspection.dart';
 import 'dart:convert';
@@ -15,7 +18,7 @@ class QCInspectionsScreen extends StatefulWidget {
 }
 
 class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
-  String selectedFilter = "Pending";
+  String selectedFilter = "All";
   List<dynamic> qcItems = [];
   bool isLoading = true;
 
@@ -31,21 +34,17 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '';
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
-      final ln = deviceData['ln'] ?? '123';
-      final lt = deviceData['lt'] ?? '123';
-      final deviceId = deviceData['device_id'] ?? '123';
 
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {
-          "type": "4034",
-          "cid": cid.isEmpty ? "44555666" : cid,
-          "device_id": deviceId,
-          "ln": ln,
-          "lt": lt,
-          "status": selectedFilter.toLowerCase(),
+          "type": "4047",
+          "cid": cid.isEmpty ? '44555666' : cid,
+          "device_id": deviceData['device_id'] ?? '123',
+          "ln": deviceData['ln'] ?? '123',
+          "lt": deviceData['lt'] ?? '123',
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -68,92 +67,147 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
     }
   }
 
+  bool _isSearching = false;
+  String _searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<dynamic> filteredItems = qcItems.where((item) {
+      // 1. Status Filter
+      if (selectedFilter != "All") {
+        String itemStatus = (item['qc_status'] ?? 'Pending').toString().toLowerCase();
+        // Handle "Passed" vs "Passed" vs "Approved"
+        if (selectedFilter == "Passed" && (itemStatus != "passed" && itemStatus != "approved" && itemStatus != "completed")) return false;
+        if (selectedFilter == "Failed" && (itemStatus != "failed" && itemStatus != "rejected")) return false;
+        if (selectedFilter == "Pending" && itemStatus != "pending") return false;
+      }
+
+      // 2. Search Query Filter
+      if (_searchQuery.isEmpty) return true;
+      String grn = (item['grn_no'] ?? '').toString().toLowerCase();
+      String supplier = (item['supplier_name'] ?? '').toString().toLowerCase();
+      String supplierId = (item['supplier_id'] ?? '').toString().toLowerCase();
+      String po = (item['po_no'] ?? '').toString().toLowerCase();
+      String insId =
+          (item['id'] ?? item['inspection_id'] ?? '').toString().toLowerCase();
+
+      return grn.contains(_searchQuery) ||
+          supplier.contains(_searchQuery) ||
+          supplierId.contains(_searchQuery) ||
+          po.contains(_searchQuery) ||
+          insId.contains(_searchQuery);
+    }).toList();
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: const Color(0xff26A69A),
         elevation: 0,
-        titleSpacing: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
+        centerTitle: false,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: Colors.white, size: 20.sp),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
           "QC Inspections",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            height: 32,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xff26A69A),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateQCInspectionScreen()),
-                );
-              },
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text("New", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            ),
-          ),
+          // "New" button removed as per request
         ],
       ),
       body: Column(
         children: [
-          const SizedBox(height: 12),
-
-          /// Filters Row
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
+          // Filter Chips and Search Bar Section
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(bottom: 16.h),
+            decoration: const BoxDecoration(
+              color: Color(0xff26A69A),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: Column(
               children: [
-                _buildFilterChip("Pending"),
-                _buildFilterChip("Passed"),
-                _buildFilterChip("Failed"),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Row(
+                    children: [
+                      _buildFilterChip("All"),
+                      _buildFilterChip("Pending"),
+                      _buildFilterChip("Passed"),
+                      _buildFilterChip("Failed"),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: Container(
+                    height: 48.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (val) =>
+                          setState(() => _searchQuery = val.toLowerCase()),
+                      decoration: InputDecoration(
+                        hintText: "Search by GRN, PO No, Supplier...",
+                        hintStyle: GoogleFonts.outfit(
+                            color: Colors.grey.shade500, fontSize: 13.sp),
+                        prefixIcon: Icon(Icons.search,
+                            color: Colors.grey.shade500, size: 20.sp),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
 
-          const SizedBox(height: 16),
-
-          /// QC List
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                double w = constraints.maxWidth;
-                int crossAxisCount = w > 900 ? 3 : (w > 600 ? 2 : 1);
-
-                if (isLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xff26A69A)));
-                }
-
-                if (qcItems.isEmpty) {
-                  return const Center(child: Text("No QC Inspections Found", style: TextStyle(color: Colors.grey)));
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent: 260, // Adjusted for premium look
-                  ),
-                  itemCount: qcItems.length,
-                  itemBuilder: (context, index) {
-                    return _buildQCCard(qcItems[index]);
-                  },
-                );
-              },
-            ),
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xff26A69A)))
+                : filteredItems.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off_rounded,
+                                size: 64.sp, color: Colors.grey.shade300),
+                            SizedBox(height: 16.h),
+                            Text("No inspections found",
+                                style: GoogleFonts.outfit(
+                                    color: Colors.grey, fontSize: 16.sp)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: EdgeInsets.all(16.w),
+                        itemCount: filteredItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildQCCard(filteredItems[index]);
+                        },
+                      ),
           ),
         ],
       ),
@@ -165,27 +219,23 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
     return GestureDetector(
       onTap: () {
         if (!isSelected) {
-          setState(() {
-            selectedFilter = label;
-          });
+          setState(() => selectedFilter = label);
           _fetchQCInspections();
         }
       },
       child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: EdgeInsets.only(right: 12.w),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xff26A69A) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.grey.shade400,
-          ),
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(18),
         ),
-        child: Text( label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-            fontSize: 13,
+        child: Text(
+          label,
+          style: GoogleFonts.outfit(
+            color: isSelected ? const Color(0xff26A69A) : Colors.white,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 12.sp,
           ),
         ),
       ),
@@ -195,139 +245,198 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
   Widget _buildQCCard(Map<String, dynamic> item) {
     String grnNo = item['grn_no'] ?? 'N/A';
     String status = item['qc_status'] ?? 'Pending';
-    String date = item['dtime'] ?? '';
+    String date = item['dtime'] ?? '-';
+    String id = (item['id'] ?? item['inspection_id'] ?? '').toString();
+    String inspector = item['inspector_name'] ?? 'N/A';
     List<dynamic> itemsList = item['items'] ?? [];
-    
-    int totalItems = itemsList.length;
-    int passed = 0;
-    int partial = 0;
-    int failed = 0;
-
-    for (var it in itemsList) {
-      String res = (it['qc_test_result'] ?? '').toString().toLowerCase();
-      if (res == 'pass') passed++;
-      else if (res == 'fail' || res == 'rejected') failed++;
-      else partial++;
-    }
-
     String? pdfLink = item['pdf_link'];
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => GrnInspectionScreen(inspectionData: item)),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
+    Color statusColor;
+    switch (status.toLowerCase()) {
+      case 'passed':
+      case 'approved':
+      case 'completed':
+        statusColor = const Color(0xFF22C55E);
+        break;
+      case 'failed':
+      case 'rejected':
+        statusColor = const Color(0xFFEF4444);
+        break;
+      default:
+        statusColor = const Color(0xFFEAB308);
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  "GRN: $grnNo",
-                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15),
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                grnNo,
+                style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold, fontSize: 16.sp),
+              ),
+              if (pdfLink != null && pdfLink.isNotEmpty) ...[
+                SizedBox(width: 8.w),
+                Icon(Icons.picture_as_pdf_rounded,
+                    color: Colors.red, size: 18.sp),
+              ],
+              const Spacer(),
+              Container(
+                width: 20.w,
+                height: 20.w,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
                 ),
               ),
-              if (pdfLink != null && pdfLink.isNotEmpty)
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.picture_as_pdf, color: Color(0xff26A69A), size: 20),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            "ID: $id  $date",
+            style: GoogleFonts.outfit(
+                color: Colors.grey.shade600, fontSize: 12.sp),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Inspector: $inspector",
+                style: GoogleFonts.outfit(
+                    color: Colors.grey.shade500, fontSize: 12.sp),
+              ),
+              Text(
+                "${itemsList.length} Items",
+                style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold, fontSize: 12.sp),
+              ),
+            ],
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PurchaseRequestPdfViewer(
-                          pdfUrl: pdfLink,
-                          prNumber: grnNo,
+                        builder: (context) => ModernQCInspectionScreen(
+                          inspectionData: item,
+                          isReadOnly: true,
                         ),
                       ),
                     );
                   },
-                ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: status.toLowerCase() == 'passed' ? const Color(0xff12832F) : (status.toLowerCase() == 'failed' ? Colors.red : const Color(0xffA3920F)),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                  icon: Icon(Icons.visibility_outlined, size: 16.sp),
+                  label: const Text("View Details"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xff26A69A),
+                    side: const BorderSide(color: Color(0xff26A69A)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Date: $date",
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "100% Inspection",
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatusBox(passed.toString(), "Pass", const Color(0xff119E4B)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatusBox(partial.toString(), "Partial", const Color(0xffA3920F)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatusBox(failed.toString(), "Fail", const Color(0xffAD1414)),
-              ),
+              SizedBox(width: 8.w),
+              if (status.toLowerCase() == 'pending')
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ModernQCInspectionScreen(
+                            inspectionData: item,
+                            isReadOnly: false,
+                          ),
+                        ),
+                      ).then((value) {
+                        if (value == true) _fetchQCInspections();
+                      });
+                    },
+                    icon: Icon(Icons.fact_check_outlined, size: 16.sp),
+                    label: const Text("Inspect"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEAB308), // Amber for attention
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                    ),
+                  ),
+                )
+              else if (pdfLink != null && pdfLink.isNotEmpty)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PurchaseRequestPdfViewer(
+                            pdfUrl: pdfLink,
+                            prNumber: grnNo,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: Icon(Icons.picture_as_pdf_outlined, size: 16.sp),
+                    label: const Text("View PDF"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff26A69A),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildStatusBox(String count, String status, Color color) {
     return Container(
-      height: 60,
+      height: 54.h,
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             count,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: GoogleFonts.outfit(
+                color: color, fontWeight: FontWeight.bold, fontSize: 16.sp),
           ),
           Text(
             status,
-            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+            style: GoogleFonts.outfit(
+                color: color, fontSize: 10.sp, fontWeight: FontWeight.w600),
           ),
         ],
       ),
