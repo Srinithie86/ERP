@@ -433,45 +433,25 @@ class _DashboardContentState extends State<_DashboardContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dashboard',
-                            style: GoogleFonts.outfit(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF26A69A),
-                            ),
-                          ),
-                          Text(
-                            'Customer Management Hub',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16.sp,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: const Color(0xFF26A69A),
-                          borderRadius: BorderRadius.circular(8.r),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.calendar_today, color: Colors.white, size: 16.sp),
-                            SizedBox(width: 8.w),
+                            const Icon(Icons.calendar_today, color: Colors.white, size: 16),
+                            const SizedBox(width: 8),
                             Text(
                               'Sort by Date',
                               style: GoogleFonts.outfit(
                                 color: Colors.white,
-                                fontSize: 13.sp,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -481,10 +461,11 @@ class _DashboardContentState extends State<_DashboardContent> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
                 const SizedBox(height: 24),
                 // Management Hub Icons (Prioritize Lead, Enquiry, Referral)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
                       _buildMainActionCard(
@@ -498,7 +479,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                         ),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeadsScreen())),
                       ),
-                      SizedBox(width: 12.w),
+                      const SizedBox(width: 12),
                       _buildMainActionCard(
                         context: context,
                         label: 'Get\nEnquiry',
@@ -510,7 +491,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                         ),
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EnquiryScreen())),
                       ),
-                      SizedBox(width: 12.w),
+                      const SizedBox(width: 12),
                       _buildMainActionCard(
                         context: context,
                         label: 'Get\nReferral',
@@ -530,11 +511,11 @@ class _DashboardContentState extends State<_DashboardContent> {
 
           // Today Follow-up Section
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Text(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const Text(
               'Today Follow-up',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
@@ -542,7 +523,7 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: 12),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 _buildFollowUpVibrantCard(
@@ -558,7 +539,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                   icon: Icons.calendar_month,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen(initialIndex: 0))),
                 ),
-                SizedBox(width: 12.w),
+                const SizedBox(width: 12),
                 _buildFollowUpVibrantCard(
                   title: 'Missed',
                   count: '30',
@@ -572,7 +553,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                   icon: Icons.notifications_paused,
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FollowUpScreen(initialIndex: 1, isMissed: true))),
                 ),
-                SizedBox(width: 12.w),
+                const SizedBox(width: 12),
                 _buildFollowUpVibrantCard(
                   title: 'New',
                   count: '30',
@@ -594,11 +575,11 @@ class _DashboardContentState extends State<_DashboardContent> {
 
           // Deals count Section
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            child: Text(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: const Text(
               'Deals count',
               style: TextStyle(
-                fontSize: 16.sp,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
@@ -606,7 +587,7 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
           const SizedBox(height: 12),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Expanded(
@@ -614,39 +595,39 @@ class _DashboardContentState extends State<_DashboardContent> {
                   child: GestureDetector(
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealWonScreen())),
                     child: Container(
-                      height: 160.h,
-                      padding: EdgeInsets.all(16.r),
+                      height: 160,
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFFE0F2F1), Color(0xFF26A69A)],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
-                        borderRadius: BorderRadius.circular(16.r),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.auto_graph, size: 40.sp, color: const Color(0xFF00897B)),
-                          SizedBox(height: 12.h),
+                          const Icon(Icons.auto_graph, size: 40, color: Color(0xFF00897B)),
+                          const SizedBox(height: 12),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFF80CBC4).withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(15.r),
+                              borderRadius: BorderRadius.circular(15),
                             ),
-                            child: Text('10', style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            child: Text('10', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                           ),
-                          SizedBox(height: 8.h),
-                          Text('Won', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                          Text('Deal', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13.sp)),
+                          const SizedBox(height: 8),
+                          Text('Won', style: GoogleFonts.outfit(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text('Deal', style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13)),
                         ],
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 12.w),
+                const SizedBox(width: 12),
                 Expanded(
                   flex: 1,
                   child: Column(
@@ -654,26 +635,26 @@ class _DashboardContentState extends State<_DashboardContent> {
                       GestureDetector(
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealLostScreen(isPending: true))),
                         child: Container(
-                          height: 75.h,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          height: 75,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(colors: [Color(0xFFEDE7F6), Color(0xFF673AB7)]),
-                            borderRadius: BorderRadius.circular(16.r),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.pending_actions, size: 30.sp, color: Colors.white),
+                              const Icon(Icons.pending_actions, size: 30, color: Colors.white),
                               const Spacer(),
                               Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text('Lost', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12.sp)),
-                                  Text('Pending', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                                  Text('Lost', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
+                                  Text('Pending', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                                   Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                                    decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(10.r)),
-                                    child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(10)),
+                                    child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ),
                                 ],
                               ),
@@ -681,24 +662,24 @@ class _DashboardContentState extends State<_DashboardContent> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 10.h),
+                      const SizedBox(height: 10),
                       GestureDetector(
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DealLostScreen(isPending: false))),
                         child: Container(
-                          height: 75.h,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          height: 75,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(colors: [Color(0xFFFCE4EC), Color(0xFFFF8A80)]),
-                            borderRadius: BorderRadius.circular(16.r),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.handshake, size: 30.sp, color: Colors.white),
+                              const Icon(Icons.handshake, size: 30, color: Colors.white),
                               const Spacer(),
                               Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                                decoration: BoxDecoration(color: Colors.amber.shade200, borderRadius: BorderRadius.circular(10.r)),
-                                child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12.sp)),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.amber.shade200, borderRadius: BorderRadius.circular(10)),
+                                child: Text('10', style: GoogleFonts.outfit(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 12)),
                               ),
                             ],
                           ),
@@ -736,7 +717,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                   Text(
                     'January Month Lead Pipeline Status',
                     style: TextStyle(
-                      fontSize: 14.sp,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -775,11 +756,11 @@ class _DashboardContentState extends State<_DashboardContent> {
           // Dynamic/Other Menu Items
           if (widget.crmMenus.isNotEmpty) ...[
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 'More Actions',
                 style: GoogleFonts.outfit(
-                  fontSize: 16.sp,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -787,21 +768,19 @@ class _DashboardContentState extends State<_DashboardContent> {
             ),
             const SizedBox(height: 12),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
-                spacing: 12.w,
-                runSpacing: 12.h,
-                children: widget.crmMenus.where((m) {
-                  final n = m['name'].toString().toUpperCase();
-                  return !n.contains("LEAD") && 
-                         !n.contains("ENQUIRY") && 
-                         !n.contains("REFERRAL") &&
-                         !n.contains("DEAL WON") &&
-                         !n.contains("DEAL LOST");
+                spacing: 12,
+                runSpacing: 12,
+                children: widget.crmMenus.where((item) {
+                  final n = (item['name'] ?? '').toString().toUpperCase();
+                  // Hide items already featured in premium cards to keep it clean
+                  return !n.contains("DASHBOARD") && 
+                         !n.contains("LEAD/ENQUIRY");
                 }).map((item) {
                   final name = (item['name'] ?? '').toString();
                   return SizedBox(
-                    width: (MediaQuery.of(context).size.width - 56.w) / 3,
+                    width: (MediaQuery.of(context).size.width - 56) / 3,
                     child: _buildManagementCard(
                       context: context,
                       label: name,
@@ -835,10 +814,10 @@ class _DashboardContentState extends State<_DashboardContent> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 115.h,
+          height: 115,
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -850,15 +829,15 @@ class _DashboardContentState extends State<_DashboardContent> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 35.sp, color: Colors.white),
-              SizedBox(height: 12.h),
+              Icon(icon, size: 35, color: Colors.white),
+              const SizedBox(height: 12),
               Text(
                 label,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 13.sp,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -879,10 +858,10 @@ class _DashboardContentState extends State<_DashboardContent> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 115.h,
+        height: 115,
         decoration: BoxDecoration(
           gradient: gradient,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -895,10 +874,10 @@ class _DashboardContentState extends State<_DashboardContent> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null)
-              Icon(icon, size: 35.sp, color: Colors.white)
+              Icon(icon, size: 35, color: Colors.white)
             else if (assetIcon != null)
-              Image.asset(assetIcon, height: 35.h, width: 35.w, color: Colors.white),
-            SizedBox(height: 12.h),
+              Image.asset(assetIcon, height: 35, width: 35, color: Colors.white),
+            const SizedBox(height: 12),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
@@ -907,7 +886,7 @@ class _DashboardContentState extends State<_DashboardContent> {
                 style: GoogleFonts.outfit(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 13.sp,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -930,34 +909,34 @@ class _DashboardContentState extends State<_DashboardContent> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 100.h,
+          height: 100,
           decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Stack(
             children: [
               Positioned(
-                top: 8.h,
-                right: 8.w,
+                top: 8,
+                right: 8,
                 child: Container(
-                  padding: EdgeInsets.all(6.w),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
                   child: icon != null 
-                    ? Icon(icon, color: Colors.white, size: 14.sp)
-                    : Image.asset(iconPath, height: 14.h, width: 14.w, color: Colors.white),
+                    ? Icon(icon, color: Colors.white, size: 14)
+                    : Image.asset(iconPath, height: 14, width: 14, color: Colors.white),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.fromLTRB(12.w, 12.h, 12.w, 12.h),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                    Text(title, style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                     const Spacer(),
-                    Text(count, style: GoogleFonts.outfit(color: Colors.white, fontSize: 24.sp, fontWeight: FontWeight.bold)),
-                    Text(subtitle, style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 11.sp)),
+                    Text(count, style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                    Text(subtitle, style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 11)),
                   ],
                 ),
               ),
@@ -979,40 +958,40 @@ class _DashboardContentState extends State<_DashboardContent> {
         Row(
           children: [
             Container(
-              width: 10.w,
-              height: 10.h,
+              width: 10,
+              height: 10,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            SizedBox(width: 8.w),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12.sp,
+                style: const TextStyle(
+                  fontSize: 12,
                   color: Colors.black54,
                 ),
               ),
             ),
             Text(
               '$percentage%',
-              style: TextStyle(
-                fontSize: 12.sp,
+              style: const TextStyle(
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
             ),
           ],
         ),
-        SizedBox(height: 8.h),
+        const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: LinearProgressIndicator(
             value: percentage / 100,
             backgroundColor: Colors.grey[200],
             valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 8.h,
+            minHeight: 8,
           ),
         ),
       ],
