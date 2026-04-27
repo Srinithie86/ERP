@@ -10,7 +10,7 @@ import 'package:purchase_erp/utils/device_services.dart';
 import '../QC/grn_inspection_screen.dart';
 import '../QC/modern_qc_inspection_screen.dart';
 import '../GRN/create_grn_screen.dart';
-import 'package:erp_smart/theme/app_theme.dart'; // Though we use Theme.of(context), keeping as fallback if needed 
+import 'package:erp_smart/theme/app_theme.dart'; // Though we use Theme.of(context), keeping as fallback if needed
 
 class RequestApprovals extends StatefulWidget {
   static List<dynamic> cachedApprovals = [];
@@ -32,7 +32,7 @@ class RequestApprovals extends StatefulWidget {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final uid = prefs.getString('uid') ?? '118';
-      final roleId = prefs.getString('role_id') ?? '1';
+      final roleId = prefs.getString('role_id') ?? '';
 
       final results = await Future.wait([
         http.post(
@@ -139,7 +139,8 @@ class RequestApprovals extends StatefulWidget {
     final Map<String, Map<String, dynamic>> grouped = {};
 
     for (var item in rawList) {
-      final String prNo = (item['no'] ?? item['requ_no'] ?? item['id'] ?? '').toString();
+      final String prNo =
+          (item['no'] ?? item['requ_no'] ?? item['id'] ?? '').toString();
       if (prNo.isEmpty) continue;
 
       if (!grouped.containsKey(prNo)) {
@@ -150,6 +151,7 @@ class RequestApprovals extends StatefulWidget {
             'date': item['req_date'] ?? item['date'] ?? item['dtime'] ?? 'N/A',
             'department': item['department'] ?? 'N/A',
             'requested_by': item['requested_by'] ?? item['req_by'] ?? 'N/A',
+            'type': item['type'] ?? '',
             'pdf_link': item['pdf_link'],
           },
           'items': [],
@@ -168,8 +170,10 @@ class RequestApprovals extends StatefulWidget {
         'product_name': item['product_name'] ?? 'N/A',
         'uom': item['uom'] ?? 'N/A',
         'qty': item['item_qty'] ?? item['qty'] ?? '0',
-        'current_stock_qty': item['current_stock_qty'] ?? item['stock_qty'] ?? '0',
-        'dod_date': item['dod_date'] ?? item['req_date'] ?? item['date'] ?? 'N/A',
+        'current_stock_qty':
+            item['current_stock_qty'] ?? item['stock_qty'] ?? '0',
+        'dod_date':
+            item['dod_date'] ?? item['req_date'] ?? item['date'] ?? 'N/A',
       });
     }
     return grouped.values.map((v) {
@@ -228,7 +232,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         try {
           final data = json.decode(response.body);
-          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          if (data['error'] == false &&
+              data['data'] != null &&
+              data['data'] is List) {
             userMap.clear();
             for (var user in data['data']) {
               userMap[user['id'].toString()] = user['name'].toString();
@@ -265,7 +271,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         try {
           final data = json.decode(response.body);
-          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          if (data['error'] == false &&
+              data['data'] != null &&
+              data['data'] is List) {
             final List<dynamic> rawData = data['data'];
             if (mounted) {
               setState(() {
@@ -305,7 +313,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         try {
           final data = json.decode(response.body);
-          if (data['error'] == false && data['data'] != null && data['data'] is List) {
+          if (data['error'] == false &&
+              data['data'] != null &&
+              data['data'] is List) {
             final List<dynamic> rawData = data['data'];
             if (mounted) {
               setState(() {
@@ -326,7 +336,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
-      
+
       final response = await http.post(
         Uri.parse(RequestApprovals.apiUrl),
         body: {
@@ -341,7 +351,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
 
       if (response.statusCode == 200 && response.body.isNotEmpty) {
         final data = json.decode(response.body);
-        if (data['error'] == false && data['data'] != null && data['data'] is List) {
+        if (data['error'] == false &&
+            data['data'] != null &&
+            data['data'] is List) {
           if (mounted) {
             setState(() {
               qcApprovals = List<Map<String, dynamic>>.from(data['data']);
@@ -377,7 +389,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
         final data = json.decode(response.body);
         if (data['error'] == false) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("PO $poNo $status successfully"), backgroundColor: Colors.green),
+            SnackBar(
+                content: Text("PO $poNo $status successfully"),
+                backgroundColor: Colors.green),
           );
           _fetchAll();
           if (status == "Approved") {
@@ -397,8 +411,11 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text("Approved Successfully", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text("Purchase Order $poNo has been approved. Would you like to create a GRN for this order now?", style: GoogleFonts.outfit()),
+        title: Text("Approved Successfully",
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text(
+            "Purchase Order $poNo has been approved. Would you like to create a GRN for this order now?",
+            style: GoogleFonts.outfit()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -407,10 +424,17 @@ class _RequestApprovalsState extends State<RequestApprovals> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => CreateGRNScreen(initialPoNo: poNo)));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => CreateGRNScreen(initialPoNo: poNo)));
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: Text("Create GRN", style: GoogleFonts.outfit(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF26A69A),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            child: Text("Create GRN",
+                style: GoogleFonts.outfit(color: Colors.white)),
           ),
         ],
       ),
@@ -425,15 +449,19 @@ class _RequestApprovalsState extends State<RequestApprovals> {
         backgroundColor: const Color(0xFFF1F5F9),
         appBar: AppBar(
           centerTitle: false,
-          leading: widget.isEmbedded ? null : IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20.sp),
-            onPressed: () => Navigator.pop(context),
-          ),
+          leading: widget.isEmbedded
+              ? null
+              : IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white, size: 20.sp),
+                  onPressed: () => Navigator.pop(context),
+                ),
           title: _isSearching
               ? TextField(
                   controller: _searchController,
                   autofocus: true,
-                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 16.sp),
+                  style:
+                      GoogleFonts.outfit(color: Colors.white, fontSize: 16.sp),
                   decoration: const InputDecoration(
                     hintText: "Search approvals...",
                     hintStyle: TextStyle(color: Colors.white70),
@@ -445,11 +473,15 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                 )
               : Text(
                   "Approvals",
-                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp),
+                  style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp),
                 ),
           actions: [
             IconButton(
-              icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white),
+              icon: Icon(_isSearching ? Icons.close : Icons.search,
+                  color: Colors.white),
               onPressed: () {
                 setState(() {
                   _isSearching = !_isSearching;
@@ -471,8 +503,10 @@ class _RequestApprovalsState extends State<RequestApprovals> {
             indicatorWeight: 3,
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white.withOpacity(0.7),
-            labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13.sp),
-            unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13.sp),
+            labelStyle: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold, fontSize: 13.sp),
+            unselectedLabelStyle: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600, fontSize: 13.sp),
             tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
           ),
         ),
@@ -486,9 +520,10 @@ class _RequestApprovalsState extends State<RequestApprovals> {
 
   Widget _buildMainContent() {
     final list = _getFilteredList(_currentTab);
-    
+
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF14B8A6)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF14B8A6)));
     }
 
     if (list.isEmpty) {
@@ -502,15 +537,20 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                 color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 20),
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.03), blurRadius: 20),
                 ],
               ),
-              child: Icon(Icons.assignment_turned_in_rounded, size: 64.sp, color: Colors.teal.shade50),
+              child: Icon(Icons.assignment_turned_in_rounded,
+                  size: 64.sp, color: Colors.teal.shade50),
             ),
             SizedBox(height: 20.h),
             Text(
               "All Caught Up!",
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18.sp, color: Colors.blueGrey.shade800),
+              style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18.sp,
+                  color: Colors.blueGrey.shade800),
             ),
             Text(
               "No pending ${_currentTab == 'All' ? 'approvals' : _currentTab} found",
@@ -527,34 +567,54 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       child: ListView.builder(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         itemCount: list.length,
-        itemBuilder: (context, index) => _buildModernCard(list[index], _currentTab),
+        itemBuilder: (context, index) =>
+            _buildModernCard(list[index], _currentTab),
       ),
     );
   }
 
   Widget _buildModernCard(dynamic data, String category) {
-    dynamic master = data.containsKey('master') ? data['master'] : (data.containsKey('master_po') ? data['master_po'] : data);
+    dynamic master = data.containsKey('master')
+        ? data['master']
+        : (data.containsKey('master_po') ? data['master_po'] : data);
     List items = data.containsKey('items') ? data['items'] : [];
-    
-    String itemCode = (items.isNotEmpty) ? (items[0]['item_code'] ?? items[0]['item_no'] ?? '').toString() : '';
+
+    String itemCode = (items.isNotEmpty)
+        ? (items[0]['item_code'] ?? items[0]['item_no'] ?? '').toString()
+        : '';
     if (itemCode == 'N/A') itemCode = '';
 
-    String prefix = (itemCode.isNotEmpty 
-        ? itemCode 
-        : (master['grn_no'] ?? master['no'] ?? master['po_no'] ?? master['requ_no'] ?? master['id'] ?? 'N/A')).toString();
-    
+    String prefix = (itemCode.isNotEmpty
+            ? itemCode
+            : (master['grn_no'] ??
+                master['no'] ??
+                master['po_no'] ??
+                master['requ_no'] ??
+                master['id'] ??
+                'N/A'))
+        .toString();
+
     bool isQC = (data['grn_no'] != null || category == "QC");
     bool isPO = !isQC && (data['po_no'] != null || data['master_po'] != null);
-    bool isPR = !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
+    bool isPR =
+        !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
 
     // Re-evaluate based on specific keys if the tab isn't forced
     if (category == "All") {
       isQC = data['grn_no'] != null;
       isPO = !isQC && (data['po_no'] != null || data['master_po'] != null);
-      isPR = !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
+      isPR =
+          !isQC && !isPO && (data['master'] != null || data['requ_no'] != null);
     }
 
-    String date = (master['date'] ?? master['po_date'] ?? master['dtime'] ?? master['req_date'] ?? (items.isNotEmpty ? (items[0]['date'] ?? items[0]['req_date'] ?? 'N/A') : 'N/A')).toString();
+    String date = (master['date'] ??
+            master['po_date'] ??
+            master['dtime'] ??
+            master['req_date'] ??
+            (items.isNotEmpty
+                ? (items[0]['date'] ?? items[0]['req_date'] ?? 'N/A')
+                : 'N/A'))
+        .toString();
     if (date.contains(' ')) date = date.split(' ')[0];
 
     String title = "Purchase Request";
@@ -566,7 +626,8 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       String qcTitle = "QC Inspection";
       if (data['pro_name'] != null && data['pro_name'].toString().isNotEmpty) {
         qcTitle = data['pro_name'].toString();
-      } else if (data['product_name'] != null && data['product_name'].toString().isNotEmpty) {
+      } else if (data['product_name'] != null &&
+          data['product_name'].toString().isNotEmpty) {
         qcTitle = data['product_name'].toString();
       } else if (qcItems.isNotEmpty && qcItems[0]['product_name'] != null) {
         qcTitle = qcItems[0]['product_name'].toString();
@@ -574,21 +635,37 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       title = qcTitle;
       subtitle = "GRN: ${(data['grn_no'] ?? 'N/A')}";
       String status = data['qc_status'] ?? 'Pending';
-      meta = "Status: $status ${data['inspector_name'] != null ? '| By: ' + data['inspector_name'].toString() : ''}";
+      meta =
+          "Status: $status ${data['inspector_name'] != null ? '| By: ' + data['inspector_name'].toString() : ''}";
     } else if (isPO) {
       title = "Purchase Order Request";
       subtitle = master['supplier_name'] ?? 'N/A';
       meta = "Total: ₹${master['grand_total'] ?? master['tot_amt'] ?? '0'}";
     } else if (isPR) {
       final itemsList = data['items'] ?? [];
-      title = itemsList.isNotEmpty ? (itemsList[0]['product_name'] ?? 'Purchase Item') : 'Purchase Item';
+      String typeStr = master['type'] != null && master['type'].toString().isNotEmpty 
+          ? ' [${master['type']}]' 
+          : '';
+      title = (itemsList.isNotEmpty
+          ? (itemsList[0]['product_name'] ?? 'Purchase Item')
+          : 'Purchase Item') + typeStr;
       subtitle = master['department'] ?? 'N/A';
-      meta = userMap[master['requested_by']?.toString()] ?? master['requested_by']?.toString() ?? 'N/A';
+      meta = userMap[master['requested_by']?.toString()] ??
+          master['requested_by']?.toString() ??
+          'N/A';
     }
 
-    Color accentColor = isPR ? const Color(0xFF0EA5E9) : (isPO ? const Color(0xFFF59E0B) : const Color(0xFF8B5CF6));
-    IconData icon = isPR ? Icons.description_rounded : (isPO ? Icons.shopping_cart_rounded : Icons.fact_check_rounded);
+    Color accentColor = isPR
+        ? const Color(0xFF0EA5E9)
+        : (isPO ? const Color(0xFFF59E0B) : const Color(0xFF8B5CF6));
+    IconData icon = isPR
+        ? Icons.description_rounded
+        : (isPO ? Icons.shopping_cart_rounded : Icons.fact_check_rounded);
+    
     String typeLabel = isQC ? "QC" : (isPO ? "PO" : "PR");
+    if (isPR && master['type'] != null && master['type'].toString().isNotEmpty) {
+      typeLabel = "PR (${master['type']})";
+    }
 
     return Container(
       margin: EdgeInsets.only(bottom: 16.h),
@@ -629,18 +706,25 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                           children: [
                             Text(
                               prefix,
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15.sp, color: Colors.blueGrey.shade900),
+                              style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15.sp,
+                                  color: Colors.blueGrey.shade900),
                             ),
                             Text(
                               date,
-                              style: GoogleFonts.outfit(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w500),
+                              style: GoogleFonts.outfit(
+                                  fontSize: 11.sp,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
                       ],
                     ),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                       decoration: BoxDecoration(
                         color: accentColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -648,7 +732,10 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                       ),
                       child: Text(
                         typeLabel,
-                        style: GoogleFonts.outfit(color: accentColor, fontWeight: FontWeight.bold, fontSize: 10.sp),
+                        style: GoogleFonts.outfit(
+                            color: accentColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10.sp),
                       ),
                     ),
                   ],
@@ -656,19 +743,26 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                 SizedBox(height: 16.h),
                 Text(
                   title,
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16.sp, color: Colors.blueGrey.shade800),
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.sp,
+                      color: Colors.blueGrey.shade800),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 4.h),
                 Row(
                   children: [
-                    Icon(Icons.business_center_rounded, size: 14.sp, color: Colors.grey.shade400),
+                    Icon(Icons.business_center_rounded,
+                        size: 14.sp, color: Colors.grey.shade400),
                     SizedBox(width: 6.w),
                     Expanded(
                       child: Text(
                         subtitle,
-                        style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 12.sp, fontWeight: FontWeight.w500),
+                        style: GoogleFonts.outfit(
+                            color: Colors.grey.shade600,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -677,12 +771,16 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                 SizedBox(height: 4.h),
                 Row(
                   children: [
-                    Icon(Icons.person_pin_rounded, size: 14.sp, color: Colors.grey.shade400),
+                    Icon(Icons.person_pin_rounded,
+                        size: 14.sp, color: Colors.grey.shade400),
                     SizedBox(width: 6.w),
                     Expanded(
                       child: Text(
                         meta,
-                        style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 12.sp, fontWeight: FontWeight.w500),
+                        style: GoogleFonts.outfit(
+                            color: Colors.grey.shade600,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -695,7 +793,9 @@ class _RequestApprovalsState extends State<RequestApprovals> {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
-              borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
+              borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24)),
               border: Border(top: BorderSide(color: Colors.grey.shade100)),
             ),
             child: Row(
@@ -708,14 +808,21 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => RequestApprovalDetailsScreen(
-                              masterData: isPR ? (data['master'] ?? data) : (data['master_po'] ?? data),
+                              masterData: isPR
+                                  ? (data['master'] ?? data)
+                                  : (data['master_po'] ?? data),
                               itemsData: data['items'] ?? [],
                               isPO: isPO,
                             ),
                           ),
                         ).then((_) => _fetchAll());
                       } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => ModernQCInspectionScreen(inspectionData: data))).then((_) => _fetchAll());
+                        Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => ModernQCInspectionScreen(
+                                        inspectionData: data)))
+                            .then((_) => _fetchAll());
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -723,16 +830,22 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: EdgeInsets.symmetric(vertical: 12.h),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(isQC ? Icons.fact_check_outlined : Icons.check_circle_outline, size: 18.sp),
+                        Icon(
+                            isQC
+                                ? Icons.fact_check_outlined
+                                : Icons.check_circle_outline,
+                            size: 18.sp),
                         SizedBox(width: 8.w),
                         Text(
                           isQC ? "Inspect Items" : "Review & Approve",
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13.sp),
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold, fontSize: 13.sp),
                         ),
                       ],
                     ),
@@ -757,8 +870,20 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     } else {
       listToFilter = [...prApprovals, ...poApprovals, ...qcApprovals];
       listToFilter.sort((a, b) {
-        String dateA = (a['date'] ?? (a['master']?['date']) ?? (a['master_po']?['po_date']) ?? a['grn_date'] ?? a['dtime'] ?? '0').toString();
-        String dateB = (b['date'] ?? (b['master']?['date']) ?? (b['master_po']?['po_date']) ?? b['grn_date'] ?? b['dtime'] ?? '0').toString();
+        String dateA = (a['date'] ??
+                (a['master']?['date']) ??
+                (a['master_po']?['po_date']) ??
+                a['grn_date'] ??
+                a['dtime'] ??
+                '0')
+            .toString();
+        String dateB = (b['date'] ??
+                (b['master']?['date']) ??
+                (b['master_po']?['po_date']) ??
+                b['grn_date'] ??
+                b['dtime'] ??
+                '0')
+            .toString();
         return dateB.compareTo(dateA);
       });
     }
@@ -766,14 +891,22 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     if (_searchQuery.isEmpty) return listToFilter;
 
     return listToFilter.where((item) {
-      dynamic master = item.containsKey('master') ? item['master'] : (item.containsKey('master_po') ? item['master_po'] : item);
+      dynamic master = item.containsKey('master')
+          ? item['master']
+          : (item.containsKey('master_po') ? item['master_po'] : item);
       List items = item.containsKey('items') ? item['items'] : [];
-      
+
       String searchContent = [
-        master['no'], master['po_no'], master['requ_no'], master['id'],
-        master['supplier_name'], master['department'],
+        master['no'],
+        master['po_no'],
+        master['requ_no'],
+        master['id'],
+        master['supplier_name'],
+        master['department'],
         master['requested_by'],
-        item['product_name'], item['pro_name'], item['item_code'],
+        item['product_name'],
+        item['pro_name'],
+        item['item_code'],
         ...items.map((i) => "${i['product_name']} ${i['item_code']}")
       ].join(" ").toLowerCase();
 
