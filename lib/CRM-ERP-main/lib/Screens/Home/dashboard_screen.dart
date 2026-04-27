@@ -412,9 +412,9 @@ class _DashboardContentState extends State<_DashboardContent> {
                     const SizedBox(width: 8),
                     Text(
                       'CRM',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20.sp,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -433,29 +433,32 @@ class _DashboardContentState extends State<_DashboardContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end, // Align to right
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF26A69A),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today, color: Colors.white, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Sort by Date',
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                      const Spacer(),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26A69A),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today, color: Colors.white, size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Sort by Date',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -752,47 +755,6 @@ class _DashboardContentState extends State<_DashboardContent> {
           ),
 
           const SizedBox(height: 24),
-
-          // Dynamic/Other Menu Items
-          if (widget.crmMenus.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'More Actions',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: widget.crmMenus.where((item) {
-                  final n = (item['name'] ?? '').toString().toUpperCase();
-                  // Hide items already featured in premium cards to keep it clean
-                  return !n.contains("DASHBOARD") && 
-                         !n.contains("LEAD/ENQUIRY");
-                }).map((item) {
-                  final name = (item['name'] ?? '').toString();
-                  return SizedBox(
-                    width: (MediaQuery.of(context).size.width - 56) / 3,
-                    child: _buildManagementCard(
-                      context: context,
-                      label: name,
-                      assetIcon: _getIconPath(name),
-                      gradient: _getGradient(name),
-                      onTap: () => AppNavigation.handleNavigation(context, name, moduleContext: "CRM"),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
 
           const SizedBox(height: 100),
         ],

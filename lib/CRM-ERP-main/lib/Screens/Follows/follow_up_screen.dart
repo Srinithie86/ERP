@@ -127,13 +127,13 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   String get _assetIcon {
     switch (_selectedIndex) {
       case 0:
-        return 'assets/icons/lead.png';
+        return 'assets/icons/leads.png';
       case 1:
-        return 'assets/icons/get enquiry.png';
+        return 'assets/icons/enquiry.png';
       case 2:
-        return 'assets/icons/referral.png';
+        return 'assets/icons/re.png';
       default:
-        return 'assets/icons/lead.png';
+        return 'assets/icons/leads.png';
     }
   }
 
@@ -196,17 +196,17 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildCircleAction(
-                          'assets/icons/lead.png',
+                          'assets/icons/leads.png',
                           0,
                           screenWidth,
                         ),
                         _buildCircleAction(
-                          'assets/icons/get enquiry.png',
+                          'assets/icons/enquiry.png',
                           1,
                           screenWidth,
                         ),
                         _buildCircleAction(
-                          'assets/icons/referral.png',
+                          'assets/icons/re.png',
                           2,
                           screenWidth,
                         ),
@@ -249,7 +249,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                           errorBuilder: (c, e, s) {
                             if (_selectedIndex == 0) {
                               return Image.asset(
-                                'assets/icons/today_followup.png',
+                                'assets/icons/today.png',
                                 width: screenWidth * 0.1,
                                 height: screenWidth * 0.1,
                                 errorBuilder: (c, e, s) => Icon(
@@ -354,7 +354,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             _buildQuickActionItem(
               'assets/icons/what.png',
               () {},
-            ), // WhatsApp asset
+            ),
             const SizedBox(height: 12),
             _buildQuickActionItem(Icons.email_outlined, () {}),
             const SizedBox(height: 12),
