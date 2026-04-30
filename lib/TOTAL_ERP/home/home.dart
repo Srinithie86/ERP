@@ -15,10 +15,8 @@ import '../../utils/widgets/universal_app_bar.dart';
 import '../../utils/widgets/main_drawer.dart';
 import '../../providers/menu_provider.dart' hide ModuleItem;
 import 'package:provider/provider.dart';
-//import 'package:crm/Drawer/drawer_screen.dart' as crm_drawer;
+//import 'package:erp_smart/CRM-ERP-main/lib/Drawer/drawer_screen.dart' as crm_drawer;
 import '../../utils/widgets/dynamic_drawer.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,7 +25,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   ModuleItem? _activeModule; // Store ModuleItem instead of instantiated Widget
   String? _activeModuleTitle;
@@ -36,31 +34,24 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Check location permission on start to ensure user friendliness
     WidgetsBinding.instance.addPostFrameCallback((_) {
       DeviceService.forceFetchLocation(context);
-      _repairSession();
+      context.read<MenuProvider>().fetchMenuFromServer();
     });
   }
 
-  Future<void> _repairSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? currentName = prefs.getString('name');
-    debugPrint("DEBUG HOME: Current name in prefs: '$currentName'");
-    if (currentName == null || currentName.isEmpty || currentName == 'Admin' || currentName == '40') {
-      final loginResponseStr = prefs.getString('login_response');
-      if (loginResponseStr != null) {
-        try {
-          final decoded = json.decode(loginResponseStr);
-          final name = decoded['name']?.toString() ?? '';
-          if (name.isNotEmpty && name != '40') {
-            await prefs.setString('name', name);
-            debugPrint("Session Repaired: Name '$name' restored from login_response");
-          }
-        } catch (e) {
-          debugPrint("DEBUG HOME: Repair error: $e");
-        }
-      }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<MenuProvider>().fetchMenuFromServer();
     }
   }
 
@@ -192,11 +183,17 @@ class AppGridSubScreen extends StatelessWidget {
         ),
         SizedBox(height: 20.h),
         Expanded(
-          child: GridView.count(
-            padding: EdgeInsets.only(left: 20.w, right: 20.w, bottom: 100.h),
-            crossAxisCount: 3,
-            mainAxisSpacing: 20.h,
-            crossAxisSpacing: 20.w,
+          child: RefreshIndicator(
+            color: const Color(0xFF26A69A),
+            onRefresh: () async {
+              await context.read<MenuProvider>().fetchMenuFromServer();
+            },
+            child: GridView.count(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(left: 20.w, right: 20.w, bottom: 100.h),
+              crossAxisCount: 3,
+              mainAxisSpacing: 20.h,
+              crossAxisSpacing: 20.w,
             childAspectRatio: 0.72,
             children: [
               ...allModules
@@ -216,6 +213,7 @@ class AppGridSubScreen extends StatelessWidget {
                 );
               }),
             ],
+          ),
           ),
         ),
       ],

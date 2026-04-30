@@ -46,6 +46,8 @@ dependencies:
     path: lib/purchase
   hrm:
     path: lib/l10n/HRM-main 2
+  hrm_admin_app:
+    path: lib/l10n/HRM-main 2/hrm_admin_app
   sale_management:
     path: lib/sale_management
   crm_admin_app:
@@ -63,8 +65,7 @@ dependencies:
     path: lib/warehouse
   accountings:
     path: lib/accounting
-  manufacturing_erp:
-    path: lib/manufacturing
+
   dealermanagment:
     path: lib/dealer_management
   service_ticket:
