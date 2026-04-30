@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
+import 'package:purchase_erp/utils/location_helper.dart';
 
 class RequestApprovalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> masterData;
@@ -42,6 +43,7 @@ class _RequestApprovalDetailsScreenState
   void _initQtyControllers() {
     for (var item in widget.itemsData) {
       final qtyStr =
+          item['quantity']?.toString() ??
           item['item_qty']?.toString() ??
           item['qty']?.toString() ??
           item['current_order_quantity']?.toString() ??
@@ -97,6 +99,7 @@ class _RequestApprovalDetailsScreenState
       ? "Purchase Order Approval"
       : widget.itemsData.isNotEmpty
           ? (widget.itemsData[0]['product_name']?.toString() ??
+                widget.itemsData[0]['pro_name']?.toString() ??
                 widget.itemsData[0]['item_description']?.toString() ??
                 'Purchase Request')
           : 'Purchase Request';
@@ -122,7 +125,7 @@ class _RequestApprovalDetailsScreenState
         final item = widget.itemsData[i];
         itemsList.add({
           "item_code": item['item_code']?.toString() ?? '',
-          "product_name": item['product_name']?.toString() ?? '',
+          "product_name": item['product_name']?.toString() ?? item['pro_name']?.toString() ?? '',
           "uom": item['uom']?.toString() ?? 'nos',
           "current_order_quantity": _qtyControllers[i].text,
           "current_stock_qty": item['current_stock_qty']?.toString() ?? item['qty']?.toString() ?? '0',
@@ -371,10 +374,11 @@ class _RequestApprovalDetailsScreenState
               itemBuilder: (context, index) {
                 final item = widget.itemsData[index];
                 final itemCode = item['item_code']?.toString() ?? 'N/A';
-                final productName = item['product_name']?.toString() ?? 'N/A';
+                final productName = item['product_name']?.toString() ?? item['pro_name']?.toString() ?? 'N/A';
                 final uom = (item['uom']?.toString() ?? '').isEmpty ? 'nos' : item['uom'].toString();
                 final description = item['description']?.toString() ?? item['item_description']?.toString() ?? '';
                 final quantity =
+                    item['quantity']?.toString() ??
                     item['item_qty']?.toString() ??
                     item['qty']?.toString() ??
                     item['current_order_quantity']?.toString() ??
@@ -534,7 +538,11 @@ class _RequestApprovalDetailsScreenState
             const SizedBox(height: 24),
 
             InkWell(
-              onTap: _isProcessing ? null : () => _showMandatoryConfirmDialog(context),
+              onTap: _isProcessing ? null : () async {
+                final hasLocation = await LocationHelper.checkLocationEnabled(context);
+                if (!hasLocation) return;
+                _showMandatoryConfirmDialog(context);
+              },
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
