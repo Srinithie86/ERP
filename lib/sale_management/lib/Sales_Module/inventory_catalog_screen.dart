@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../widgets/app_drawer.dart';
 import '../sales_order_module/product_model.dart';
 
@@ -123,15 +124,16 @@ class _SalesOrderInventoryCatalogScreenState
         elevation: 0,
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Colors.white),
+            icon: Icon(Icons.menu_rounded, color: Colors.white, size: 24.sp),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         title: Text(
           widget.title,
-          style: const TextStyle(
+          style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
               fontFamily: 'Poppins'),
         ),
       ),
@@ -145,68 +147,53 @@ class _SalesOrderInventoryCatalogScreenState
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  blurRadius: 10.r,
+                  offset: Offset(0, 4.h),
                 ),
               ],
             ),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
             child: Column(
               children: [
                 // Premium Search Bar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  height: 52,
+                  padding: EdgeInsets.symmetric(horizontal: 18.w),
+                  height: 52.h,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.r),
                     border:
-                        Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                        Border.all(color: const Color(0xFFE2E8F0), width: 1.w),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.search_rounded, color: primaryColor, size: 22),
-                      const SizedBox(width: 12),
+                      Icon(Icons.search_rounded, color: primaryColor, size: 22.sp),
+                      SizedBox(width: 12.w),
                       Expanded(
                         child: TextField(
                           controller: _searchController,
                           onChanged: (value) => setState(() {}),
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w500,
                             fontFamily: 'Poppins',
                           ),
                           decoration: InputDecoration(
                             hintText: 'Search products...',
                             hintStyle: TextStyle(
-                                color: Colors.grey.shade500, fontSize: 14),
+                                color: Colors.grey.shade500, fontSize: 14.sp),
                             border: InputBorder.none,
                             isDense: true,
                           ),
                         ),
                       ),
-                      // Container(
-                      //   padding: const EdgeInsets.all(8),
-                      //   decoration: BoxDecoration(
-                      //     color: Colors.white,
-                      //     borderRadius: BorderRadius.circular(10),
-                      //     boxShadow: [
-                      //       BoxShadow(
-                      //         color: Colors.black.withOpacity(0.05),
-                      //         blurRadius: 4,
-                      //       ),
-                      //     ],
-                      //   ),
-                      //   child: Icon(Icons.qr_code_scanner_rounded,
-                      //       color: primaryColor, size: 18),
-                      // ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 // Premium Category Pills
                 SizedBox(
-                  height: 38,
+                  height: 38.h,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
@@ -219,23 +206,23 @@ class _SalesOrderInventoryCatalogScreenState
                             setState(() => _selectedCategory = category),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
-                          margin: const EdgeInsets.only(right: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          margin: EdgeInsets.only(right: 10.w),
+                          padding: EdgeInsets.symmetric(horizontal: 18.w),
                           decoration: BoxDecoration(
                             color: isSelected ? primaryColor : Colors.white,
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(30.r),
                             border: Border.all(
                               color: isSelected
                                   ? primaryColor
                                   : const Color(0xFFE2E8F0),
-                              width: 1.2,
+                              width: 1.2.w,
                             ),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
                                       color: primaryColor.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
+                                      blurRadius: 8.r,
+                                      offset: Offset(0, 4.h),
                                     ),
                                   ]
                                 : [],
@@ -246,14 +233,14 @@ class _SalesOrderInventoryCatalogScreenState
                             children: [
                               if (isSelected) ...[
                                 Container(
-                                  width: 5,
-                                  height: 5,
+                                  width: 5.w,
+                                  height: 5.w,
                                   decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8.w),
                               ],
                               Text(
                                 category,
@@ -264,7 +251,7 @@ class _SalesOrderInventoryCatalogScreenState
                                   fontWeight: isSelected
                                       ? FontWeight.w700
                                       : FontWeight.w600,
-                                  fontSize: 11,
+                                  fontSize: 11.sp,
                                   letterSpacing: 0.5,
                                   fontFamily: 'Poppins',
                                 ),
@@ -283,17 +270,17 @@ class _SalesOrderInventoryCatalogScreenState
           // List Info
           if (!_isLoading && _error == null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Available Products',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
                   ),
                   Text(
                     'Showing ${_filteredProducts.length} items',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13.sp),
                   ),
                 ],
               ),
@@ -308,15 +295,15 @@ class _SalesOrderInventoryCatalogScreenState
                       children: [
                         CircularProgressIndicator(
                           color: primaryColor,
-                          strokeWidth: 3,
+                          strokeWidth: 3.w,
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
                         Text(
                           'Updating catalog...',
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontFamily: 'Poppins',
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
                       ],
@@ -325,34 +312,34 @@ class _SalesOrderInventoryCatalogScreenState
                 : _error != null
                     ? Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                          padding: EdgeInsets.all(32.0.w),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.error_outline_rounded,
-                                  size: 48, color: Colors.red.shade300),
-                              const SizedBox(height: 16),
+                                  size: 48.sp, color: Colors.red.shade300),
+                              SizedBox(height: 16.h),
                               Text(
                                 _error!,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Color(0xFF1E293B),
+                                style: TextStyle(
+                                  color: const Color(0xFF1E293B),
                                   fontFamily: 'Poppins',
-                                  fontSize: 14,
+                                  fontSize: 14.sp,
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 24.h),
                               ElevatedButton.icon(
                                 onPressed: _fetchProducts,
-                                icon: const Icon(Icons.refresh_rounded),
-                                label: const Text('Retry'),
+                                icon: Icon(Icons.refresh_rounded, size: 20.sp),
+                                label: Text('Retry', style: TextStyle(fontSize: 14.sp)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryColor,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 12),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 24.w, vertical: 12.h),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
+                                      borderRadius: BorderRadius.circular(12.r)),
                                 ),
                               ),
                             ],
@@ -365,27 +352,27 @@ class _SalesOrderInventoryCatalogScreenState
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.inventory_2_outlined,
-                                    size: 48, color: Colors.grey.shade300),
-                                const SizedBox(height: 16),
+                                    size: 48.sp, color: Colors.grey.shade300),
+                                SizedBox(height: 16.h),
                                 Text(
                                   'No products found',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontFamily: 'Poppins',
-                                    fontSize: 14,
+                                    fontSize: 14.sp,
                                   ),
                                 ),
                               ],
                             ),
                           )
                         : GridView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
-                              childAspectRatio: 0.64,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
+                              childAspectRatio: 0.55,
+                              crossAxisSpacing: 12.w,
+                              mainAxisSpacing: 12.h,
                             ),
                             itemCount: _filteredProducts.length,
                             itemBuilder: (context, index) {
@@ -403,8 +390,8 @@ class _SalesOrderInventoryCatalogScreenState
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF0F2F5), width: 1.5),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: const Color(0xFFF0F2F5), width: 1.5.w),
         // Adding a subtle 3D inner reflection
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -414,20 +401,20 @@ class _SalesOrderInventoryCatalogScreenState
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-            spreadRadius: -5,
+            blurRadius: 30.r,
+            offset: Offset(0, 15.h),
+            spreadRadius: -5.r,
           ),
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-            spreadRadius: -2,
+            blurRadius: 12.r,
+            offset: Offset(0, 5.h),
+            spreadRadius: -2.r,
           ),
           BoxShadow(
             color: primaryColor.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.r,
+            offset: Offset(0, 10.h),
           ),
         ],
       ),
@@ -452,19 +439,19 @@ class _SalesOrderInventoryCatalogScreenState
                 ),
                 // Premium Dynamic Stock Badge
                 Positioned(
-                  top: 14,
-                  left: 14,
+                  top: 14.h,
+                  left: 14.w,
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12.r),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                          blurRadius: 10.r,
+                          offset: Offset(0, 4.h),
                         ),
                       ],
                     ),
@@ -472,8 +459,8 @@ class _SalesOrderInventoryCatalogScreenState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 8,
-                          height: 8,
+                          width: 8.w,
+                          height: 8.h,
                           decoration: BoxDecoration(
                             color: product.stock > 10
                                 ? const Color(0xFF00C853)
@@ -485,18 +472,18 @@ class _SalesOrderInventoryCatalogScreenState
                                         ? const Color(0xFF00C853)
                                         : const Color(0xFFFFAB00))
                                     .withOpacity(0.4),
-                                blurRadius: 4,
-                                spreadRadius: 1,
+                                blurRadius: 4.r,
+                                spreadRadius: 1.r,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.w),
                         Text(
                           'Stock: ${product.stock}',
-                          style: const TextStyle(
-                            color: Color(0xFF475569),
-                            fontSize: 10,
+                          style: TextStyle(
+                            color: const Color(0xFF475569),
+                            fontSize: 10.sp,
                             fontWeight: FontWeight.w800,
                             fontFamily: 'Poppins',
                             letterSpacing: 0.2,
@@ -513,7 +500,7 @@ class _SalesOrderInventoryCatalogScreenState
           Expanded(
             flex: 10,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -521,10 +508,10 @@ class _SalesOrderInventoryCatalogScreenState
                     product.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 15,
+                    style: TextStyle(
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                      color: const Color(0xFF1E293B),
                       fontFamily: 'Poppins',
                       height: 1.3,
                       letterSpacing: -0.2,
@@ -534,10 +521,10 @@ class _SalesOrderInventoryCatalogScreenState
                   // Price Section with varied colors
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
                     decoration: BoxDecoration(
                       color: primaryColor.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(16.r),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -549,17 +536,17 @@ class _SalesOrderInventoryCatalogScreenState
                             Text(
                               'PRICE',
                               style: TextStyle(
-                                fontSize: 9,
+                                fontSize: 9.sp,
                                 color: primaryColor.withOpacity(0.7),
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2.h),
                             Text(
                               '₹${product.price.toStringAsFixed(0)}',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 18.sp,
                                 fontWeight: FontWeight.w900,
                                 color: primaryColor,
                                 fontFamily: 'Poppins',
@@ -571,7 +558,7 @@ class _SalesOrderInventoryCatalogScreenState
                         Icon(
                           Icons.trending_up_rounded,
                           color: primaryColor.withOpacity(0.4),
-                          size: 20,
+                          size: 20.sp,
                         ),
                       ],
                     ),
@@ -604,7 +591,7 @@ class _SalesOrderInventoryCatalogScreenState
                 ? loadingProgress.cumulativeBytesLoaded /
                     loadingProgress.expectedTotalBytes!
                 : null,
-            strokeWidth: 2,
+            strokeWidth: 2.w,
             color: primaryColor.withOpacity(0.5),
           ),
         );
@@ -633,14 +620,14 @@ class _SalesOrderInventoryCatalogScreenState
             Icon(
               Icons.inventory_2_outlined,
               color: primaryColor.withOpacity(0.3),
-              size: 40,
+              size: 40.sp,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'No Image',
               style: TextStyle(
                 color: primaryColor.withOpacity(0.4),
-                fontSize: 10,
+                fontSize: 10.sp,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Poppins',
               ),

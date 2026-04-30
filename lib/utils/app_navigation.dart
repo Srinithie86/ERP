@@ -10,6 +10,7 @@ import 'package:purchase_erp/purchase_invoice.dart';
 import 'package:purchase_erp/Request%20Approvals/approvals.dart';
 import 'package:purchase_erp/purchase_orders/purchase_orders.dart';
 import 'package:purchase_erp/QC/qc_inspections_screen.dart';
+import 'package:purchase_erp/dashboard.dart' as purchase;
 
 
 
@@ -28,8 +29,23 @@ import 'package:hrm/views/payroll/advance_salary_request.dart' as hrm_emp_advanc
 import 'package:hrm/views/home/feedback.dart' as hrm_emp_feedback;
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
 
+import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
+
+import 'package:erp_smart/CRM-ERP-main/lib/Screens/Home/dashboard_screen.dart'
+    as crm_dashboard;
+import 'package:erp_smart/utils/constants/module_constants.dart' show moduleScaffoldKey;
+import 'package:erp_smart/utils/widgets/placeholder_screen.dart';
 
 import 'package:service_ticket/screens/technician_dashboard.dart' as service;
+
+import 'package:manufacturing_erp/core/main_shell.dart' as mfg;
+import 'package:manufacturing_erp/modules/formula/bom/bom_screen.dart' as mfg_bom;
+import 'package:manufacturing_erp/modules/formula/formula_screen.dart' as mfg_formula;
+import 'package:manufacturing_erp/modules/job_card/job_card_screen.dart' as mfg_job;
+import 'package:manufacturing_erp/modules/material_request/material_request_screen.dart' as mfg_material;
+import 'package:manufacturing_erp/modules/production/production_screen.dart' as mfg_production;
+import 'package:manufacturing_erp/modules/production_order/production_order_screen.dart' as mfg_po;
+import 'package:manufacturing_erp/modules/quality/pages/quality_list_screen.dart' as mfg_quality;
 
 // HRM Admin Imports
 import 'package:hrm_admin_app/Screens/Admin/Onboarding/onboarding_management.dart' as hrm_admin_onboarding;
@@ -54,15 +70,19 @@ class AppNavigation {
   static void handleNavigation(BuildContext context, String name, {String? moduleContext}) {
     final String n = name.trim().toUpperCase();
     final String m = (moduleContext ?? "").toUpperCase();
+    final bool isHrmContext = m.contains("HRM");
     
-    // Check for "Dashboard" specifically within a module context
-    if (n == "DASHBOARD") {
-      // User explicitly requested: when they click dashboard menu they go to the erp common dashboard
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (route) => false,
-      );
+    // Dashboard handling (module-aware)
+    if (n == "DASHBOARD" || n.endsWith(" DASHBOARD")) {
+      final bool handled = _openModuleDashboard(context, moduleContext: moduleContext);
+      if (!handled) {
+        // Fallback: send to ERP common home dashboard
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      }
       return;
     }
 
@@ -108,7 +128,7 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_leave.AdminLeaveManagementScreen()));
     } else if (n.contains("LEAVE TYPES") || n == "LEAVE" || n == "LEAVE MANAGEMENT") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_leave.LeaveManagementScreen()));
-    } else if (n.contains("HRM SETTINGS")) {
+    } else if (n.contains("HRM SETTINGS") || n == "SETTINGS") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_settings.SettingsScreen()));
     } else if (n.contains("PERMISSION") && !m.contains("ADMIN") && !n.contains("MANAGEMENT")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_leave.LeaveManagementScreen()));
@@ -152,12 +172,23 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_training.TrainingManagementScreen()));
     } else if (n.contains("HEALTH") && n.contains("SAFETY")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_health.HealthSafetyManagementScreen()));
-    } else if (n.contains("MARKETING ATTENDANCE") || n.contains("MARKETING SELECTION") || n == "MARKETING") {
+    } else if (n.contains("MARKETING ATTENDANCE") || n.contains("MARKETING SELECTION") || n == "MARKETING" || n.contains("MARKETING")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_marketing.MarketingSelectionScreen()));
     } else if (n.contains("REPORTS") || n.contains("INSIGHTS")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_reports.ReportsScreen()));
     } else if (n.contains("TICKET") || n.contains("RAISE A TICKET")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_ticket.TicketRaise()));
+    } else if (n == "HRM" || n == "HRM DASHBOARD" || (isHrmContext && n.contains("HOME"))) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => hrm.MainRoot(isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
+    } else if (isHrmContext) {
+      // Keep HRM menus fully navigable even when backend sends new/renamed labels.
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => hrm.MainRoot(isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
     }
 
 
@@ -165,12 +196,92 @@ class AppNavigation {
     else if (n == "SERVICE" || n == "SERVICE TICKETS" || n == "ERP SERVICE") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const service.TechnicianDashboard()));
     }
+
+    // Manufacturing Module (when user is inside Manufacturing drawer)
+    else if (m.contains("MANUFACTURING")) {
+      if (n.contains("BILL OF MATERIAL") || n == "BOM" || n.startsWith("BOM ") || n.contains(" BOM")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_bom.BomScreen()));
+      } else if (n.contains("FORMULA") || n.contains("BOM FORMULA")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_formula.FormulaScreen()));
+      } else if (n.contains("PRODUCTION ORDER")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_po.ProductionOrderScreen()));
+      } else if (n.contains("JOB CARD")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_job.JobCardScreen()));
+      } else if (n.contains("MATERIAL") || n.contains("INDENT") || n.contains("ISSUE") || n.contains("INTENT")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_material.MaterialRequestScreen()));
+      } else if (n == "PRODUCTION" || n.contains("PRODUCTIONS") || n.contains("PRODUCTION PROCESS")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_production.ProductionEntryScreen()));
+      } else if (n.contains("QUALITY") || n.contains("QC")) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const mfg_quality.QualityListScreen()));
+      } else {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => PlaceholderScreen(title: name)));
+      }
+    }
     // Generic
     else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Navigation for $name not implemented yet")),
       );
     }
+  }
+
+  static bool _openModuleDashboard(BuildContext context, {String? moduleContext}) {
+    final String m = (moduleContext ?? "").trim().toUpperCase();
+    if (m.isEmpty) return false;
+
+    if (m.contains("PURCHASE")) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => purchase.Dashboard(isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
+      return true;
+    }
+
+    if (m.contains("SALES")) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => sales.DashboardPage(isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
+      return true;
+    }
+
+    if (m.contains("CRM")) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => crm_dashboard.DashboardScreen(
+                isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
+      return true;
+    }
+
+    if (m.contains("MANUFACTURING")) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const mfg.MainShell()),
+      );
+      return true;
+    }
+
+    if (m.contains("HRM")) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => hrm.MainRoot(isEmbedded: true, scaffoldKey: moduleScaffoldKey)),
+      );
+      return true;
+    }
+
+    if (m.contains("ACCOUNTING")) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const accounting.MainShell()));
+      return true;
+    }
+
+    if (m.contains("ERP SERVICE") || m == "SERVICE") {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const service.TechnicianDashboard()));
+      return true;
+    }
+
+    return false;
   }
 
   static IconData getIcon(String name) {

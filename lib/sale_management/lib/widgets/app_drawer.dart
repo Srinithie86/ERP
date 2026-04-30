@@ -1,12 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:sale_management/Sales_Module/approve_screen.dart';
-import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart';
-import '../Proforma_Invoice_Module/all_voice_screen.dart';
-import '../sales_invoice_module/all_voice_screen.dart';
+import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart'
+    as dc_voice;
+import '../Proforma_Invoice_Module/all_voice_screen.dart' as proforma_voice;
+import '../sales_invoice_module/all_voice_screen.dart' as si_voice;
 import '../Direct_invoice_module/direct_generate_info.dart';
-import '../Direct_invoice_module/all_voice_screen.dart';
-import '../sales_order_module/all_voice_screen.dart';
+import '../sales_order_module/all_voice_screen.dart' as so_voice;
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -39,7 +39,7 @@ class AppDrawer extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const AllSalesOrderPage(),
+                          builder: (_) => const so_voice.AllSalesOrderPage(),
                         ),
                       );
                     },
@@ -52,7 +52,7 @@ class AppDrawer extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ProformaAllInvoicePage(
+                          builder: (_) => const proforma_voice.ProformaAllInvoicePage(
                             title: 'Proforma Invoice',
                           ),
                         ),
@@ -67,7 +67,7 @@ class AppDrawer extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const DeliveryChallanAllScreen(),
+                          builder: (_) => const dc_voice.DeliveryChallanAllScreen(),
                         ),
                       );
                     },
@@ -82,7 +82,7 @@ class AppDrawer extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SalesInvoiceAllScreen(),
+                          builder: (_) => const si_voice.SalesInvoiceAllScreen(),
                         ),
                       );
                     },

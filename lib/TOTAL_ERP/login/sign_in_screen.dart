@@ -64,6 +64,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   @override
   void dispose() {
     _timer?.cancel();
+    cancel();
     _usernameController.dispose();
     _passwordController.dispose();
     _mobileController.dispose();
@@ -75,9 +76,16 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
 
   @override
   void codeUpdated() {
-    // We let PinFieldAutoFill handle the UI update and verification
-    // via its own internal listener when it detects the code.
-    debugPrint("Code received via Autofill: $code");
+    final autoCode = code;
+    if (autoCode == null || autoCode.length < 6 || !mounted) return;
+
+    final otp = autoCode.substring(0, 6);
+    for (int i = 0; i < 6; i++) {
+      _otpControllers[i].text = otp[i];
+    }
+
+    debugPrint("Code received via Autofill: $otp");
+    WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp());
   }
 
   Future<void> _pickPhoneNumber() async {
@@ -107,7 +115,9 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
       final sig = await SmsAutoFill().getAppSignature;
       setState(() => _appSignature = sig);
       debugPrint("App Signature for SMS: $sig");
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Unable to get app signature: $e");
+    }
   }
 
   Future<void> _loadSavedDomain() async {
@@ -227,7 +237,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         deviceId: DeviceService.deviceId,
         lat: DeviceService.latitude,
         lng: DeviceService.longitude,
-        appSignature: _appSignature,
+        appSignature: _appSignature ?? '',
       );
 
       if (response['error'] == false) {
@@ -326,6 +336,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     await prefs.setString('login_cus_id', uid); // For HRM module compatibility
     if (response['menu'] != null) if (mounted) context.read<MenuProvider>().setMenu(response['menu']);
     debugPrint("Finalizing login, navigating to HomeScreen...");
+    cancel();
     TextInput.finishAutofillContext();
     if (mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
   }

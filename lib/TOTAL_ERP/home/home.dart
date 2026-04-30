@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dashboard_sub_screen.dart';
-import 'settings_sub_screen.dart';
 import 'package:erp_localization/erp_localization.dart';
-import '../../utils/widgets/location_dialog.dart';
 import '../../utils/device_service.dart';
 import '../../utils/constants/module_constants.dart';
 import '../../utils/models/module_model.dart';
 import '../../utils/widgets/universal_app_bar.dart';
-import '../../utils/widgets/main_drawer.dart';
 import '../../providers/menu_provider.dart' hide ModuleItem;
 import 'package:provider/provider.dart';
 //import 'package:erp_smart/CRM-ERP-main/lib/Drawer/drawer_screen.dart' as crm_drawer;
@@ -69,12 +64,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  List<Widget> get _baseScreens => [
-    AppGridSubScreen(onModuleSelected: _onModuleSelected),
-    const DashboardSubScreen(),
-    const SettingsSubScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     const tealColor = Color(0xFF26A69A);
@@ -126,34 +115,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index, Color tealColor) {
-    bool isActive = _selectedIndex == index;
-    
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-          if (index != 0) { _activeModule = null; } // Reset module if switching tabs
-        });
-      },
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 60.w,
-        child: Center(
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 200),
-            scale: isActive ? 1.2 : 1.0,
-            curve: Curves.easeOutCubic,
-            child: Icon(
-              icon,
-              color: isActive ? tealColor : Colors.grey.shade400,
-              size: 26.w,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class AppGridSubScreen extends StatelessWidget {

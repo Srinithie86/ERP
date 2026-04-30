@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:provider/provider.dart';
@@ -30,6 +31,15 @@ void main() async {
   }
 
   final prefs = await SharedPreferences.getInstance();
+
+  // In debug runs you can force-clear the cached menu with:
+  // flutter run --dart-define=CLEAR_MENU_CACHE=true
+  const bool clearMenuCache =
+      bool.fromEnvironment('CLEAR_MENU_CACHE', defaultValue: false);
+  if (kDebugMode && clearMenuCache) {
+    await prefs.remove('user_menu_data');
+  }
+
   final String? savedPin = prefs.getString('app_pin');
   final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 

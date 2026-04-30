@@ -40,15 +40,38 @@ class _RequestApprovalDetailsScreenState
     _initQtyControllers();
   }
 
+  String _pickFirst(Map<String, dynamic> item, List<String> keys, {String fallback = ''}) {
+    for (final k in keys) {
+      final v = item[k];
+      if (v == null) continue;
+      final s = v.toString().trim();
+      if (s.isNotEmpty && s.toLowerCase() != 'null') return s;
+    }
+    return fallback;
+  }
+
+  String _normalizeUom(String raw) {
+    final s = raw.trim();
+    return s.isEmpty ? 'nos' : s;
+  }
+
   void _initQtyControllers() {
     for (var item in widget.itemsData) {
-      final qtyStr =
-          item['quantity']?.toString() ??
-          item['item_qty']?.toString() ??
-          item['qty']?.toString() ??
-          item['current_order_quantity']?.toString() ??
-          item['quantity_required']?.toString() ??
-          '0';
+      // PO + PR APIs use different keys; keep this resilient.
+      final qtyStr = _pickFirst(
+        Map<String, dynamic>.from(item as Map),
+        [
+          'quantity',
+          'item_qty',
+          'qty',
+          'po_qty',
+          'order_qty',
+          'current_order_quantity',
+          'quantity_required',
+          'current_order_qty',
+        ],
+        fallback: '0',
+      );
       _qtyControllers.add(TextEditingController(text: qtyStr));
     }
   }
@@ -89,11 +112,26 @@ class _RequestApprovalDetailsScreenState
       'N/A';
   String get department => widget.masterData['department']?.toString() ?? 'N/A';
   String get requestedBy =>
-      widget.requestedByName ??
-      widget.masterData['requested_by']?.toString() ??
-      widget.masterData['req_by']?.toString() ??
-      widget.masterData['supplier_name']?.toString() ??
-      'N/A';
+      _pickFirst(
+        {
+          ...Map<String, dynamic>.from(widget.masterData),
+          '_requestedByParam': widget.requestedByName,
+        },
+        [
+          if (widget.requestedByName != null) '_requestedByParam',
+          'requested_by_name',
+          'req_by_name',
+          'requested_by',
+          'req_by',
+          'name',
+          'user_name',
+          'username',
+          'full_name',
+          'emp_name',
+          'supplier_name',
+        ],
+        fallback: 'N/A',
+      );
 
   String get title => widget.isPO
       ? "Purchase Order Approval"
@@ -122,15 +160,26 @@ class _RequestApprovalDetailsScreenState
 
       final List<Map<String, dynamic>> itemsList = [];
       for (int i = 0; i < widget.itemsData.length; i++) {
-        final item = widget.itemsData[i];
+        final item = Map<String, dynamic>.from(widget.itemsData[i] as Map);
+        final itemCode = _pickFirst(item, ['item_code', 'item_no', 'itemid', 'code', 'pro_code'], fallback: '');
+        final productName = _pickFirst(
+          item,
+          ['product_name', 'pro_name', 'item_name', 'itemname', 'name', 'product'],
+          fallback: '',
+        );
+        final uom = _normalizeUom(_pickFirst(item, ['uom', 'unit', 'unit_name', 'unit_code'], fallback: 'nos'));
+        final stockQty = _pickFirst(item, ['current_stock_qty', 'stock_qty', 'stk_qty', 'qty'], fallback: '0');
+        final dodDate = _pickFirst(item, ['dod_date', 'required_date', 'date', 'po_date'], fallback: '');
+        final desc = _pickFirst(item, ['description', 'item_description', 'remarks', 'note'], fallback: '');
+
         itemsList.add({
-          "item_code": item['item_code']?.toString() ?? '',
-          "product_name": item['product_name']?.toString() ?? item['pro_name']?.toString() ?? '',
-          "uom": item['uom']?.toString() ?? 'nos',
+          "item_code": itemCode,
+          "product_name": productName,
+          "uom": uom,
           "current_order_quantity": _qtyControllers[i].text,
-          "current_stock_qty": item['current_stock_qty']?.toString() ?? item['qty']?.toString() ?? '0',
-          "dod_date": item['dod_date']?.toString() ?? item['date']?.toString() ?? '',
-          "description": item['description']?.toString() ?? '',
+          "current_stock_qty": stockQty,
+          "dod_date": dodDate,
+          "description": desc,
         });
       }
 
@@ -372,18 +421,29 @@ class _RequestApprovalDetailsScreenState
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.itemsData.length,
               itemBuilder: (context, index) {
-                final item = widget.itemsData[index];
-                final itemCode = item['item_code']?.toString() ?? 'N/A';
-                final productName = item['product_name']?.toString() ?? item['pro_name']?.toString() ?? 'N/A';
-                final uom = (item['uom']?.toString() ?? '').isEmpty ? 'nos' : item['uom'].toString();
-                final description = item['description']?.toString() ?? item['item_description']?.toString() ?? '';
-                final quantity =
-                    item['quantity']?.toString() ??
-                    item['item_qty']?.toString() ??
-                    item['qty']?.toString() ??
-                    item['current_order_quantity']?.toString() ??
-                    item['quantity_required']?.toString() ??
-                    '0';
+                final item = Map<String, dynamic>.from(widget.itemsData[index] as Map);
+                final itemCode = _pickFirst(item, ['item_code', 'item_no', 'itemid', 'code', 'pro_code'], fallback: 'N/A');
+                final productName = _pickFirst(
+                  item,
+                  ['product_name', 'pro_name', 'item_name', 'itemname', 'name', 'product'],
+                  fallback: 'N/A',
+                );
+                final uom = _normalizeUom(_pickFirst(item, ['uom', 'unit', 'unit_name', 'unit_code'], fallback: 'nos'));
+                final description = _pickFirst(item, ['description', 'item_description', 'remarks', 'note'], fallback: '');
+                final quantity = _pickFirst(
+                  item,
+                  [
+                    'quantity',
+                    'item_qty',
+                    'qty',
+                    'po_qty',
+                    'order_qty',
+                    'current_order_quantity',
+                    'quantity_required',
+                    'current_order_qty',
+                  ],
+                  fallback: '0',
+                );
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),

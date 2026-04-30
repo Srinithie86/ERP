@@ -107,31 +107,49 @@ class RequestApprovals extends StatefulWidget {
     final Map<String, Map<String, dynamic>> grouped = {};
 
     for (var item in rawList) {
-      final String poNo = (item['po_no'] ?? item['id'] ?? '').toString();
+      final Map<String, dynamic> row = Map<String, dynamic>.from(item as Map);
+      final String poNo = (row['po_no'] ?? row['id'] ?? '').toString();
       if (poNo.isEmpty) continue;
 
       if (!grouped.containsKey(poNo)) {
         grouped[poNo] = {
           'master_po': {
-            'id': item['id'],
+            'id': row['id'],
             'po_no': poNo,
-            'po_date': item['po_date'],
-            'supplier_name': item['supplier_name'],
+            'po_date': row['po_date'],
+            'supplier_name': row['supplier_name'],
             'grand_total': 0.0,
-            'status': item['status'],
-            'pdf_link': item['pdf_link'],
+            'status': row['status'],
+            'pdf_link': row['pdf_link'],
           },
           'items': [],
         };
       }
 
-      double lineTot = 0.0;
-      try {
-        lineTot = double.parse((item['tot_amt'] ?? '0').toString());
-      } catch (_) {}
-      grouped[poNo]!['master_po']['grand_total'] += lineTot;
+      final List<dynamic> nestedItems =
+          row['items'] is List ? List<dynamic>.from(row['items'] as List) : [];
+      final List<dynamic> sourceItems = nestedItems.isNotEmpty ? nestedItems : [row];
 
-      grouped[poNo]!['items'].add(item);
+      for (final rawItem in sourceItems) {
+        final Map<String, dynamic> line = Map<String, dynamic>.from(rawItem as Map);
+
+        double lineTot = 0.0;
+        try {
+          lineTot = double.parse(
+            (line['tot_amt'] ?? line['tot'] ?? line['line_total'] ?? '0').toString(),
+          );
+        } catch (_) {}
+        grouped[poNo]!['master_po']['grand_total'] += lineTot;
+
+        // Normalize common item keys so detail screens can render consistently.
+        grouped[poNo]!['items'].add({
+          ...line,
+          'item_code': (line['item_code'] ?? line['item_no'] ?? line['code'] ?? line['pro_code'] ?? '').toString(),
+          'product_name': (line['product_name'] ?? line['pro_name'] ?? line['item_name'] ?? line['itemname'] ?? line['name'] ?? '').toString(),
+          'uom': (line['uom'] ?? line['unit'] ?? line['unit_name'] ?? line['unit_code'] ?? '').toString(),
+          'qty': (line['qty'] ?? line['item_qty'] ?? line['po_qty'] ?? line['order_qty'] ?? line['quantity'] ?? line['current_order_quantity'] ?? '0').toString(),
+        });
+      }
     }
     return grouped.values.map((v) => Map<String, dynamic>.from(v)).toList();
   }
@@ -875,14 +893,25 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                   child: ElevatedButton(
                     onPressed: () {
                       if (isPR || isPO) {
+                        final dynamic detailsMaster = isPR
+                            ? (data['master'] ?? data)
+                            : (data['master_po'] ?? data);
+                        final String requestedByDisplay = isPO
+                            ? (detailsMaster['supplier_name']?.toString() ?? 'N/A')
+                            : (userMap[detailsMaster['requested_by']?.toString()] ??
+                                detailsMaster['requested_by_name']?.toString() ??
+                                detailsMaster['req_by_name']?.toString() ??
+                                detailsMaster['requested_by']?.toString() ??
+                                detailsMaster['req_by']?.toString() ??
+                                detailsMaster['name']?.toString() ??
+                                'N/A');
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => RequestApprovalDetailsScreen(
-                              masterData: isPR
-                                  ? (data['master'] ?? data)
-                                  : (data['master_po'] ?? data),
+                              masterData: detailsMaster,
                               itemsData: data['items'] ?? [],
+                              requestedByName: requestedByDisplay,
                               isPO: isPO,
                             ),
                           ),

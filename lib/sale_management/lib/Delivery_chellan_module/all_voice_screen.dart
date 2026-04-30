@@ -44,44 +44,6 @@ class DeliveryChallanItem {
   });
 }
 
-final List<DeliveryChallanItem> allDeliveryChallans = [
-  const DeliveryChallanItem(
-    productName: 'L2 Managed Switch - 48 Port',
-    amount: '₹4,200.00',
-    date: '3 Apr 2026',
-    invoiceNo: 'INV-2023-0042',
-    status: DeliveryChallanStatus.paid,
-  ),
-  const DeliveryChallanItem(
-    productName: 'L2 Managed Switch - 48 Port',
-    amount: '₹4,200.00',
-    date: '3 Apr 2026',
-    invoiceNo: 'INV-2023-0042',
-    status: DeliveryChallanStatus.pending,
-  ),
-  const DeliveryChallanItem(
-    productName: 'L2 Managed Switch - 48 Port',
-    amount: '₹4,200.00',
-    date: '3 Apr 2026',
-    invoiceNo: 'INV-2023-0042',
-    status: DeliveryChallanStatus.draft,
-  ),
-  const DeliveryChallanItem(
-    productName: 'L2 Managed Switch - 48 Port',
-    amount: '₹4,200.00',
-    date: '3 Apr 2026',
-    invoiceNo: 'INV-2023-0042',
-    status: DeliveryChallanStatus.pending,
-  ),
-  const DeliveryChallanItem(
-    productName: 'L2 Managed Switch - 48 Port',
-    amount: '₹4,200.00',
-    date: '3 Apr 2026',
-    invoiceNo: 'INV-2023-0042',
-    status: DeliveryChallanStatus.paid,
-  ),
-];
-
 // ─── Main Page ────────────────────────────────────────────
 class DeliveryChallanAllScreen extends StatefulWidget {
   const DeliveryChallanAllScreen({super.key});
@@ -161,7 +123,7 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
   }
 
   List<DeliveryChallanItem> get filteredInvoices {
-    List<DeliveryChallanItem> result = _allInvoices.isEmpty && !_isLoading ? allDeliveryChallans : _allInvoices;
+    List<DeliveryChallanItem> result = _allInvoices;
     if (_selectedFilterIndex == 1) {
       result = result.where((i) => i.status == DeliveryChallanStatus.paid).toList();
     } else if (_selectedFilterIndex == 2) {

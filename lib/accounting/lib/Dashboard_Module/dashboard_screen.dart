@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
-import 'package:erp_smart/utils/widgets/language_selector.dart';
 import 'dart:math' as math;
 import '../Drawer_Module/receipt_voucher.dart';
 import '../Drawer_Module/payment_voucher.dart';
@@ -285,7 +283,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: C.bg,
 
       // ── Drawer ──
-      drawer: const DynamicDrawer(moduleName: "ACCOUNTING"),
+      drawer: const Drawer(
+        child: SafeArea(
+          child: Center(child: Text('Accounting Menu')),
+        ),
+      ),
 
       // ── AppBar ──
       appBar: AppBar(

@@ -60,8 +60,12 @@ dependencies:
     path: lib/ecommerce
   warehouse:
     path: lib/warehouse
+  sale_management:
+    path: lib/sale_management
   accountings:
     path: lib/accounting
+  manufacturing_erp:
+    path: lib/manufacturing
 
   dealermanagment:
     path: lib/dealer_management

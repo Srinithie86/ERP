@@ -50,7 +50,8 @@ class _CreatePurchaseRequestScreenState
   final TextEditingController prNumberController = TextEditingController(
     text: "Auto-Generated",
   );
-  final TextEditingController reqByController = TextEditingController();
+  // Keep a non-empty default so UI doesn't look blank while prefs load.
+  final TextEditingController reqByController = TextEditingController(text: "Admin");
   final TextEditingController remarksController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
 
@@ -64,6 +65,17 @@ class _CreatePurchaseRequestScreenState
   String? deviceId;
   String? lt;
   String? ln;
+
+  String _firstNonEmpty(Iterable<dynamic> values, {String fallback = ''}) {
+    for (final value in values) {
+      if (value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty && text.toLowerCase() != 'null') {
+        return text;
+      }
+    }
+    return fallback;
+  }
 
   @override
   void initState() {
@@ -168,23 +180,57 @@ class _CreatePurchaseRequestScreenState
         return;
       }
       debugPrint("DEBUG PR: All Prefs Keys: ${prefs.getKeys()}");
-      String name = prefs.getString('name') ?? '';
+      String name = _firstNonEmpty([
+        prefs.getString('name'),
+        prefs.getString('user_name'),
+        prefs.getString('username'),
+        prefs.getString('full_name'),
+        prefs.getString('emp_name'),
+        prefs.getString('n'),
+      ]);
       debugPrint("DEBUG PR: Initial name from prefs: '$name'");
       
-      String ledId = prefs.getString('led_id') ?? '';
+      String ledId = _firstNonEmpty([
+        prefs.getString('led_id'),
+        prefs.getString('user_led_id'),
+      ]);
       
       if (name.trim().isEmpty || name == 'Admin' || name == '40') {
         final loginResponseStr = prefs.getString('login_response');
         if (loginResponseStr != null) {
           try {
             final decoded = json.decode(loginResponseStr);
-            // Strictly look for 'name' as requested by the user
-            final extractedName = (decoded['name'] ?? '').toString();
+            final userNode = decoded is Map<String, dynamic>
+                ? (decoded['data'] is Map<String, dynamic>
+                    ? decoded['data'] as Map<String, dynamic>
+                    : (decoded['user'] is Map<String, dynamic>
+                        ? decoded['user'] as Map<String, dynamic>
+                        : decoded))
+                : <String, dynamic>{};
+            final extractedName = _firstNonEmpty([
+              decoded['name'],
+              decoded['user_name'],
+              decoded['username'],
+              decoded['full_name'],
+              decoded['emp_name'],
+              decoded['n'],
+              userNode['name'],
+              userNode['user_name'],
+              userNode['username'],
+              userNode['full_name'],
+              userNode['emp_name'],
+              userNode['n'],
+            ]);
             if (extractedName.isNotEmpty) {
               name = extractedName;
             }
             if (ledId.isEmpty) {
-              ledId = (decoded['led_id'] ?? decoded['user_id'] ?? '').toString();
+              ledId = _firstNonEmpty([
+                decoded['led_id'],
+                decoded['user_id'],
+                userNode['led_id'],
+                userNode['user_id'],
+              ]);
             }
           } catch (e) {
             debugPrint("DEBUG PR: Error decoding login_response: $e");
@@ -1003,7 +1049,9 @@ class _CreatePurchaseRequestScreenState
                             master: model.PrMaster(
                               id: 0,
                               no: prNumberController.text,
-                              requestedBy: selectedReqBy,
+                              requestedBy: (selectedReqBy != null && selectedReqBy!.trim().isNotEmpty)
+                                  ? selectedReqBy
+                                  : reqByController.text,
                               priority: selectedPriority,
                               department: selectedDepartment ?? "",
                               quantityRequired: "0",

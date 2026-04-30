@@ -24,7 +24,6 @@ class DynamicDrawer extends StatefulWidget {
 }
 
 class _DynamicDrawerState extends State<DynamicDrawer> {
-  bool _isSwitching = false;
   String? currentCompanyName;
   String? userName;
   String? userId;
@@ -34,11 +33,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
   void initState() {
     super.initState();
     _loadCurrentCompany();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<MenuProvider>().fetchMenuFromServer();
-      }
-    });
   }
 
   Future<void> _loadCurrentCompany() async {
@@ -54,8 +48,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
   }
 
   Future<void> _showSwitchAccountDialog(BuildContext context) async {
-    setState(() => _isSwitching = true);
-    
     try {
       final prefs = await SharedPreferences.getInstance();
       final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
@@ -72,8 +64,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         lng: lng,
         token: token,
       );
-
-      if (mounted) setState(() => _isSwitching = false);
 
       if (response['error'] == false && response['company_map'] != null) {
         final List<dynamic> companies = response['company_map'];
@@ -177,7 +167,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         );
       }
     } catch (e) {
-      if (mounted) setState(() => _isSwitching = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -270,6 +259,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         ? (widget.moduleName!.toUpperCase().contains("PURCHASE") ? "Purchase ERP" : 
            widget.moduleName!.toUpperCase().contains("SALES") ? "Sales ERP" :
            widget.moduleName!.toUpperCase().contains("CRM") ? "CRM ERP" :
+           widget.moduleName!.toUpperCase().contains("MANUFACTURING") ? "Manufacturing ERP" :
            widget.moduleName!.toUpperCase().contains("HRM") ? "HRM ERP" :
            "${widget.moduleName} ERP")
         : (currentCompanyName ?? "Main Menu");
@@ -420,24 +410,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     );
   }
 
-  List<Map<String, dynamic>> _getUniqueItems(List<dynamic> items) {
-    final Map<String, Map<String, dynamic>> uniqueMenus = {};
-    for (var i in items) {
-      if (i is! Map) continue;
-      final Map<String, dynamic> item = i is Map<String, dynamic> ? i : Map<String, dynamic>.from(i);
-      final name = (item['name'] ?? '').toString().trim().toUpperCase();
-      
-      if (uniqueMenus.containsKey(name)) {
-        if (item.containsKey('sub_menu') && item['sub_menu'] is List && (item['sub_menu'] as List).isNotEmpty) {
-          uniqueMenus[name] = item;
-        }
-      } else {
-        uniqueMenus[name] = item;
-      }
-    }
-    return uniqueMenus.values.toList();
-  }
-
   List<Widget> _buildDynamicDrawerItems(BuildContext context, MenuProvider provider) {
     List<Widget> items = [];
 
@@ -449,12 +421,14 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         }
         return true;
       }).toList();
-      final uniqueSubMenus = _getUniqueItems(subMenus);
-      return uniqueSubMenus.map((item) => _buildDynamicTile(context, item, provider, widget.moduleName)).toList();
+      return [
+        _buildModuleDashboardTile(context),
+        ...subMenus.map((item) => _buildDynamicTile(context, item, provider, widget.moduleName)),
+      ];
     }
 
     // Primary root modules to show at the top level of the drawer
-    final rootModules = ["PURCHASE", "SALES", "CRM", "HRM", "TOTAL_ERP", "ACCOUNTING"];
+    final rootModules = ["PURCHASE", "SALES", "CRM", "MANUFACTURING", "HRM", "TOTAL_ERP", "ACCOUNTING", "SERVICE", "ERP SERVICE"];
     
     final availableModules = provider.menuData.keys.toList();
     for (var module in availableModules) {
@@ -466,8 +440,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       final subMenus = provider.getSubMenus(module);
       if (subMenus.isEmpty) continue;
 
-      final uniqueSubMenus = _getUniqueItems(subMenus);
-
       items.add(Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -475,12 +447,29 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
           collapsedIconColor: const Color(0xFF26A69A),
           leading: Icon(AppNavigation.getIcon(module), color: const Color(0xFF26A69A)),
           title: Text(module, style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
-          children: uniqueSubMenus.map((item) => _buildDynamicTile(context, item, provider, module)).toList(),
+          children: [
+            _buildModuleDashboardTile(context),
+            ...subMenus.map((item) => _buildDynamicTile(context, item, provider, module)),
+          ],
         ),
       ));
     }
 
     return items;
+  }
+
+  Widget _buildModuleDashboardTile(BuildContext context) {
+    return _DrawerTile(
+      title: "Dashboard",
+      icon: Icons.dashboard_customize_outlined,
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      },
+    );
   }
 
   Widget _buildDynamicTile(BuildContext context, Map<String, dynamic> item, MenuProvider provider, String? parentModule) {
@@ -491,7 +480,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     final bool hasNestedSubMenu = item.containsKey('sub_menu') && item['sub_menu'] is List && (item['sub_menu'] as List).isNotEmpty;
     if (hasNestedSubMenu) {
       final List<dynamic> subMenu = item['sub_menu'];
-      final uniqueSubMenu = _getUniqueItems(subMenu);
       return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -500,7 +488,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
           leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
           title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
           childrenPadding: const EdgeInsets.only(left: 16),
-          children: uniqueSubMenu.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
+          children: subMenu.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
         ),
       );
     }
@@ -511,7 +499,6 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       
       // Prevent infinite recursion if a folder points to its parent or itself
       if (children.isNotEmpty && trimmedName.toUpperCase() != parentModule?.toUpperCase()) {
-        final uniqueChildren = _getUniqueItems(children);
         return Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
@@ -520,7 +507,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
             leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
             title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
             childrenPadding: const EdgeInsets.only(left: 16),
-            children: uniqueChildren.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
+            children: children.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
           ),
         );
       }

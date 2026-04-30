@@ -4,12 +4,12 @@ import 'shared_widgets.dart';
 
 // Module Screens
 import '../modules/dashboard/dashboard_screen.dart';
-import '../modules/bom/bom_screen.dart';
-import '../modules/job_order/job_order_screen.dart';
+import '../modules/formula/formula_screen.dart';
+import '../modules/production_order/production_order_screen.dart';
 import '../modules/job_card/job_card_screen.dart';
 import '../modules/material_request/material_request_screen.dart';
 import '../modules/production/production_screen.dart';
-import '../modules/qc/qc_screen.dart';
+import '../modules/quality/pages/quality_list_screen.dart';
 
 const _teal = Color(0xFF26A69A);
 
@@ -46,17 +46,17 @@ class _MainShellState extends State<MainShell> {
       showInBottomNav: true,
     ),
     const _NavItem(
-      label: 'BOM',
+      label: 'Formula',
       icon: Icons.account_tree_outlined,
       activeIcon: Icons.account_tree,
-      screen: BomScreen(),
+      screen: FormulaScreen(),
       showInBottomNav: true,
     ),
     const _NavItem(
-      label: 'Job Order',
+      label: 'Production Order',
       icon: Icons.work_outline,
       activeIcon: Icons.work,
-      screen: JobOrderScreen(),
+      screen: ProductionOrderScreen(),
       showInBottomNav: true,
     ),
     const _NavItem(
@@ -84,14 +84,14 @@ class _MainShellState extends State<MainShell> {
       label: 'Quality',
       icon: Icons.precision_manufacturing_outlined,
       activeIcon: Icons.precision_manufacturing,
-      screen: QcScreen(),
+      screen: QualityListScreen(),
       showInBottomNav: false,
     ),
     const _NavItem(
       label: 'Finished Goods',
       icon: Icons.inventory_2_outlined,
       activeIcon: Icons.inventory_2,
-      screen: QcScreen(),
+      screen: QualityListScreen(),
       showInBottomNav: false,
     ),
   ];

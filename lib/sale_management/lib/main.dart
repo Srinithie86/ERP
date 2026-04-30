@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'widgets/app_theme.dart';
 import 'Sales_Module/sale_dashboard.dart';
 
@@ -25,13 +26,21 @@ class SalesApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SalesFlow ERP',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      // DashboardPage is the home — it carries its own
-      // Scaffold (with Drawer + BottomNavBar) inside.
-      home: const DashboardPage(),
+    return ScreenUtilInit(
+      designSize: const Size(360, 690),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          title: 'SalesFlow ERP',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          // DashboardPage is the home — it carries its own
+          // Scaffold (with Drawer + BottomNavBar) inside.
+          home: child,
+        );
+      },
+      child: const DashboardPage(),
     );
   }
 }

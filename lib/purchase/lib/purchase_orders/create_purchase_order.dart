@@ -29,7 +29,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   );
   final TextEditingController taxAmountController =
       TextEditingController(text: "0.00");
-  final TextEditingController requestedByController = TextEditingController();
+  // Keep a non-empty default so UI doesn't look blank while prefs load.
+  final TextEditingController requestedByController =
+      TextEditingController(text: "Admin");
 
   String? cid;
   String? deviceId;
@@ -46,6 +48,18 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   List<Map<String, dynamic>> paymentTermsOptions = [];
   String grandTotalValue = "₹0.00";
   String? userLedId; // To store led_id (e.g., '40')
+
+  String _pickFirstValue(Map<String, dynamic> data, List<String> keys, {String fallback = ''}) {
+    for (final key in keys) {
+      final value = data[key];
+      if (value == null) continue;
+      final text = value.toString().trim();
+      if (text.isNotEmpty && text.toLowerCase() != 'null') {
+        return text;
+      }
+    }
+    return fallback;
+  }
 
   @override
   void initState() {
@@ -592,7 +606,14 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+            // Bottom bar is fixed; give enough space so "ORDERED ITEMS / Add Item"
+            // and the first items don't get covered on small screens / release builds.
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              MediaQuery.of(context).padding.bottom + 240,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -666,9 +687,20 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                     )),
                 const SizedBox(height: 32),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildSectionTitle("ORDERED ITEMS"),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16, top: 8),
+                        child: Text(
+                          "ORDERED ITEMS",
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xff22A79A),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
                     TextButton.icon(
                       onPressed: () async {
                         final result = await Navigator.push(
@@ -680,26 +712,63 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                           ),
                         );
                         if (result != null) {
+                          final Map<String, dynamic> resultMap =
+                              Map<String, dynamic>.from(result as Map);
+
+                          final String code = _pickFirstValue(resultMap, [
+                            'code',
+                            'item_code',
+                            'Item Code',
+                          ]);
+                          final String name = _pickFirstValue(resultMap, [
+                            'name',
+                            'item_name',
+                            'product_name',
+                            'pro_name',
+                            'Item name',
+                          ]);
+                          final String uom = _pickFirstValue(resultMap, ['uom', 'UOM'], fallback: 'nos');
+                          final String qty = _pickFirstValue(resultMap, ['qty', 'quantity'], fallback: '1');
+                          final String rate = _pickFirstValue(
+                            resultMap,
+                            ['rate', 'unit_rate', 'Rate', 'price'],
+                            fallback: '0',
+                          );
+                          final String taxPerc = _pickFirstValue(resultMap, ['taxPerc', 'tax', 'Tax'], fallback: '0');
+                          final String taxAmt = _pickFirstValue(resultMap, ['taxAmt', 'tax_amt'], fallback: '0');
+                          final String discountPerc = _pickFirstValue(
+                            resultMap,
+                            ['discountPerc', 'discount', 'Discount'],
+                            fallback: '0',
+                          );
+                          final String discountAmt = _pickFirstValue(
+                            resultMap,
+                            ['discountAmt', 'discount_amount'],
+                            fallback: '0',
+                          );
+                          final String total = _pickFirstValue(
+                            resultMap,
+                            ['total', 'tot_amt', 'line_total'],
+                            fallback: '0',
+                          );
+
+                          if (code.isEmpty && name.isEmpty) {
+                            _showSnackBar("Please select a valid item before adding");
+                            return;
+                          }
+
                           setState(() {
                             itemsList.add({
-                              "code":
-                                  TextEditingController(text: result['code']),
-                              "name":
-                                  TextEditingController(text: result['name']),
-                              "uom": TextEditingController(text: result['uom']),
-                              "qty": TextEditingController(text: result['qty']),
-                              "rate":
-                                  TextEditingController(text: result['rate']),
-                              "taxPerc": TextEditingController(
-                                  text: result['taxPerc']),
-                              "taxAmt":
-                                  TextEditingController(text: result['taxAmt']),
-                              "discountPerc": TextEditingController(
-                                  text: result['discountPerc']),
-                              "discountAmt": TextEditingController(
-                                  text: result['discountAmt']),
-                              "total":
-                                  TextEditingController(text: result['total']),
+                              "code": TextEditingController(text: code),
+                              "name": TextEditingController(text: name),
+                              "uom": TextEditingController(text: uom),
+                              "qty": TextEditingController(text: qty),
+                              "rate": TextEditingController(text: rate),
+                              "taxPerc": TextEditingController(text: taxPerc),
+                              "taxAmt": TextEditingController(text: taxAmt),
+                              "discountPerc": TextEditingController(text: discountPerc),
+                              "discountAmt": TextEditingController(text: discountAmt),
+                              "total": TextEditingController(text: total),
                             });
                             _calculateGrandTotal();
                           });
@@ -727,71 +796,74 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5))
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("TAX AMOUNT",
-                          style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                              color: Colors.grey.shade600)),
-                      Text("₹${taxAmountController.text}",
-                          style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: Colors.blueGrey)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("GRAND TOTAL",
-                          style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: Colors.grey.shade600)),
-                      Text(grandTotalValue,
-                          style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: const Color(0xff22A79A))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: isSaving ? null : _savePurchaseOrder,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff22A79A),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: isSaving
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("CONFIRM PURCHASE ORDER",
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -5))
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("TAX AMOUNT",
                             style: GoogleFonts.outfit(
-                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                                color: Colors.grey.shade600)),
+                        Text("₹${taxAmountController.text}",
+                            style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: Colors.blueGrey)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("GRAND TOTAL",
+                            style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5)),
-                  ),
-                ],
+                                fontSize: 13,
+                                color: Colors.grey.shade600)),
+                        Text(grandTotalValue,
+                            style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: const Color(0xff22A79A))),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: isSaving ? null : _savePurchaseOrder,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff22A79A),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 54),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: isSaving
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text("CONFIRM PURCHASE ORDER",
+                              style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5)),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -802,7 +874,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
 
   Widget _buildItemCard(int index) {
     final item = itemsList[index];
-    final name = (item['name'] as TextEditingController).text;
+    final name = (item['name'] as TextEditingController).text.trim().isEmpty
+        ? "Unnamed Item"
+        : (item['name'] as TextEditingController).text;
     final qty = (item['qty'] as TextEditingController).text;
     final total = (item['total'] as TextEditingController).text;
 
@@ -961,10 +1035,59 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       ),
     );
     if (result != null) {
+      final Map<String, dynamic> resultMap = Map<String, dynamic>.from(result as Map);
       setState(() {
-        itemsList[index].forEach((key, controller) {
-          (controller as TextEditingController).text = result[key].toString();
-        });
+        final item = itemsList[index];
+        (item['code'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['code', 'item_code', 'Item Code'],
+          fallback: (item['code'] as TextEditingController).text,
+        );
+        (item['name'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['name', 'item_name', 'product_name', 'pro_name', 'Item name'],
+          fallback: (item['name'] as TextEditingController).text,
+        );
+        (item['uom'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['uom', 'UOM'],
+          fallback: (item['uom'] as TextEditingController).text,
+        );
+        (item['qty'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['qty', 'quantity'],
+          fallback: (item['qty'] as TextEditingController).text,
+        );
+        (item['rate'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['rate', 'unit_rate', 'Rate', 'price'],
+          fallback: (item['rate'] as TextEditingController).text,
+        );
+        (item['taxPerc'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['taxPerc', 'tax', 'Tax'],
+          fallback: (item['taxPerc'] as TextEditingController).text,
+        );
+        (item['taxAmt'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['taxAmt', 'tax_amt'],
+          fallback: (item['taxAmt'] as TextEditingController).text,
+        );
+        (item['discountPerc'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['discountPerc', 'discount', 'Discount'],
+          fallback: (item['discountPerc'] as TextEditingController).text,
+        );
+        (item['discountAmt'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['discountAmt', 'discount_amount'],
+          fallback: (item['discountAmt'] as TextEditingController).text,
+        );
+        (item['total'] as TextEditingController).text = _pickFirstValue(
+          resultMap,
+          ['total', 'tot_amt', 'line_total'],
+          fallback: (item['total'] as TextEditingController).text,
+        );
         _calculateGrandTotal();
       });
     }

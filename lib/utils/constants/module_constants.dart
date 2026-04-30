@@ -1,21 +1,24 @@
 import 'package:ecommerce/Dashboard_Module/dashboard_screen.dart' as ecommerce;
 
-import 'package:dealermanagment/Dashboard/dashboard_screen.dart'
-    as dealers;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:warehouse/providers/warehouse_provider.dart';
+
 import '../models/module_model.dart';
 import 'package:purchase_erp/dashboard.dart' as purchase;
+import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
 
 
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:warehouse/screens/view/dashboard_screen.dart' as warehouse;
+import 'package:warehouse/providers/warehouse_provider.dart';
 import 'package:service_ticket/screens/technician_dashboard.dart' as service_erp;
+import 'package:manufacturing_erp/core/main_shell.dart' as mfg;
 
 import '../../TOTAL_ERP/master/master_screen.dart';
 import '../widgets/dynamic_drawer.dart';
+import 'package:erp_smart/CRM-ERP-main/lib/Screens/Home/dashboard_screen.dart'
+    as crm;
 
 /// Globally accessible key to control modular scaffolds (e.g., opening drawers from host app bar)
 final GlobalKey<ScaffoldState> moduleScaffoldKey = GlobalKey<ScaffoldState>();
@@ -71,13 +74,34 @@ List<ModuleItem> get allModules => [
           isEmbedded: true, scaffoldKey: moduleScaffoldKey),
     ),
   ),
+
+
   ModuleItem(
-    title: 'Dealer Mgmt',
-    imagePath: 'assets/images/dealer_mgmt.png',
-    bgColor: Color(0xFFFFF8E1),
-    fallbackIcon: Icons.store_mall_directory,
-    screenBuilder: (context) => dealers.DashboardScreen(
-        isEmbedded: true, scaffoldKey: moduleScaffoldKey),
+    title: 'Sales',
+    imagePath: 'assets/images/sales.png',
+    bgColor: Color(0xFFFFF3E0),
+    fallbackIcon: Icons.trending_up_rounded,
+    screenBuilder: (context) => sales.DashboardPage(
+      isEmbedded: true,
+      scaffoldKey: moduleScaffoldKey,
+    ),
+  ),
+
+  ModuleItem(
+    title: 'CRM',
+    imagePath: 'assets/images/crm_new.png',
+    bgColor: Color(0xFFE8F5E9),
+    fallbackIcon: Icons.contact_mail_outlined,
+    screenBuilder: (context) =>
+        crm.DashboardScreen(isEmbedded: true, scaffoldKey: moduleScaffoldKey),
+  ),
+
+  ModuleItem(
+    title: 'Manufacturing',
+    imagePath: 'assets/images/manufacturing.png',
+    bgColor: Color(0xFFE3F2FD),
+    fallbackIcon: Icons.precision_manufacturing_outlined,
+    screenBuilder: (context) => const mfg.MainShell(),
   ),
 
   ModuleItem(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart';
-import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart';
+import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart'
+    as dc_voice;
+import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart'
+    as proforma_voice;
 import 'package:sale_management/Proforma_Invoice_Module/generate_info.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
@@ -20,10 +22,11 @@ import 'receipt_voucher_screen.dart';
 import 'package:sale_management/Direct_invoice_module/direct_generate_info.dart';
 
 import 'package:sale_management/sales_order_module/generate_info.dart';
-import 'package:sale_management/sales_order_module/all_voice_screen.dart';
-import 'package:sale_management/sales_invoice_module/all_voice_screen.dart';
+import 'package:sale_management/sales_order_module/all_voice_screen.dart'
+    as so_voice;
+import 'package:sale_management/sales_invoice_module/all_voice_screen.dart'
+    as si_voice;
 import 'package:sale_management/sales_invoice_module/generate_info.dart';
-import 'package:sale_management/Proforma_Invoice_Module/generate_info.dart';
 
 export 'approve_screen.dart';
 export 'receipt_voucher_screen.dart';
@@ -68,20 +71,21 @@ class _DashboardPageState extends State<DashboardPage> {
     // ),
   ];
 
-  static final _tabPages = [
-    const _DashboardBody(),
-    const ReceiptVoucherScreen(),
-    const SalesOrderInventoryCatalogScreen(),
-  ];
+  List<Widget> _buildTabPages() => const [
+        _DashboardBody(),
+        ReceiptVoucherScreen(),
+        SalesOrderInventoryCatalogScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final tabPages = _buildTabPages();
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppTheme.statusBarTeal,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         drawer: const AppDrawer(),
-        body: _tabPages[_selectedIndex],
+        body: tabPages[_selectedIndex],
         bottomNavigationBar: _BottomNavBar(
           selectedIndex: _selectedIndex,
           items: _navItems,
@@ -490,7 +494,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const AllSalesOrderPage()));
+                        builder: (context) => const so_voice.AllSalesOrderPage()));
               },
             ),
             StatCard(
@@ -509,7 +513,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const SalesInvoiceAllScreen()));
+                        builder: (context) => const si_voice.SalesInvoiceAllScreen()));
               },
             ),
             StatCard(
@@ -529,7 +533,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
                     context,
                     MaterialPageRoute(
                         builder: (context) =>
-                            const DeliveryChallanAllScreen()));
+                            const dc_voice.DeliveryChallanAllScreen()));
               },
             ),
             StatCard(
@@ -548,7 +552,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => const ProformaAllInvoicePage(
+                        builder: (context) => const proforma_voice.ProformaAllInvoicePage(
                               title: 'Proforma Invoice',
                             )));
               },
@@ -725,19 +729,19 @@ class _DashboardBodyState extends State<_DashboardBody> {
     final String n = name.trim().toUpperCase();
     if (n.contains("SALES ORDER")) {
       Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const AllSalesOrderPage()));
+          MaterialPageRoute(builder: (_) => const so_voice.AllSalesOrderPage()));
     } else if (n.contains("SALES INVOICE")) {
       Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const SalesInvoiceAllScreen()));
+          MaterialPageRoute(builder: (_) => const si_voice.SalesInvoiceAllScreen()));
     } else if (n.contains("DELIVERY CHALLAN")) {
       Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const DeliveryChallanAllScreen()));
+          MaterialPageRoute(builder: (_) => const dc_voice.DeliveryChallanAllScreen()));
     } else if (n.contains("PROFORMA INVOICE")) {
       Navigator.push(
           context,
           MaterialPageRoute(
               builder: (_) =>
-                  const ProformaAllInvoicePage(title: 'Proforma Invoice')));
+                  const proforma_voice.ProformaAllInvoicePage(title: 'Proforma Invoice')));
     } else if (n.contains("DIRECT INVOICE")) {
       Navigator.push(
           context,
