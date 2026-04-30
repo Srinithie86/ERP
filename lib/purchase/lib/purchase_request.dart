@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -105,9 +106,15 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
                     if (!snapshot.hasData || snapshot.data!.isEmpty) return _buildEmptyState();
 
                     List<Map<String, dynamic>> allData = snapshot.data!;
-                    final filteredData = selectedFilter == "All" 
-                      ? allData 
-                      : allData.where((pr) => pr["status"] == (selectedFilter == "Approved" ? "1" : (selectedFilter == "Rejected" ? "2" : "0"))).toList();
+                    final filteredData = selectedFilter == "All"
+                        ? allData
+                        : allData.where((pr) {
+                            final s = pr["status"]?.toString();
+                            if (selectedFilter == "Approved") return s == "2";
+                            if (selectedFilter == "Rejected") return s == "3";
+                            if (selectedFilter == "Pending") return s == null || s == "0" || s == "";
+                            return false;
+                          }).toList();
 
                     return ListView.builder(
                       itemCount: filteredData.length,
@@ -165,63 +172,201 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
     String id = (fullData["no"] ?? fullData["requ_no"] ?? fullData["pr_no"] ?? "N/A").toString();
     String dept = (fullData["department"] ?? fullData["dept_name"] ?? "N/A").toString();
     String status = "Pending";
-    if (fullData["status"]?.toString() == "1") status = "Approved";
-    else if (fullData["status"]?.toString() == "2" || fullData["status"]?.toString() == "3") status = "Rejected";
-    
+    final apiStatus = fullData["status"]?.toString();
+    if (apiStatus == "2") {
+      status = "Approved";
+    } else if (apiStatus == "3") {
+      status = "Rejected";
+    } else if (apiStatus == null || apiStatus == "0" || apiStatus == "") {
+      status = "Pending";
+    }
+
     String pdfLink = fullData["pdf_link"] ?? "";
-    Color bgColor = status == "Approved" ? const Color(0xFF0F8C2A) : (status == "Rejected" ? const Color(0xFFAD0F14) : const Color(0xFFC89211));
+    
+    // Parse items to get a better title
+    List itemsList = fullData['items'] ?? [];
+    String title = itemsList.isNotEmpty 
+        ? (itemsList[0]['product_name'] ?? 'Purchase Request') 
+        : 'Purchase Request';
+        
+    // Date
+    String date = (fullData['date'] ?? fullData['req_date'] ?? 'N/A').toString();
+    if (date.contains(' ')) date = date.split(' ')[0];
+
+    Color statusColor = status == "Approved"
+        ? const Color(0xFF10B981)
+        : (status == "Rejected" ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
+        
+    Color accentColor = const Color(0xFF26A69A);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFF26A69A), shape: BoxShape.circle), child: const Icon(Icons.description, color: Colors.white, size: 20)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(id, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    Text(dept, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.description_rounded, color: accentColor, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              id,
+                              style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.blueGrey.shade900),
+                            ),
+                            Text(
+                              date,
+                              style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        status,
+                        style: GoogleFonts.outfit(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              if (pdfLink.isNotEmpty) 
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 24),
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseRequestPdfViewer(pdfUrl: pdfLink, prNumber: id))),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Colors.blueGrey.shade800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)), child: Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10))),
-            ],
+                const SizedBox(height: 8),
+                if (itemsList.length > 1) ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          "+${itemsList.length - 1} more items",
+                          style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: () {
-              // Convert to PrData object using the updated model
-              PrData prFullData = PrData.fromJson(fullData);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PRDetailsScreen(
-                    prId: id,
-                    department: dept,
-                    status: status,
-                    pdfLink: pdfLink,
-                    prFullData: prFullData,
+          Container(
+            height: 1,
+            color: Colors.grey.shade100,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (pdfLink.isNotEmpty) ...[
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseRequestPdfViewer(pdfUrl: pdfLink, prNumber: id))),
+                    icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 18),
+                    label: Text(
+                      "PDF",
+                      style: GoogleFonts.outfit(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                ElevatedButton(
+                  onPressed: () {
+                    // Convert to PrData object using the updated model
+                    PrData prFullData = PrData.fromJson(fullData);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PRDetailsScreen(
+                          prId: id,
+                          department: dept,
+                          status: status,
+                          pdfLink: pdfLink,
+                          prFullData: prFullData,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    "View Details",
+                    style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
-              );
-            },
-            child: Container(width: double.infinity, height: 40, alignment: Alignment.center, decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)), child: const Text("View Details", style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13))),
+              ],
+            ),
           ),
         ],
       ),

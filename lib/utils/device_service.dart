@@ -145,15 +145,6 @@ class DeviceService {
     try {
       await ensureLocationPermission(context);
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("⚠️ Please enable location services (GPS) to continue.")),
-        );
-        return;
-      }
-
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
         // Show a small loader if possible, but for now just fetch

@@ -224,11 +224,17 @@ class _PurchaseOrdersScreenState extends State<PurchaseOrdersScreen> {
                                 itemCount: filteredData.length,
                                 itemBuilder: (context, index) {
                                   final item = filteredData[index];
+                                  final rawStatus = (item["status_text"] ?? "Pending").toString();
+                                  String displayStatus = rawStatus;
+                                  if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+                                    displayStatus = "Pending";
+                                  }
+
                                   return OrderCard(
                                     orderId: item["po_no"] ?? "N/A",
                                     supplier: item["supplier_name"] ?? "Unknown",
                                     price: "₹${item["tot_amt"] ?? "0"}",
-                                    status: item["status_text"] ?? "Pending",
+                                    status: displayStatus,
                                     date: item["po_date"] ?? "",
                                     pdfLink: item["pdf_link"],
                                     item: item,
@@ -295,73 +301,209 @@ class OrderCard extends StatelessWidget {
 
   Color _statusColor() {
     final s = status.toLowerCase();
-    if (s.contains("approve")) return const Color(0xff088C29);
-    if (s.contains("reject")) return const Color(0xffAF1616);
-    return const Color(0xffC59B13);
+    if (s.contains("approve")) return const Color(0xFF10B981);
+    if (s.contains("reject")) return const Color(0xFFEF4444);
+    return const Color(0xFFF59E0B);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => PODetailsScreen(poData: item)),
-        );
-        if (result == true) {
-          final state = context.findAncestorStateOfType<_PurchaseOrdersScreenState>();
-          state?._fetchPOs();
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 40, width: 40,
-              decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE0F2F1)),
-              child: const Icon(Icons.inventory_2, color: Color(0xFF26A69A), size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    const accentColor = Color(0xFF26A69A);
+    final statusColor = _statusColor();
+
+    // Parse items to get title and count
+    final List<dynamic> itemsList = item['items'] ?? [];
+    final String title = itemsList.isNotEmpty 
+        ? (itemsList[0]['pro_name'] ?? itemsList[0]['product_name'] ?? 'Purchase Order')
+        : 'Purchase Order';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: accentColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.description_rounded, color: accentColor, size: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              orderId.isNotEmpty ? orderId : "No PO#",
+                              style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Colors.blueGrey.shade900),
+                            ),
+                            Text(
+                              date,
+                              style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                      ),
+                      child: Text(
+                        status,
+                        style: GoogleFonts.outfit(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Colors.blueGrey.shade800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (itemsList.length > 1) ...[
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Expanded(child: Text(orderId.isNotEmpty ? orderId : "No PO#", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15))),
-                      if (pdfLink != null && pdfLink!.isNotEmpty)
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseRequestPdfViewer(pdfUrl: pdfLink!, prNumber: orderId))),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
                         ),
+                        child: Text(
+                          "+${itemsList.length - 1} more items",
+                          style: GoogleFonts.outfit(
+                              fontSize: 11,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ],
                   ),
-                  Text("Supplier: $supplier", style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey.shade600)),
-                  Text("Quotation Ref: ${item['quotation_ref'] ?? 'N/A'}", style: GoogleFonts.outfit(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
-                  Text("Date: $date", style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade400)),
-                  const SizedBox(height: 4),
-                  Text(price, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF26A69A))),
                 ],
-              ),
+                const SizedBox(height: 8),
+                Text(
+                  "Supplier: $supplier",
+                  style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500),
+                ),
+                Text(
+                  "Ref: ${item['quotation_ref'] ?? 'N/A'}",
+                  style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      color: Colors.grey.shade400,
+                      fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  price,
+                  style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: accentColor),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: _statusColor().withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: Text(status, style: GoogleFonts.outfit(color: _statusColor(), fontSize: 10, fontWeight: FontWeight.bold)),
+          ),
+          Container(
+            height: 1,
+            color: Colors.grey.shade100,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (pdfLink != null && pdfLink!.isNotEmpty) ...[
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseRequestPdfViewer(pdfUrl: pdfLink!, prNumber: orderId))),
+                    icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent, size: 18),
+                    label: Text(
+                      "PDF",
+                      style: GoogleFonts.outfit(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PODetailsScreen(poData: item)),
+                    );
+                    if (result == true) {
+                      final state = context.findAncestorStateOfType<_PurchaseOrdersScreenState>();
+                      state?._fetchPOs();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    "View Details",
+                    style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

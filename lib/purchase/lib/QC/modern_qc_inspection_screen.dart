@@ -149,7 +149,11 @@ class _ModernQCInspectionScreenState extends State<ModernQCInspectionScreen> {
     
     final grnNo = master['grn_no'] ?? 'N/A';
     final date = master['grn_date'] ?? master['gnr_date'] ?? master['dtime'] ?? '-';
-    final status = master['qc_status'] ?? 'Pending';
+    final String rawStatus = (master['qc_status'] ?? 'Pending').toString();
+    String status = rawStatus;
+    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+      status = "Pending";
+    }
     final supplierId = master['supplier_id']?.toString() ?? 'N/A';
     final vehicleNo = master['vehicle_no'] ?? '-';
     final driverName = master['driver_name'] ?? '-';

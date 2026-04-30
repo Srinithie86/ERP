@@ -174,7 +174,14 @@ class GrnDetailsScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                        child: Text(grnData['qc_status'] ?? 'Pending', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: Builder(builder: (context) {
+                          String rawStatus = (grnData['status'] ?? grnData['qc_status'] ?? 'Pending').toString();
+                          String status = rawStatus;
+                          if (rawStatus == "1" || rawStatus == "" || rawStatus == "null") {
+                            status = "Pending";
+                          }
+                          return Text(status, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold));
+                        }),
                       ),
                     ],
                   ),
@@ -251,14 +258,21 @@ class GrnDetailsScreen extends StatelessWidget {
                           return TableRow(
                             children: [
                               buildTableCell((idx + 1).toString()),
-                              buildTableCell(it['product_name'] ?? it['item_code'] ?? 'N/A', align: TextAlign.left),
-                              buildTableCell(it['odr_qty']?.toString() ?? '0'),
-                              buildTableCell(it['rec_qty']?.toString() ?? '0'),
-                              buildTableCell(it['acc_qty']?.toString() ?? '0', isBold: true),
+                              buildTableCell(it['pro_name'] ?? it['product_name'] ?? it['item_code'] ?? 'N/A', align: TextAlign.left),
+                              buildTableCell(it['qty']?.toString() ?? it['odr_qty']?.toString() ?? '0'),
+                              buildTableCell(it['rec_qty']?.toString() ?? it['qty']?.toString() ?? '0'),
+                              buildTableCell(it['acc_qty']?.toString() ?? it['qty']?.toString() ?? '0', isBold: true),
                               buildTableCell(it['rejected_qty']?.toString() ?? '0', isBold: true),
                               Padding(
                                 padding: const EdgeInsets.all(4.0),
-                                child: buildStatusBadge(it['qc_status'] ?? 'Pending'),
+                                child: Builder(builder: (context) {
+                                  String rawStatus = (it['status'] ?? it['qc_status'] ?? 'Pending').toString();
+                                  String status = rawStatus;
+                                  if (rawStatus == "1" || rawStatus == "" || rawStatus == "null") {
+                                    status = "Pending";
+                                  }
+                                  return buildStatusBadge(status);
+                                }),
                               ),
                             ],
                           );

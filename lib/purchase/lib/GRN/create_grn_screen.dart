@@ -548,7 +548,6 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
                                 if (val != null) _fetchPoItems(val);
                               })),
                         _buildLabeledField("PURCHASE TYPE", _buildDropdown("Select Type", selectedPurchaseType, ["Import", "Local"], (val) => setState(() => selectedPurchaseType = val))),
-                        _buildLabeledField("INVOICE NO", _buildTextField("Enter Invoice No", invoiceNoController)),
                         _buildLabeledField("VEHICLE NO", _buildTextField("Enter Vehicle No", vehicleNoController)),
                         _buildLabeledField("TRANSPORT TYPE", _buildDropdown("Select Mode", selectedTransportType, ["Lorry", "Van", "Courier"], (val) => setState(() => selectedTransportType = val))),
                         _buildLabeledField("DRIVER NAME", _buildTextField("Enter Driver Name", driverNameController)),

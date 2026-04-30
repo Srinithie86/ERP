@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'quotation_details.dart';
+import 'approve_quotation_screen.dart';
 import '../purchase_request_pdf_viewer.dart';
 
 class SupplierQuotationsScreen extends StatefulWidget {
@@ -93,7 +94,21 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
     );
 
     if (confirmed == true) {
-      await _approveQuotation(item['id'].toString());
+      // Navigate to Review and Approve screen directly after confirmation
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ApproveQuotationScreen(
+            quotationData: item,
+          ),
+        ),
+      ).then((value) {
+        if (value == true) {
+          setState(() {
+            quotationsFuture = fetchQuotations();
+          });
+        }
+      });
     }
   }
 
@@ -216,19 +231,25 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
                       }
                     }
 
+                    String rawStatus = (item['status'] ?? "").toString();
+                    String displayStatus = rawStatus;
+                    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+                      displayStatus = "Pending";
+                    }
+
                     return Column(
                       children: [
                         quotationCard(
                           width,
                           supplierName: item['supplier_name'] ?? "Unknown",
-                          status: item['status'] ?? "Received",
+                          status: displayStatus,
                           quotNo: item['quotation_no'] ?? "N/A",
                           validUntil: item['dtime']?.toString().split(' ')[0] ?? "N/A",
                           itemName: firstItemName,
                           itemRate: firstItemRate,
                           delivery: item['rfq_no'] ?? "", 
                           amount: "₹ ${totalAmount.toStringAsFixed(2)}",
-                          isSelected: (item['status'] == "PO Generated" || item['status'] == "Approved"),
+                          isSelected: (displayStatus == "PO Generated" || displayStatus == "Approved"),
                           pdfLink: item['pdf_link'],
                           fullData: item,
                         ),
@@ -294,19 +315,21 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
       statusColor = const Color(0xff188E24); 
     } else if (status == "PO Generated") {
        statusColor = Colors.blue;
+    } else if (status == "Pending") {
+       statusColor = Colors.orange;
     }
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -314,24 +337,54 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  supplierName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.black,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      supplierName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$quotNo | $validUntil",
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-              Row(
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
                   if (pdfLink != null && pdfLink.isNotEmpty)
                     IconButton(
-                      icon: const Icon(Icons.picture_as_pdf, color: Color(0xff26A69A), size: 22),
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.picture_as_pdf, color: Color(0xff26A69A), size: 20),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -344,148 +397,181 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
                         );
                       },
                     ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      status,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            "$quotNo , Date: $validUntil",
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(6),
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade100),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    itemName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Latest Product",
+                        style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        itemName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.blueGrey.shade800, fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  itemRate,
-                  style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w500),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "Unit Rate",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      itemRate,
+                      style: const TextStyle(color: Color(0xff26A69A), fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  "RFQ: $delivery",
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "RFQ Reference",
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                    ),
+                    Text(
+                      delivery,
+                      style: TextStyle(color: Colors.blueGrey.shade700, fontSize: 12, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                amount,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          if (status != "PO Generated" && status != "Approved")
-          InkWell(
-            onTap: () => _showSelectionConfirm(fullData),
-            child: Container(
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xffC6FFD0) : Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isSelected ? Colors.transparent : const Color(0xff26A69A),
-                  width: 1.2,
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Icon(
-                    Icons.check,
-                    color: Color(0xff26A69A),
-                    size: 20,
-                  ),
-                  SizedBox(width: 6),
                   Text(
-                    "Select this Supplier",
-                    style: TextStyle(
-                      color: Color(0xff26A69A),
+                    "Total Amount",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                  ),
+                  Text(
+                    amount,
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 18,
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
 
-          InkWell(
-            onTap: () {
-               Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => QuotationDetailsScreen(
-                    quotationData: fullData,
+          Row(
+            children: [
+              if (status != "PO Generated" && status != "Approved")
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showSelectionConfirm(fullData),
+                    child: Container(
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xffE8F5E9) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xff2E7D32) : const Color(0xff26A69A),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isSelected ? Icons.check_circle : Icons.check_circle_outline,
+                            color: isSelected ? const Color(0xff2E7D32) : const Color(0xff26A69A),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Select",
+                            style: TextStyle(
+                              color: isSelected ? const Color(0xff2E7D32) : const Color(0xff26A69A),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
-            child: Container(
-              height: 42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xff26A69A),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                "View Details",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              if (status != "PO Generated" && status != "Approved")
+                const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuotationDetailsScreen(
+                          quotationData: fullData,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xff26A69A),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xff26A69A).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      "View Details",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ), 
+            ],
+          ),
         ],
       ),
     );

@@ -44,6 +44,7 @@ class _CreatePurchaseRequestScreenState
   String? selectedDepartment;
   String? selectedDeptId;
   String? selectedReqBy;
+  String? userLedId; // To store led_id (e.g., '40')
   String? selectedPriority;
   String? selectedPriorityId;
   final TextEditingController prNumberController = TextEditingController(
@@ -166,10 +167,39 @@ class _CreatePurchaseRequestScreenState
       if (!mounted) {
         return;
       }
+      debugPrint("DEBUG PR: All Prefs Keys: ${prefs.getKeys()}");
+      String name = prefs.getString('name') ?? '';
+      debugPrint("DEBUG PR: Initial name from prefs: '$name'");
+      
+      String ledId = prefs.getString('led_id') ?? '';
+      
+      if (name.trim().isEmpty || name == 'Admin' || name == '40') {
+        final loginResponseStr = prefs.getString('login_response');
+        if (loginResponseStr != null) {
+          try {
+            final decoded = json.decode(loginResponseStr);
+            // Strictly look for 'name' as requested by the user
+            final extractedName = (decoded['name'] ?? '').toString();
+            if (extractedName.isNotEmpty) {
+              name = extractedName;
+            }
+            if (ledId.isEmpty) {
+              ledId = (decoded['led_id'] ?? decoded['user_id'] ?? '').toString();
+            }
+          } catch (e) {
+            debugPrint("DEBUG PR: Error decoding login_response: $e");
+          }
+        }
+      }
+
       setState(() {
-        String name = prefs.getString('name') ?? 'Admin';
-        name = name[0].toUpperCase() + name.substring(1);
+        if (name.isNotEmpty && name != 'Admin' && name != '40') {
+          name = name[0].toUpperCase() + name.substring(1);
+        } else if (name.isEmpty || name == '40') {
+          name = 'Admin';
+        }
         selectedReqBy = name;
+        userLedId = ledId;
         reqByController.text = selectedReqBy!;
       });
     } catch (e) {
@@ -393,7 +423,19 @@ class _CreatePurchaseRequestScreenState
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '';
       final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '1';
-      final name = prefs.getString('name') ?? '';
+      String name = prefs.getString('name') ?? '';
+
+      // Fallback: If name is empty, try to parse it from the stored login_response
+      if (name.isEmpty) {
+        final loginResponseStr = prefs.getString('login_response');
+        if (loginResponseStr != null) {
+          try {
+            final decoded = jsonDecode(loginResponseStr);
+            name = decoded['name']?.toString() ?? '';
+          } catch (_) {}
+        }
+      }
+
       final did = prefs.getString('did') ?? '1';
       final bid = prefs.getString('bid') ?? '1';
       final roleId = prefs.getString('role_id') ?? '';
@@ -402,6 +444,9 @@ class _CreatePurchaseRequestScreenState
       final ln = deviceData['ln'] ?? '0.0';
       final lt = deviceData['lt'] ?? '0.0';
       final deviceId = deviceData['device_id'] ?? 'Unknown';
+      
+      print("DEBUG: Loading name for PR submission...");
+      print("DEBUG: Controller text: '${reqByController.text}'");
 
       // Current Date for 'date' param
       final date =
@@ -420,7 +465,7 @@ class _CreatePurchaseRequestScreenState
         "ln": ln,
         "date": date,
         "department": selectedDeptId ?? '',
-        "req_by": name, // Use stored login name
+        "req_by": (userLedId != null && userLedId!.isNotEmpty) ? userLedId! : reqByController.text, 
         "priority": selectedPriorityId ?? '',
         "remarks": remarksController.text, // Global remarks
       };
@@ -562,7 +607,8 @@ class _CreatePurchaseRequestScreenState
           children: [
             // Search Bar matching the image
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: 8),
+              padding:
+                  EdgeInsets.symmetric(horizontal: width * 0.04, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -579,7 +625,8 @@ class _CreatePurchaseRequestScreenState
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Search by PR number or department....",
-                    hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+                    hintStyle:
+                        GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
                     prefixIcon: const Icon(Icons.search, color: Colors.black),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -630,7 +677,6 @@ class _CreatePurchaseRequestScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Hidden from UI but functional for logic
           _buildInputLabel("Requested By"),
           _buildTextField("Requested By", controller: reqByController, readOnly: true),
           const SizedBox(height: 16),
@@ -641,7 +687,8 @@ class _CreatePurchaseRequestScreenState
           _buildPriorityDropdown(width),
           const SizedBox(height: 16),
           _buildInputLabel("Remarks"),
-          _buildTextField("Enter Remarks", controller: remarksController, maxLines: 2),
+          _buildTextField("Enter Remarks",
+              controller: remarksController, maxLines: 2),
         ],
       ),
     );
@@ -761,7 +808,7 @@ class _CreatePurchaseRequestScreenState
               (p) => p['name'] == val,
               orElse: () => {},
             );
-            selectedPriorityId = selectedPri['id']?.toString();
+            selectedPriorityId = selectedPri['value']?.toString();
             debugPrint("Selected Priority: $val (ID: $selectedPriorityId)");
           }
         });
@@ -800,7 +847,8 @@ class _CreatePurchaseRequestScreenState
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text(
           "Add Item",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF26A69A),
@@ -845,7 +893,8 @@ class _CreatePurchaseRequestScreenState
                         color: Color(0xFF26A69A),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.description, color: Colors.white, size: 24),
+                      child: const Icon(Icons.description,
+                          color: Colors.white, size: 24),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -853,7 +902,9 @@ class _CreatePurchaseRequestScreenState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item.itemNameController.text.isEmpty ? "No Name" : item.itemNameController.text,
+                            item.itemNameController.text.isEmpty
+                                ? "No Name"
+                                : item.itemNameController.text,
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -862,7 +913,7 @@ class _CreatePurchaseRequestScreenState
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            "Dept: ${selectedDepartment ?? 'N/A'}",
+                            "Dept: ${selectedDepartment ?? 'N/A'} | UOM: ${item.uomController.text}",
                             style: GoogleFonts.outfit(
                               color: Colors.grey,
                               fontSize: 14,
@@ -876,26 +927,48 @@ class _CreatePurchaseRequestScreenState
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              int qty = int.tryParse(item.orderQtyController.text) ?? 0;
+                              int qty =
+                                  int.tryParse(item.orderQtyController.text) ??
+                                      0;
                               if (qty > 0) {
-                                item.orderQtyController.text = (qty - 1).toString();
+                                item.orderQtyController.text =
+                                    (qty - 1).toString();
                               }
                             });
                           },
-                          icon: const Icon(Icons.remove_circle, color: Color(0xFF26A69A)),
+                          icon: const Icon(Icons.remove_circle,
+                              color: Color(0xFF26A69A)),
                         ),
-                        Text(
-                          item.orderQtyController.text.isEmpty ? "0" : item.orderQtyController.text,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        SizedBox(
+                          width: 50,
+                          child: TextField(
+                            controller: item.orderQtyController,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            onChanged: (val) {
+                              setState(() {});
+                            },
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
                         ),
                         IconButton(
                           onPressed: () {
                             setState(() {
-                              int qty = int.tryParse(item.orderQtyController.text) ?? 0;
-                              item.orderQtyController.text = (qty + 1).toString();
+                              int qty =
+                                  int.tryParse(item.orderQtyController.text) ??
+                                      0;
+                              item.orderQtyController.text =
+                                  (qty + 1).toString();
                             });
                           },
-                          icon: const Icon(Icons.add_circle, color: Color(0xFF26A69A)),
+                          icon: const Icon(Icons.add_circle,
+                              color: Color(0xFF26A69A)),
                         ),
                       ],
                     ),
@@ -911,16 +984,20 @@ class _CreatePurchaseRequestScreenState
                         onPressed: () {
                           // View logic to PRDetailsScreen
                           // We pass dummy data for preview
-                          final modelItems = itemsList.map((e) => model.PrItem(
-                            id: 0,
-                            no: prNumberController.text,
-                            mid: 0,
-                            date: "${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}",
-                            itemCode: e.itemCodeController.text,
-                            productName: e.itemNameController.text,
-                            qty: e.orderQtyController.text,
-                            itemDescription: e.descriptionController.text,
-                          )).toList();
+                          final modelItems = itemsList
+                              .map((e) => model.PrItem(
+                                    id: 0,
+                                    no: prNumberController.text,
+                                    mid: 0,
+                                    date:
+                                        "${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}",
+                                    itemCode: e.itemCodeController.text,
+                                    productName: e.itemNameController.text,
+                                    qty: e.orderQtyController.text,
+                                    itemDescription:
+                                        e.descriptionController.text,
+                                  ))
+                              .toList();
 
                           final prData = model.PrData(
                             master: model.PrMaster(
@@ -931,7 +1008,8 @@ class _CreatePurchaseRequestScreenState
                               department: selectedDepartment ?? "",
                               quantityRequired: "0",
                               dtime: "",
-                              reqDate: "${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}",
+                              reqDate:
+                                  "${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}",
                             ),
                             items: modelItems,
                           );
@@ -948,7 +1026,10 @@ class _CreatePurchaseRequestScreenState
                             ),
                           );
                         },
-                        child: const Text("View", style: TextStyle(color: Color(0xFF26A69A), fontWeight: FontWeight.bold)),
+                        child: const Text("View",
+                            style: TextStyle(
+                                color: Color(0xFF26A69A),
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const VerticalDivider(width: 1),
@@ -966,24 +1047,34 @@ class _CreatePurchaseRequestScreenState
                                   'uom': item.uomController.text,
                                   'stock_qty': item.stockQtyController.text,
                                   'order_qty': item.orderQtyController.text,
-                                  'description': item.descriptionController.text,
+                                  'description':
+                                      item.descriptionController.text,
                                 },
                               ),
                             ),
                           );
 
-                          if (result != null && result is Map<String, dynamic>) {
+                          if (result != null &&
+                              result is Map<String, dynamic>) {
                             setState(() {
-                              item.itemNameController.text = result['item_name'] ?? '';
-                              item.itemCodeController.text = result['item_code'] ?? '';
+                              item.itemNameController.text =
+                                  result['item_name'] ?? '';
+                              item.itemCodeController.text =
+                                  result['item_code'] ?? '';
                               item.uomController.text = result['uom'] ?? '';
-                              item.stockQtyController.text = result['stock_qty'] ?? '';
-                              item.orderQtyController.text = result['order_qty'] ?? '';
-                              item.descriptionController.text = result['description'] ?? '';
+                              item.stockQtyController.text =
+                                  result['stock_qty'] ?? '';
+                              item.orderQtyController.text =
+                                  result['order_qty'] ?? '';
+                              item.descriptionController.text =
+                                  result['description'] ?? '';
                             });
                           }
                         },
-                        child: const Text("Edit", style: TextStyle(color: Color(0xFF26A69A), fontWeight: FontWeight.bold)),
+                        child: const Text("Edit",
+                            style: TextStyle(
+                                color: Color(0xFF26A69A),
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -1039,8 +1130,6 @@ class _CreatePurchaseRequestScreenState
       ),
     );
   }
-
-
 
   Widget _buildTextField(
     String hint, {

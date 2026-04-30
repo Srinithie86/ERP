@@ -38,7 +38,7 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: {
-          "type": "4047",
+          "type": "4034",
           "cid": cid.isEmpty ? '44555666' : cid,
           "device_id": deviceData['device_id'] ?? '123',
           "ln": deviceData['ln'] ?? '123',
@@ -244,7 +244,11 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
 
   Widget _buildQCCard(Map<String, dynamic> item) {
     String grnNo = item['grn_no'] ?? 'N/A';
-    String status = item['qc_status'] ?? 'Pending';
+    String rawStatus = (item['qc_status'] ?? 'Pending').toString();
+    String status = rawStatus;
+    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+      status = "Pending";
+    }
     String date = item['dtime'] ?? '-';
     String id = (item['id'] ?? item['inspection_id'] ?? '').toString();
     String inspector = item['inspector_name'] ?? 'N/A';
@@ -292,18 +296,22 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
               ),
               if (pdfLink != null && pdfLink.isNotEmpty) ...[
                 SizedBox(width: 8.w),
-                Icon(Icons.picture_as_pdf_rounded,
-                    color: Colors.red, size: 18.sp),
-              ],
-              const Spacer(),
-              Container(
-                width: 20.w,
-                height: 20.w,
-                decoration: BoxDecoration(
-                  color: statusColor,
-                  shape: BoxShape.circle,
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PurchaseRequestPdfViewer(
+                          pdfUrl: pdfLink,
+                          prNumber: grnNo,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.picture_as_pdf_rounded,
+                      color: Colors.red, size: 18.sp),
                 ),
-              ),
+              ],
             ],
           ),
           SizedBox(height: 4.h),
@@ -316,11 +324,7 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Inspector: $inspector",
-                style: GoogleFonts.outfit(
-                    color: Colors.grey.shade500, fontSize: 12.sp),
-              ),
+              const Spacer(),
               Text(
                 "${itemsList.length} Items",
                 style: GoogleFonts.outfit(

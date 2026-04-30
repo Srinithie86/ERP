@@ -107,11 +107,7 @@ class _ApproveQuotationScreenState extends State<ApproveQuotationScreen> {
               backgroundColor: Color(0xFF26A69A),
             ),
           );
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const QuotationComparisonScreen()),
-            (route) => route.isFirst,
-          );
+          Navigator.popUntil(context, (route) => route.isFirst);
         }
       } else {
         throw result['message'] ?? "Failed to approve quotation";
@@ -161,9 +157,9 @@ class _ApproveQuotationScreenState extends State<ApproveQuotationScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildHeaderStat("QUOTATION", widget.quotationData['quotation_no'] ?? "-"),
-                    _buildHeaderStat("RFQ REF", widget.quotationData['rfq_no'] ?? "-"),
-                    _buildHeaderStat("SUPPLIER", widget.quotationData['supplier_name'] ?? "-"),
+                    Expanded(child: _buildHeaderStat("QUOTATION", widget.quotationData['quotation_no'] ?? "-")),
+                    Expanded(child: _buildHeaderStat("RFQ REF", widget.quotationData['rfq_no'] ?? "-")),
+                    Expanded(child: _buildHeaderStat("SUPPLIER", widget.quotationData['supplier_name'] ?? "-")),
                   ],
                 ),
                 SizedBox(height: 16.h),

@@ -170,13 +170,14 @@ class _VerifyWithOtpState extends State<VerifyWithOtp> {
         final uid = response['uid']?.toString() ?? response['cus_id']?.toString() ?? '';
         final cid = response['cid']?.toString() ?? widget.cid ?? '44555666';
         final roleId = response['role_id']?.toString() ?? '1';
+        final name = response['name']?.toString() ?? '';
 
         await prefs.setString('uid', uid);
         await prefs.setString('cid', cid);
         await prefs.setString('role_id', roleId);
-        await prefs.setString('name', response['data']?['name']?.toString() ?? '');
-
-        if (response['menu'] != null) {
+        if (response['name'] != null && response['name'].toString().isNotEmpty) {
+          await prefs.setString('name', response['name'].toString());
+        }        if (response['menu'] != null) {
           if (mounted) context.read<MenuProvider>().setMenu(response['menu']);
         }
         

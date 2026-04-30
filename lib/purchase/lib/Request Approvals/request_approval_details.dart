@@ -307,12 +307,7 @@ class _RequestApprovalDetailsScreenState
                   const Divider(),
                   const SizedBox(height: 8),
 
-                  Row(
-                    children: [
-                      Expanded(child: _buildInfoItem(widget.isPO ? "PO Date" : "Date", date)),
-                      Expanded(child: _buildInfoItem("Request Date", reqDate)),
-                    ],
-                  ),
+                  _buildInfoItem("Request Date", reqDate),
                   const SizedBox(height: 16),
                   if (widget.isPO)
                     Column(
@@ -377,6 +372,8 @@ class _RequestApprovalDetailsScreenState
                 final item = widget.itemsData[index];
                 final itemCode = item['item_code']?.toString() ?? 'N/A';
                 final productName = item['product_name']?.toString() ?? 'N/A';
+                final uom = (item['uom']?.toString() ?? '').isEmpty ? 'nos' : item['uom'].toString();
+                final description = item['description']?.toString() ?? item['item_description']?.toString() ?? '';
                 final quantity =
                     item['item_qty']?.toString() ??
                     item['qty']?.toString() ??
@@ -441,7 +438,18 @@ class _RequestApprovalDetailsScreenState
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildInfoItem("Product Name", productName),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _buildInfoItem("Product Name", productName)),
+                          const SizedBox(width: 16),
+                          _buildInfoItem("UOM", uom),
+                        ],
+                      ),
+                      if (description.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        _buildInfoItem("Details", description),
+                      ],
                     ],
                   ),
                 );
@@ -604,7 +612,7 @@ class _RequestApprovalDetailsScreenState
               controller: _remarksController,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: "Remarks (Mandatory)",
+                labelText: "Remarks",
                 hintText: "Enter Remarks",
               ),
             ),
@@ -618,12 +626,6 @@ class _RequestApprovalDetailsScreenState
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff26A69A)),
             onPressed: () {
-              if (_remarksController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Remarks are mandatory!"), backgroundColor: Colors.orange),
-                );
-                return;
-              }
               Navigator.pop(context);
               _showApproveDialog(context);
             },

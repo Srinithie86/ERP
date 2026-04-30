@@ -46,6 +46,7 @@ class _GRNScreenState extends State<GRNScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final uid = prefs.getString('uid') ?? '';
+      final role_id = prefs.getString('role_id') ?? '';
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       final ln = deviceData['ln'] ?? '123';
       final lt = deviceData['lt'] ?? '123';
@@ -56,22 +57,24 @@ class _GRNScreenState extends State<GRNScreen> {
       String statusParam = "";
 
       final Map<String, String> body = {
-        "type": "4034",
+        "type": "4047",
         "cid": cid,
         "lt": lt,
         "ln": ln,
         "device_id": deviceId,
         "status": statusParam,
+        "uid": uid,
+        "role_id": role_id
       };
 
-      debugPrint("API 4034 REQUEST BODY: $body");
+      debugPrint("API 4047 REQUEST BODY: $body");
 
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
         body: body,
       );
 
-      debugPrint("API 4034 RESPONSE BODY: ${response.body}");
+      debugPrint("API 4047 RESPONSE BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -335,7 +338,11 @@ class _GRNScreenState extends State<GRNScreen> {
 
   Widget grnCard(Map<String, dynamic> item) {
     String grnNo = item['grn_no'] ?? 'N/A';
-    String status = item['qc_status'] ?? 'Pending';
+    String rawStatus = (item['status'] ?? item['qc_status'] ?? 'Pending').toString();
+    String status = rawStatus;
+    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+      status = "Pending";
+    }
     String date = item['dtime'] ?? 'N/A';
     String? pdfLink = item['pdf_link'];
     List<dynamic> itemsData = item['items'] ?? [];
@@ -458,7 +465,8 @@ class _GRNScreenState extends State<GRNScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              it['product_name'] ??
+                              it['pro_name'] ??
+                                  it['product_name'] ??
                                   it['item_code'] ??
                                   'Unknown Item',
                               overflow: TextOverflow.ellipsis,
@@ -469,7 +477,7 @@ class _GRNScreenState extends State<GRNScreen> {
                             ),
                           ),
                           Text(
-                            "Rcvd: ${it['rec_qty'] ?? '0'}/PO: ${it['odr_qty'] ?? '0'}",
+                            "Qty: ${it['qty'] ?? it['rec_qty'] ?? it['odr_qty'] ?? '0'}",
                             style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 13,

@@ -75,7 +75,11 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final item = widget.poData;
-    final status = (item["status_text"] ?? "Pending").toString();
+    final String rawStatus = (item["status_text"] ?? "Pending").toString();
+    String displayStatus = rawStatus;
+    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null" || rawStatus.toLowerCase().contains("approve po generated")) {
+      displayStatus = "Pending";
+    }
     final pdfLink = item["pdf_link"];
     const primaryTeal = Color(0xFF26A69A);
 
@@ -95,7 +99,7 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(item, status, primaryTeal),
+            _buildHeader(item, displayStatus, primaryTeal),
             const SizedBox(height: 16),
             _buildDetailsCard(item),
             const SizedBox(height: 16),
@@ -180,7 +184,9 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
     );
   }
 
-  Widget _buildItemCard(Map<String, dynamic> item, Color teal) {
+  Widget _buildItemCard(Map<String, dynamic> poData, Color teal) {
+    final List<dynamic> items = poData["items"] ?? [];
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -193,24 +199,49 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
         children: [
           Text("Order Items", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 16),
-          Text((item["pro_name"] ?? "Product Name N/A").toString(), style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-          Text("Code: ${(item["item_code"] ?? "N/A").toString()}", style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _itemStat("Qty", (item["qty"] ?? item["quantity"] ?? "0").toString()),
-              _itemStat("Rate", "₹${(item["unit_rate"] ?? "0").toString()}"),
-              _itemStat("Tax", "${(item["tax"] ?? "0").toString()}%"),
-              _itemStat("Discount", "${(item["discount"] ?? "0").toString()}%"),
-            ],
-          ),
+          
+          if (items.isEmpty)
+            Text("No items found", style: GoogleFonts.outfit(color: Colors.grey))
+          else
+            Column(
+              children: items.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text((item["pro_name"] ?? "Unknown Product").toString(), 
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                      Text("Code: ${(item["item_code"] ?? "N/A").toString()}", 
+                        style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _itemStat("Qty", (item["qty"] ?? item["quantity"] ?? "0").toString()),
+                          _itemStat("Rate", "₹${(item["unit_rate"] ?? "0").toString()}"),
+                          _itemStat("Tax", "${(item["tax"] ?? "0").toString()}%"),
+                          _itemStat("Discount", "${(item["discount"] ?? "0").toString()}%"),
+                        ],
+                      ),
+                      if (items.indexOf(item) != items.length - 1)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 16),
+                          child: Divider(height: 1),
+                        ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+            
           const Divider(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Total Amount", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text("₹${(item["tot_amt"] ?? "0").toString()}", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: teal)),
+              Text("₹${(poData["tot_amt"] ?? "0").toString()}", 
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: teal)),
             ],
           ),
         ],

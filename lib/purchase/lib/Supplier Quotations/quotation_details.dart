@@ -76,10 +76,16 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final items = currentData['items'] as List? ?? [];
-    final status = currentData['status']?.toString() ?? "Received";
+    String rawStatus = currentData['status']?.toString() ?? "";
+    String displayStatus = rawStatus;
+    if (rawStatus == "1" || rawStatus == "" || rawStatus == "null") {
+      displayStatus = "Pending";
+    }
+
     Color statusColor = const Color(0xffC09624);
-    if (status == "Approved") statusColor = const Color(0xff188E24);
-    else if (status == "PO Generated") statusColor = Colors.blue;
+    if (displayStatus == "Approved") statusColor = const Color(0xff188E24);
+    else if (displayStatus == "PO Generated") statusColor = Colors.blue;
+    else if (displayStatus == "Pending") statusColor = Colors.orange;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -140,7 +146,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Text(
-                      status,
+                      displayStatus,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -182,47 +188,50 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xff22A79A)),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    color: const Color(0xff22A79A),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        Expanded(flex: 2, child: centerText(AppLocalization.of("PRODUCT"), isHeader: true)),
-                        Expanded(child: centerText(AppLocalization.of("RATE"), isHeader: true)),
-                        Expanded(child: centerText(AppLocalization.of("QTY"), isHeader: true)),
-                        Expanded(child: centerText(AppLocalization.of("DIS %"), isHeader: true)),
-                        Expanded(child: centerText(AppLocalization.of("GST %"), isHeader: true)),
-                        Expanded(flex: 2, child: centerText(AppLocalization.of("TOTAL"), isHeader: true)),
-                      ],
-                    ),
-                  ),
-
-                  if (items.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text("No items available"),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 1.5, // Force a width that allows columns to breathe
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xff22A79A)),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      color: const Color(0xff22A79A),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: centerText(AppLocalization.of("PRODUCT"), isHeader: true)),
+                          Expanded(child: centerText(AppLocalization.of("RATE"), isHeader: true)),
+                          Expanded(child: centerText(AppLocalization.of("QTY"), isHeader: true)),
+                          Expanded(child: centerText(AppLocalization.of("DIS %"), isHeader: true)),
+                          Expanded(child: centerText(AppLocalization.of("GST %"), isHeader: true)),
+                          Expanded(flex: 2, child: centerText(AppLocalization.of("TOTAL"), isHeader: true)),
+                        ],
+                      ),
                     ),
 
-                  for (var item in items) ...[
-                    tableRow(
-                      item['item_description'] ?? "",
-                      "₹${item['unit_rate'] ?? '0'}",
-                      "${item['quoted_qty'] ?? '0'}",
-                      "${item['discount'] ?? '0'}%",
-                      "${item['taxes'] ?? '0'}%",
-                      "₹${((double.tryParse(item['unit_rate']?.toString() ?? '0') ?? 0) * (double.tryParse(item['quoted_qty']?.toString() ?? '0') ?? 0)).toStringAsFixed(2)}",
-                    ),
-                    const Divider(height: 1, color: Color(0xff22A79A)),
-                  ]
-                ],
+                    if (items.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text("No items available"),
+                      ),
+
+                    for (var item in items) ...[
+                      tableRow(
+                        item['item_description'] ?? "",
+                        "₹${item['unit_rate'] ?? '0'}",
+                        "${item['quoted_qty'] ?? '0'}",
+                        "${item['discount'] ?? '0'}%",
+                        "${item['taxes'] ?? '0'}%",
+                        "₹${((double.tryParse(item['unit_rate']?.toString() ?? '0') ?? 0) * (double.tryParse(item['quoted_qty']?.toString() ?? '0') ?? 0)).toStringAsFixed(2)}",
+                      ),
+                      const Divider(height: 1, color: Color(0xff22A79A)),
+                    ]
+                  ],
+                ),
               ),
             ),
 
@@ -232,7 +241,8 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xffE6FFFF),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xff22A79A).withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -249,8 +259,8 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
                     "₹ ${_calculateGrandTotal().toStringAsFixed(2)}",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18.sp,
-                      color: Color(0xff097A1C),
+                      fontSize: 20.sp,
+                      color: const Color(0xff097A1C),
                     ),
                   ),
                 ],
@@ -259,7 +269,7 @@ class _QuotationDetailsScreenState extends State<QuotationDetailsScreen> {
 
             const SizedBox(height: 24),
 
-            if (status != "Approved")
+            if (displayStatus != "Approved")
             InkWell(
               onTap: _approveQuotation,
               child: Container(

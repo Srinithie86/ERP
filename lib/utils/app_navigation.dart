@@ -28,6 +28,7 @@ import 'package:hrm/views/home_screen/leave_management.dart' as hrm_leave;
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
 import 'package:sale_management/Sales_Module/receipt_voucher_screen.dart';
 import 'package:manufacturing_erp/dashboard.dart' as mfg;
+import 'package:service_ticket/screens/technician_dashboard.dart' as service;
 
 class AppNavigation {
   static void handleNavigation(BuildContext context, String name, {String? moduleContext}) {
@@ -123,6 +124,10 @@ class AppNavigation {
     } else if (n.contains("MEETING") || n.contains("VISIT")) {
        Navigator.push(context, MaterialPageRoute(builder: (context) => const crm.MeetingVisitScreen()));
     }
+    // Service Module
+    else if (n == "SERVICE" || n == "SERVICE TICKETS" || n == "ERP SERVICE") {
+       Navigator.push(context, MaterialPageRoute(builder: (_) => const service.TechnicianDashboard()));
+    }
     // Generic
     else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,6 +147,7 @@ class AppNavigation {
     if (n.contains("ACCOUNTING")) return Icons.account_balance_wallet_outlined;
     if (n.contains("WAREHOUSE")) return Icons.warehouse_outlined;
     if (n.contains("MANUFACTURING")) return Icons.precision_manufacturing_outlined;
+    if (n.contains("SERVICE")) return Icons.home_repair_service_outlined;
     
     // Action Icons
     if (n.contains("CREATE PR") || n == "PR" || n.contains("PURCHASE REQUEST")) return Icons.add_shopping_cart_rounded;
@@ -188,6 +194,7 @@ class AppNavigation {
     if (n.contains('ATTENDANCE')) return 'assets/images/attendance.png';
     if (n.contains('PAYROLL')) return 'assets/images/payroll.png';
     if (n.contains('PRODUCTION')) return 'assets/images/production.png';
+    if (n.contains('SERVICE')) return 'assets/images/service_logo.png';
     if (n.contains('SUPPORT')) return 'assets/images/support.png';
     return '';
   }

@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PurchaseRequestPdfViewer extends StatefulWidget {
   final String pdfUrl;
@@ -35,10 +38,40 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
     super.initState();
     _pdfViewerController = PdfViewerController();
     _finalPdfUrl = widget.pdfUrl.trim();
-    _fetchPdfBytes();
+    
+    // Initial fetch
+    _prepareAndFetch();
   }
 
-  Future<void> _fetchPdfBytes() async {
+  Future<void> _prepareAndFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cid = prefs.getString('cid') ?? '';
+    final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
+    final lt = prefs.getString('lt') ?? '';
+    final ln = prefs.getString('ln') ?? '';
+    
+    String requestUrl = widget.pdfUrl.trim();
+    if (!requestUrl.startsWith('http')) {
+      requestUrl = "https://erpsmart.in/total/api/$requestUrl";
+    }
+
+    if (!requestUrl.contains('cid=') && cid.isNotEmpty) {
+      requestUrl += "${requestUrl.contains('?') ? '&' : '?'}cid=$cid";
+    }
+    if (!requestUrl.contains('uid=') && uid.isNotEmpty) {
+      requestUrl += "&uid=$uid";
+    }
+    if (!requestUrl.contains('lt=') && lt.isNotEmpty) {
+      requestUrl += "&lt=$lt";
+    }
+    if (!requestUrl.contains('ln=') && ln.isNotEmpty) {
+      requestUrl += "&ln=$ln";
+    }
+    
+    _fetchPdfBytes(requestUrl);
+  }
+
+  Future<void> _fetchPdfBytes(String requestUrl, {bool isRetry = false}) async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
@@ -46,30 +79,127 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get<List<int>>(
-        _finalPdfUrl,
-        options: Options(responseType: ResponseType.bytes),
-      );
+      debugPrint("PDF Viewer [v1.0.3] => Requesting URL: $requestUrl");
+      _finalPdfUrl = requestUrl;
+      
+      final response = await http.get(
+        Uri.parse(requestUrl),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/pdf,application/octet-stream,*/*',
+        },
+      ).timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 200 && response.data != null) {
-        if (mounted) {
+      debugPrint("PDF Viewer => Status: ${response.statusCode}");
+      debugPrint("PDF Viewer => Content-Type: ${response.headers['content-type']}");
+      debugPrint("PDF Viewer => Bytes received: ${response.bodyBytes.length}");
+
+      if (response.statusCode == 200) {
+        final String contentType = response.headers['content-type']?.toLowerCase() ?? '';
+        final String bodyStart = String.fromCharCodes(response.bodyBytes.take(10)).toLowerCase();
+        
+        if (contentType.contains('text/html') || bodyStart.contains('<!doctype') || bodyStart.contains('<html')) {
+          debugPrint("PDF Viewer => Received HTML instead of PDF. Body length: ${response.body.length}");
+          
+          // Print body in chunks for debugging
+          final String fullBody = response.body;
+          for (int i = 0; i < (fullBody.length > 3000 ? 3000 : fullBody.length); i += 1000) {
+            int end = (i + 1000 < fullBody.length) ? i + 1000 : fullBody.length;
+            debugPrint("PDF_BODY_PART: ${fullBody.substring(i, end)}");
+          }
+
+          // Try to extract a direct PDF link from the HTML if possible
+          // Handle both plain and URL-encoded links
+          String? foundUrl;
+          final encodedPdfRegex = RegExp(r'https?(?:%3A|:)(?:%2F|/)(?:%2F|/)erpsmart\.in(?:%2F|/)uploads(?:%2F|/)[^\s"<>]+?\.pdf');
+          final plainPdfRegex = RegExp(r'https://erpsmart\.in/uploads/[^\s"<>]+?\.pdf');
+          
+          // Use allMatches to find the best candidate (the one that is NOT a mail link)
+          final allPlainMatches = plainPdfRegex.allMatches(fullBody);
+          final allEncodedMatches = encodedPdfRegex.allMatches(fullBody);
+          
+          List<String> candidates = [];
+          for (final m in allPlainMatches) candidates.add(m.group(0)!);
+          for (final m in allEncodedMatches) candidates.add(m.group(0)!);
+
+          for (String cand in candidates) {
+            // Recursive decoding for multi-encoded URLs
+            String decoded = cand;
+            String previous;
+            do {
+              previous = decoded;
+              decoded = Uri.decodeFull(decoded);
+            } while (decoded != previous && decoded.contains('%'));
+
+            if (!decoded.contains('google.com') && !decoded.contains('wa.me') && !decoded.contains('whatsapp.com')) {
+              foundUrl = decoded;
+              break;
+            }
+          }
+          
+          if (foundUrl == null) {
+            // Fallback: search for any erpsmart.in link ending in .pdf but NOT containing google/whatsapp
+            final fallbackRegex = RegExp(r'https?://[^\s"<>]+?erpsmart\.in[^\s"<>]+?\.pdf');
+            final matches = fallbackRegex.allMatches(fullBody);
+            for (final m in matches) {
+              String url = m.group(0)!;
+              String prev;
+              do {
+                prev = url;
+                url = Uri.decodeFull(url);
+              } while (url != prev && url.contains('%'));
+
+              if (!url.contains('google.com') && !url.contains('wa.me') && !url.contains('whatsapp.com')) {
+                foundUrl = url;
+                break;
+              }
+            }
+          }
+
+          if (foundUrl != null && foundUrl != requestUrl) {
+            debugPrint("PDF Viewer => Found valid direct PDF link: $foundUrl");
+            _fetchPdfBytes(foundUrl, isRetry: true);
+            return;
+          }
+
+          if (!isRetry) {
+            if (!requestUrl.contains('raw=')) {
+              debugPrint("PDF Viewer => Retrying with &raw=1...");
+              _fetchPdfBytes("$requestUrl&raw=1", isRetry: true);
+              return;
+            } else if (!requestUrl.contains('stream=')) {
+              debugPrint("PDF Viewer => Retrying with &stream=1...");
+              _fetchPdfBytes("$requestUrl&stream=1", isRetry: true);
+              return;
+            } else if (!requestUrl.contains('download=')) {
+              debugPrint("PDF Viewer => Retrying with &download=1...");
+              _fetchPdfBytes("$requestUrl&download=1", isRetry: true);
+              return;
+            }
+          }
+          
           setState(() {
-            _pdfBytes = Uint8List.fromList(response.data!);
+            _errorMessage = "The server returned a Web Page instead of a PDF file.\n\nThis usually happens when the session expires or the document hasn't been generated yet.\n\nTry using the 'Open in Browser' icon at the top right.";
             _isLoading = false;
           });
+          return;
         }
+
+        setState(() {
+          _pdfBytes = response.bodyBytes;
+          _isLoading = false;
+        });
       } else {
-        throw "Server returned status ${response.statusCode}";
+        setState(() {
+          _errorMessage = "Server error: ${response.statusCode}";
+          _isLoading = false;
+        });
       }
     } catch (e) {
+      debugPrint("PDF Viewer Error => $e");
       if (mounted) {
         setState(() {
-          if (e.toString().contains("404")) {
-            _errorMessage = "Document Not Found\n\nThis document (ID: ${widget.prNumber}) has not been generated on the server yet. Please wait a few moments or contact the administrator if this persists.";
-          } else {
-            _errorMessage = "Failed to load document: $e";
-          }
+          _errorMessage = "Failed to load document: $e";
           _isLoading = false;
         });
       }
@@ -149,6 +279,24 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.open_in_browser, color: Colors.white),
+            onPressed: () async {
+              final uri = Uri.parse(_finalPdfUrl);
+              // ignore: deprecated_member_use
+              if (await canLaunchUrl(uri)) {
+                // ignore: deprecated_member_use
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Could not open browser")),
+                  );
+                }
+              }
+            },
+            tooltip: "Open in Browser",
+          ),
           if (_pdfBytes != null) ...[
             IconButton(
               icon: const Icon(Icons.share, color: Colors.white),
@@ -184,7 +332,7 @@ class _PurchaseRequestPdfViewerState extends State<PurchaseRequestPdfViewer> {
                         ),
                         const SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: _fetchPdfBytes,
+                          onPressed: () => _prepareAndFetch(),
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A)),
                           child: const Text("Retry", style: TextStyle(color: Colors.white)),
                         ),

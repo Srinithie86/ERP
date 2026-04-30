@@ -74,13 +74,47 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
   String _selectedTcs = "NO TCS";
   String _selectedTds = "NO TDS";
 
+  List<Map<String, dynamic>> _suppliers = [];
+  bool _isLoadingSuppliers = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _invoiceDateController.text = "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+    _fetchSuppliersForDropdown();
     _calculateAll();
+  }
+
+  Future<void> _fetchSuppliersForDropdown() async {
+    setState(() => _isLoadingSuppliers = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4010",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": "",
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          setState(() {
+            _suppliers = List<Map<String, dynamic>>.from(data['data'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch suppliers error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingSuppliers = false);
+    }
   }
 
   @override
@@ -621,41 +655,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       decoration: _cardDecoration(),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildTextField("Invoice No", _invoiceNoController)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTextField(
-                  "Invoice Date", 
-                  _invoiceDateController, 
-                  readOnly: true,
-                  onTap: () async {
-                    DateTime? date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (date != null) {
-                      setState(() {
-                        _invoiceDateController.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-                      });
-                    }
-                  },
-                  suffixIcon: const Icon(Icons.calendar_today, size: 16),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            "Supplier Name",
-            _supplierNameController,
-            readOnly: true,
-            onTap: _selectSupplier,
-            suffixIcon: const Icon(Icons.arrow_drop_down),
-          ),
+          _buildSupplierDropdown(),
           const SizedBox(height: 12),
           _buildTextField("Supplier GSTIN", _supplierGstinController),
           const SizedBox(height: 12),
@@ -832,17 +832,17 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       ),
       child: Column(
         children: [
-          _buildTotalRow("Grand Total", _grandTotalController),
+          _buildTotalRow("Grand Total", _grandTotalController, readOnly: false),
           const Divider(),
-          _buildTotalRow("Taxable Total", _taxableTotalController),
+          _buildTotalRow("Taxable Total", _taxableTotalController, readOnly: false),
           const Divider(),
-          _buildTotalRow("Total GST", _totalGstController),
+          _buildTotalRow("Total GST", _totalGstController, readOnly: false),
           const Divider(),
-          _buildTotalRow("CGST", _cgstController),
+          _buildTotalRow("CGST", _cgstController, readOnly: false),
           const Divider(),
-          _buildTotalRow("SGST", _sgstController),
+          _buildTotalRow("SGST", _sgstController, readOnly: false),
           const Divider(),
-          _buildTotalRow("IGST", _igstController),
+          _buildTotalRow("IGST", _igstController, readOnly: false),
         ],
       ),
     );
@@ -968,19 +968,94 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
     );
   }
 
-  Widget _buildTotalRow(String label, TextEditingController controller) {
-    return Row(
-      children: [
-        Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87))),
-        SizedBox(
-          width: 120,
-          child: TextField(
-            controller: controller,
-            readOnly: true,
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xff26A69A)),
-            decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+  Widget _buildTotalRow(String label, TextEditingController controller, {bool readOnly = true}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label, 
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600, 
+                color: const Color(0xFF334155),
+                fontSize: 14,
+              )
+            )
           ),
+          Container(
+            width: 140,
+            height: 40,
+            decoration: BoxDecoration(
+              color: readOnly ? const Color(0xFFF1F5F9) : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: readOnly ? Colors.transparent : const Color(0xFFCBD5E1)),
+            ),
+            child: TextField(
+              controller: controller,
+              readOnly: readOnly,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.right,
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold, 
+                color: const Color(0xff26A69A),
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                prefixText: "₹ ",
+                prefixStyle: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.normal),
+                border: InputBorder.none, 
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSupplierDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Supplier Name", style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xffFDFDFD),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: _isLoadingSuppliers
+              ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+              : DropdownButtonHideUnderline(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _cusIdController.text.isEmpty ? null : _cusIdController.text,
+                    hint: Text("Select Supplier", style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                    decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero),
+                    items: _suppliers.map((s) {
+                      return DropdownMenuItem<String>(
+                        value: s['id']?.toString(),
+                        child: Text(s['Ledger_Name'] ?? "N/A", style: const TextStyle(fontSize: 13)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      final selected = _suppliers.firstWhere((s) => s['id']?.toString() == val);
+                      setState(() {
+                        _cusIdController.text = val!;
+                        _supplierNameController.text = selected['Ledger_Name']?.toString() ?? "";
+                        _supplierGstinController.text = selected['gst']?.toString() ?? "";
+                        _addressController.text = selected['address']?.toString() ?? "";
+                        _bPinController.text = selected['pincode']?.toString() ?? "";
+                        _bScodeController.text = selected['state']?.toString() ?? "";
+                      });
+                    },
+                  ),
+                ),
         ),
       ],
     );

@@ -52,6 +52,85 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
     return total;
   }
 
+  Future<void> _sendForApproval() async {
+    if (_currentPrData == null) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String cid = prefs.getString('cid') ?? '';
+      final String uid = prefs.getString('uid') ?? '';
+      final String deviceId = prefs.getString('device_id') ?? '';
+      final String lt = prefs.getString('lt') ?? '';
+      final String ln = prefs.getString('ln') ?? '';
+
+      final master = _currentPrData!.master;
+      final items = _currentPrData!.items;
+
+      final List<Map<String, dynamic>> itemsList = [];
+      for (var item in items) {
+        itemsList.add({
+          "item_code": item.itemCode ?? '',
+          "product_name": item.productName ?? '',
+          "uom": item.uom ?? 'nos',
+          "current_order_quantity": item.quantityRequired ?? item.qty ?? '0',
+          "current_stock_qty": item.qty ?? '0',
+          "dod_date": item.date ?? '',
+          "description": item.itemDescription ?? '',
+        });
+      }
+
+      final Map<String, String> bodyParams = {
+        "type": "4011",
+        "cid": cid,
+        "device_id": deviceId,
+        "uid": uid,
+        "lt": lt,
+        "ln": ln,
+        "date": master.reqDate,
+        "req_date": master.reqDate,
+        "requ_no": widget.prId,
+        "department": widget.department,
+        "req_by": master.requestedBy ?? 'Admin',
+        "priority": master.priority ?? "High",
+        "remarks": master.remarks ?? "Resending for approval",
+        "items": jsonEncode(itemsList),
+      };
+
+      final response = await http.post(
+        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        body: bodyParams,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['error'] == false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("PR Sent For Approval Successfully"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          _showError(data['message'] ?? "Failed to send for approval");
+        }
+      } else {
+        _showError("Server error: ${response.statusCode}");
+      }
+    } catch (e) {
+      _showError("Network error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -459,11 +538,7 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
                         child: SizedBox(
                           height: 48,
                           child: OutlinedButton(
-                            onPressed: () {
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Sending for approval...")),
-                              );
-                            },
+                            onPressed: _sendForApproval,
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: primaryTeal),
                               foregroundColor: primaryTeal,

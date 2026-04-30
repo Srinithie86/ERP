@@ -11,7 +11,8 @@ class CreatePurchaseOrderScreen extends StatefulWidget {
   const CreatePurchaseOrderScreen({super.key});
 
   @override
-  State<CreatePurchaseOrderScreen> createState() => _CreatePurchaseOrderScreenState();
+  State<CreatePurchaseOrderScreen> createState() =>
+      _CreatePurchaseOrderScreenState();
 }
 
 class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
@@ -20,11 +21,15 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   final TextEditingController poNumberController = TextEditingController();
   final TextEditingController supplierNameController = TextEditingController();
   final TextEditingController quotationRefController = TextEditingController();
-  final TextEditingController deliveryAddressController = TextEditingController();
+  final TextEditingController deliveryAddressController =
+      TextEditingController();
   final TextEditingController deliveryDateController = TextEditingController(
-    text: "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}",
+    text:
+        "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}",
   );
-  final TextEditingController taxAmountController = TextEditingController(text: "0.00");
+  final TextEditingController taxAmountController =
+      TextEditingController(text: "0.00");
+  final TextEditingController requestedByController = TextEditingController();
 
   String? cid;
   String? deviceId;
@@ -32,32 +37,101 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
   String? selectedSupplierId;
   String? lt;
   String? ln;
+  List<Map<String, dynamic>> _suppliers = [];
+  bool isLoadingSuppliers = true;
   bool isSaving = false;
   bool isLoadingTerms = false;
   String selectedStatus = "Pending";
   String? selectedPaymentTerm;
   List<Map<String, dynamic>> paymentTermsOptions = [];
   String grandTotalValue = "₹0.00";
+  String? userLedId; // To store led_id (e.g., '40')
 
   @override
   void initState() {
     super.initState();
+    _fetchSuppliers();
     _loadInitialData();
+  }
+
+  Future<void> _fetchSuppliers() async {
+    setState(() => isLoadingSuppliers = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cid = prefs.getString('cid') ?? '44555666';
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "cid": cid,
+          "type": "4010",
+          "device_id": "123",
+          "ln": "145",
+          "lt": "145",
+          "search": "",
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          setState(() {
+            _suppliers = List<Map<String, dynamic>>.from(data['data'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Fetch suppliers error: $e");
+    } finally {
+      if (mounted) setState(() => isLoadingSuppliers = false);
+    }
   }
 
   Future<void> _loadInitialData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       if (!mounted) return;
+      
+      debugPrint("DEBUG: All Prefs Keys: ${prefs.getKeys()}");
+      String name = prefs.getString('name') ?? '';
+      debugPrint("DEBUG: Initial name from prefs: '$name'");
+      
+      String ledId = prefs.getString('led_id') ?? '';
+
+      if (name.trim().isEmpty || name == 'Admin' || name == '40') {
+        final loginResponseStr = prefs.getString('login_response');
+        if (loginResponseStr != null) {
+          try {
+            final decoded = json.decode(loginResponseStr);
+            // Strictly look for 'name' as requested by the user
+            final extractedName = (decoded['name'] ?? '').toString();
+            if (extractedName.isNotEmpty) {
+              name = extractedName;
+            }
+            if (ledId.isEmpty) {
+              ledId = (decoded['led_id'] ?? decoded['user_id'] ?? '').toString();
+            }
+          } catch (e) {
+            debugPrint("DEBUG: Error decoding login_response: $e");
+          }
+        }
+      }
+
+      if (name.isNotEmpty && name != 'Admin' && name != '40') {
+        name = name[0].toUpperCase() + name.substring(1);
+      } else if (name.isEmpty || name == '40') {
+        name = 'Admin';
+      }
+
       setState(() {
         cid = prefs.getString('cid') ?? '';
         mid = prefs.getString('mid') ?? '0';
         deviceId = prefs.getString('device_id') ?? 'Unknown';
         lt = prefs.getString('lt') ?? '145';
         ln = prefs.getString('ln') ?? '145';
+        userLedId = ledId;
+        requestedByController.text = name;
       });
 
-      _fetchPaymentTerms(); // Fetch payment terms on load
+      _fetchPaymentTerms(); 
 
       DeviceServices.getAndStoreDeviceInfo().then((deviceData) {
         if (mounted) {
@@ -102,7 +176,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> _calculateItem(Map<String, dynamic> input) async {
+  Future<Map<String, dynamic>> _calculateItem(
+      Map<String, dynamic> input) async {
     if (cid == null) return {};
     try {
       final response = await http.post(
@@ -121,7 +196,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] == true && data['items'] != null && data['items'].isNotEmpty) {
+        if (data['success'] == true &&
+            data['items'] != null &&
+            data['items'].isNotEmpty) {
           return data['items'][0];
         }
       }
@@ -135,8 +212,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     double total = 0.0;
     double taxTotal = 0.0;
     for (var item in itemsList) {
-      total += double.tryParse((item['total'] as TextEditingController).text) ?? 0.0;
-      taxTotal += double.tryParse((item['taxAmt'] as TextEditingController).text) ?? 0.0;
+      total +=
+          double.tryParse((item['total'] as TextEditingController).text) ?? 0.0;
+      taxTotal +=
+          double.tryParse((item['taxAmt'] as TextEditingController).text) ??
+              0.0;
     }
     setState(() {
       grandTotalValue = "₹${total.toStringAsFixed(2)}";
@@ -218,14 +298,24 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Confirm Purchase Order", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to create this Purchase Order? This will notify the supplier and update the records.", style: GoogleFonts.outfit()),
+        title: Text("Confirm Purchase Order",
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Text(
+            "Are you sure you want to create this Purchase Order? This will notify the supplier and update the records.",
+            style: GoogleFonts.outfit()),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.grey))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("Cancel",
+                  style: GoogleFonts.outfit(color: Colors.grey))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff22A79A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: Text("Confirm & Create", style: GoogleFonts.outfit(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff22A79A),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8))),
+            child: Text("Confirm & Create",
+                style: GoogleFonts.outfit(color: Colors.white)),
           ),
         ],
       ),
@@ -238,7 +328,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       final prefs = await SharedPreferences.getInstance();
       String uid = prefs.getString('uid') ?? prefs.getString('id') ?? '1';
       final roleId = prefs.getString('role_id') ?? '1';
-      
+
       List<Map<String, dynamic>> itemsJson = [];
       for (var item in itemsList) {
         itemsJson.add({
@@ -247,7 +337,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           "uom": (item["uom"] as TextEditingController).text.trim(),
           "quantity": (item["qty"] as TextEditingController).text.trim(),
           "unit_rate": (item["rate"] as TextEditingController).text.trim(),
-          "discount": (item["discountPerc"] as TextEditingController).text.trim(),
+          "discount":
+              (item["discountPerc"] as TextEditingController).text.trim(),
           "tax": (item["taxPerc"] as TextEditingController).text.trim(),
           "tax_amt": (item["taxAmt"] as TextEditingController).text.trim(),
           "tot_amt": (item["total"] as TextEditingController).text.trim(),
@@ -272,18 +363,24 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         "supplier_name": supplierNameController.text.trim(),
         "delivery_address": deliveryAddressController.text.trim(),
         "tax_amount": taxAmountController.text,
-        "grand_total": grandTotalValue.replaceAll('₹', '').replaceAll(',', '').trim(),
+        "grand_total":
+            grandTotalValue.replaceAll('₹', '').replaceAll(',', '').trim(),
+        "req_by": (userLedId != null && userLedId!.isNotEmpty) ? userLedId! : requestedByController.text.trim(),
         "items": jsonEncode(itemsJson),
       };
 
-      final response = await http.post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body);
+      final response = await http
+          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['error'] == false || data['error']?.toString().toLowerCase() == 'false') {
+        if (data['error'] == false ||
+            data['error']?.toString().toLowerCase() == 'false') {
           if (mounted) _showSuccessDialog();
         } else {
-          _showSnackBar(data['message'] ?? data['error_msg'] ?? "Error occurred during submission");
+          _showSnackBar(data['message'] ??
+              data['error_msg'] ??
+              "Error occurred during submission");
         }
       }
     } catch (e) {
@@ -304,7 +401,10 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       padding: const EdgeInsets.only(bottom: 16, top: 8),
       child: Text(
         title,
-        style: GoogleFonts.outfit(color: const Color(0xff22A79A), fontWeight: FontWeight.bold, fontSize: 14),
+        style: GoogleFonts.outfit(
+            color: const Color(0xff22A79A),
+            fontWeight: FontWeight.bold,
+            fontSize: 14),
       ),
     );
   }
@@ -313,20 +413,30 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w600)),
+        Text(label,
+            style: GoogleFonts.outfit(
+                fontSize: 11,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         field,
       ],
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller, {bool readOnly = false, VoidCallback? onTap}) {
+  Widget _buildTextField(String hint, TextEditingController controller,
+      {bool readOnly = false, VoidCallback? onTap}) {
     return Container(
       height: 44,
       decoration: BoxDecoration(
         color: readOnly ? Colors.grey.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TextField(
         controller: controller,
@@ -335,13 +445,56 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
         style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade400),
+          hintStyle:
+              GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade400),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xff22A79A), width: 1.5)),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade200)),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade200)),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide:
+                  const BorderSide(color: Color(0xff22A79A), width: 1.5)),
         ),
       ),
+    );
+  }
+
+  Widget _buildSupplierDropdown() {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: isLoadingSuppliers
+          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          : DropdownButtonHideUnderline(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: (selectedSupplierId == null || selectedSupplierId!.isEmpty) ? null : selectedSupplierId,
+                hint: Text("Select Supplier", style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey)),
+                decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero),
+                items: _suppliers.map((s) {
+                  return DropdownMenuItem<String>(
+                    value: s['id']?.toString(),
+                    child: Text(s['Ledger_Name'] ?? "N/A", style: GoogleFonts.outfit(fontSize: 13)),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  final selected = _suppliers.firstWhere((s) => s['id']?.toString() == val);
+                  setState(() {
+                    selectedSupplierId = val!;
+                    supplierNameController.text = selected['Ledger_Name']?.toString() ?? "";
+                  });
+                },
+              ),
+            ),
     );
   }
 
@@ -351,7 +504,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TypeAheadField<Map<String, dynamic>>(
         controller: supplierNameController,
@@ -360,20 +518,32 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           return TextField(
             controller: controller,
             focusNode: focusNode,
-            style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
+            style:
+                GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500),
             decoration: InputDecoration(
               hintText: "Search Supplier Name...",
-              hintStyle: GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade400),
+              hintStyle:
+                  GoogleFonts.outfit(fontSize: 13, color: Colors.grey.shade400),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xff22A79A), width: 1.5)),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade200)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade200)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide:
+                      const BorderSide(color: Color(0xff22A79A), width: 1.5)),
             ),
           );
         },
         itemBuilder: (context, suggestion) => ListTile(
-          title: Text(suggestion['Ledger_Name'] ?? 'N/A', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.bold)),
-          subtitle: Text(suggestion['address'] ?? '', style: GoogleFonts.outfit(fontSize: 11)),
+          title: Text(suggestion['Ledger_Name'] ?? 'N/A',
+              style: GoogleFonts.outfit(
+                  fontSize: 13, fontWeight: FontWeight.bold)),
+          subtitle: Text(suggestion['address'] ?? '',
+              style: GoogleFonts.outfit(fontSize: 11)),
         ),
         onSelected: (suggestion) {
           setState(() {
@@ -395,7 +565,8 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     );
     if (picked != null) {
       setState(() {
-        deliveryDateController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        deliveryDateController.text =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -405,11 +576,18 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffF8FAFB),
       appBar: AppBar(
-        title: Text("Create Purchase Order", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text("Create Purchase Order",
+            style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
         backgroundColor: const Color(0xff22A79A),
         elevation: 0,
         centerTitle: false,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                color: Colors.white, size: 20),
+            onPressed: () => Navigator.pop(context)),
       ),
       body: Stack(
         children: [
@@ -419,44 +597,73 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildSectionTitle("SUPPLIER & DELIVERY INFO"),
-                _buildLabeledField("SUPPLIER NAME", _buildSupplierSearch()),
+                _buildLabeledField("SUPPLIER NAME", _buildSupplierDropdown()),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildLabeledField("QUOTATION REF", _buildTextField("Enter Ref#", quotationRefController))),
+                    Expanded(
+                        child: _buildLabeledField(
+                            "QUOTATION REF",
+                            _buildTextField(
+                                "Enter Ref#", quotationRefController))),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildLabeledField("DELIVERY DATE", InkWell(
-                      onTap: () => _selectDate(context),
-                      child: IgnorePointer(child: _buildTextField("Select Date", deliveryDateController, readOnly: true)),
-                    ))),
+                    Expanded(
+                        child: _buildLabeledField(
+                            "DELIVERY DATE",
+                            InkWell(
+                              onTap: () => _selectDate(context),
+                              child: IgnorePointer(
+                                  child: _buildTextField(
+                                      "Select Date", deliveryDateController,
+                                      readOnly: true)),
+                            ))),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildLabeledField("DELIVERY ADDRESS", _buildTextField("Enter Address", deliveryAddressController)),
+                _buildLabeledField(
+                    "DELIVERY ADDRESS",
+                    _buildTextField(
+                        "Enter Address", deliveryAddressController)),
                 const SizedBox(height: 16),
-                _buildLabeledField("PAYMENT TERMS", Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: isLoadingTerms 
-                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                    : DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: Text("Select Terms", style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey)),
-                          value: selectedPaymentTerm,
-                          items: paymentTermsOptions
-                              .map((t) => DropdownMenuItem(value: t['name'].toString(), child: Text(t['name'].toString(), style: GoogleFonts.outfit(fontSize: 13))))
-                              .toList(),
-                          onChanged: (val) => setState(() => selectedPaymentTerm = val),
-                        ),
+                _buildLabeledField("REQUESTED BY",
+                    _buildTextField("Requested By", requestedByController, readOnly: true)),
+                const SizedBox(height: 16),
+                _buildLabeledField(
+                    "PAYMENT TERMS",
+                    Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                )),
-                
+                      child: isLoadingTerms
+                          ? const Center(
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2)))
+                          : DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                hint: Text("Select Terms",
+                                    style: GoogleFonts.outfit(
+                                        fontSize: 13, color: Colors.grey)),
+                                value: selectedPaymentTerm,
+                                items: paymentTermsOptions
+                                    .map((t) => DropdownMenuItem(
+                                        value: t['name'].toString(),
+                                        child: Text(t['name'].toString(),
+                                            style: GoogleFonts.outfit(
+                                                fontSize: 13))))
+                                    .toList(),
+                                onChanged: (val) =>
+                                    setState(() => selectedPaymentTerm = val),
+                              ),
+                            ),
+                    )),
                 const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -467,33 +674,46 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => POItemDetailsScreen(searchItems: _searchItems, calculateItem: _calculateItem),
+                            builder: (context) => POItemDetailsScreen(
+                                searchItems: _searchItems,
+                                calculateItem: _calculateItem),
                           ),
                         );
                         if (result != null) {
                           setState(() {
                             itemsList.add({
-                              "code": TextEditingController(text: result['code']),
-                              "name": TextEditingController(text: result['name']),
+                              "code":
+                                  TextEditingController(text: result['code']),
+                              "name":
+                                  TextEditingController(text: result['name']),
                               "uom": TextEditingController(text: result['uom']),
                               "qty": TextEditingController(text: result['qty']),
-                              "rate": TextEditingController(text: result['rate']),
-                              "taxPerc": TextEditingController(text: result['taxPerc']),
-                              "taxAmt": TextEditingController(text: result['taxAmt']),
-                              "discountPerc": TextEditingController(text: result['discountPerc']),
-                              "discountAmt": TextEditingController(text: result['discountAmt']),
-                              "total": TextEditingController(text: result['total']),
+                              "rate":
+                                  TextEditingController(text: result['rate']),
+                              "taxPerc": TextEditingController(
+                                  text: result['taxPerc']),
+                              "taxAmt":
+                                  TextEditingController(text: result['taxAmt']),
+                              "discountPerc": TextEditingController(
+                                  text: result['discountPerc']),
+                              "discountAmt": TextEditingController(
+                                  text: result['discountAmt']),
+                              "total":
+                                  TextEditingController(text: result['total']),
                             });
                             _calculateGrandTotal();
                           });
                         }
                       },
-                      icon: const Icon(Icons.add_circle_outline_rounded, size: 20, color: Color(0xff22A79A)),
-                      label: Text("Add Item", style: GoogleFonts.outfit(color: const Color(0xff22A79A), fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.add_circle_outline_rounded,
+                          size: 20, color: Color(0xff22A79A)),
+                      label: Text("Add Item",
+                          style: GoogleFonts.outfit(
+                              color: const Color(0xff22A79A),
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
-                
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -503,7 +723,6 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               ],
             ),
           ),
-          
           Positioned(
             bottom: 0,
             left: 0,
@@ -512,7 +731,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5))
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -520,16 +744,32 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("TAX AMOUNT", style: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.grey.shade600)),
-                      Text("₹${taxAmountController.text}", style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.blueGrey)),
+                      Text("TAX AMOUNT",
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                              color: Colors.grey.shade600)),
+                      Text("₹${taxAmountController.text}",
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.blueGrey)),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("GRAND TOTAL", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey.shade600)),
-                      Text(grandTotalValue, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18, color: const Color(0xff22A79A))),
+                      Text("GRAND TOTAL",
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Colors.grey.shade600)),
+                      Text(grandTotalValue,
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: const Color(0xff22A79A))),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -539,12 +779,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       backgroundColor: const Color(0xff22A79A),
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 54),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: isSaving 
+                    child: isSaving
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("CONFIRM PURCHASE ORDER", style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        : Text("CONFIRM PURCHASE ORDER",
+                            style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5)),
                   ),
                 ],
               ),
@@ -576,17 +821,24 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0xff22A79A).withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xff22A79A), size: 20),
+                  decoration: BoxDecoration(
+                      color: const Color(0xff22A79A).withOpacity(0.1),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.shopping_bag_outlined,
+                      color: Color(0xff22A79A), size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text(name,
+                          style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold, fontSize: 14)),
                       const SizedBox(height: 4),
-                      Text("QTY: $qty  |  TOTAL: ₹$total", style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12)),
+                      Text("QTY: $qty  |  TOTAL: ₹$total",
+                          style: GoogleFonts.outfit(
+                              color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -600,7 +852,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
               Expanded(
                 child: TextButton(
                   onPressed: () => _editItem(index),
-                  child: Text("Edit", style: GoogleFonts.outfit(color: const Color(0xff22A79A), fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text("Edit",
+                      style: GoogleFonts.outfit(
+                          color: const Color(0xff22A79A),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                 ),
               ),
               Container(width: 1, height: 20, color: Colors.grey.shade200),
@@ -612,7 +868,11 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
                       _calculateGrandTotal();
                     });
                   },
-                  child: Text("Remove", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13)),
+                  child: Text("Remove",
+                      style: GoogleFonts.outfit(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                 ),
               ),
             ],
@@ -638,13 +898,17 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4)),
             child: const Icon(Icons.remove, size: 14),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(qtyController.text, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14)),
+          child: Text(qtyController.text,
+              style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold, fontSize: 14)),
         ),
         InkWell(
           onTap: () async {
@@ -654,7 +918,9 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           },
           child: Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: const Color(0xff22A79A), borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(
+                color: const Color(0xff22A79A),
+                borderRadius: BorderRadius.circular(4)),
             child: const Icon(Icons.add, size: 14, color: Colors.white),
           ),
         ),
@@ -672,9 +938,12 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     });
     if (res.isNotEmpty) {
       setState(() {
-        (item['taxAmt'] as TextEditingController).text = res['tax_amt']?.toString() ?? '0';
-        (item['discountAmt'] as TextEditingController).text = res['discount_amount']?.toString() ?? '0';
-        (item['total'] as TextEditingController).text = res['tot_amt']?.toString() ?? '0';
+        (item['taxAmt'] as TextEditingController).text =
+            res['tax_amt']?.toString() ?? '0';
+        (item['discountAmt'] as TextEditingController).text =
+            res['discount_amount']?.toString() ?? '0';
+        (item['total'] as TextEditingController).text =
+            res['tot_amt']?.toString() ?? '0';
         _calculateGrandTotal();
       });
     }
@@ -694,7 +963,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     if (result != null) {
       setState(() {
         itemsList[index].forEach((key, controller) {
-           (controller as TextEditingController).text = result[key].toString();
+          (controller as TextEditingController).text = result[key].toString();
         });
         _calculateGrandTotal();
       });
@@ -712,17 +981,29 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
           children: [
             const Icon(Icons.check_circle, color: Color(0xff22A79A), size: 60),
             const SizedBox(height: 16),
-            Text("Order Placed!", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Order Placed!",
+                style: GoogleFonts.outfit(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text("Purchase Order has been created successfully.", textAlign: TextAlign.center, style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
+            Text("Purchase Order has been created successfully.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff22A79A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                onPressed: () { Navigator.pop(context); Navigator.pop(context); },
-                child: Text("DONE", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff22A79A),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8))),
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: Text("DONE",
+                    style: GoogleFonts.outfit(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -739,6 +1020,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     deliveryAddressController.dispose();
     deliveryDateController.dispose();
     taxAmountController.dispose();
+    requestedByController.dispose();
     for (var item in itemsList) {
       item.values.forEach((v) => (v as TextEditingController).dispose());
     }

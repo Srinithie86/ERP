@@ -430,7 +430,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     }
 
     // Primary root modules to show at the top level of the drawer
-    final rootModules = ["PURCHASE", "SALES", "CRM", "HRM", "TOTAL_ERP", "ACCOUNTING"];
+    final rootModules = ["PURCHASE", "SALES", "CRM", "HRM", "TOTAL_ERP", "ACCOUNTING", "SERVICE", "ERP SERVICE"];
     
     final availableModules = provider.menuData.keys.toList();
     for (var module in availableModules) {

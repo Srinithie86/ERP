@@ -17,6 +17,7 @@ class QuotationComparisonScreen extends StatefulWidget {
 class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
 
   String? selectedQuotationNo;
+  String? selectedQuotationLabel;
   bool showTable = false;
   bool isLoadingDropdown = true;
   bool isLoadingComparison = false;
@@ -87,9 +88,10 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
             quotationList = List<Map<String, dynamic>>.from(data['data']);
             
             // Fix for crash: 'widget.items!.where((DropdownMenuItem<T> item) => item.value == widget.value).length == 1'
-            if (selectedQuotationNo != null) {
-              bool exists = quotationList.any((q) => q['quotation_no']?.toString() == selectedQuotationNo);
+            if (selectedQuotationLabel != null) {
+              bool exists = quotationList.any((q) => q['label']?.toString() == selectedQuotationLabel);
               if (!exists) {
+                selectedQuotationLabel = null;
                 selectedQuotationNo = null;
               }
             }
@@ -419,18 +421,21 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
                   ),
                   hint: Text(isLoadingDropdown ? "Loading..." : "Choose Quotation No", 
                     style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
-                  value: (quotationList.any((q) => q['quotation_no']?.toString() == selectedQuotationNo)) ? selectedQuotationNo : null,
+                  value: (quotationList.any((q) => q['label']?.toString() == selectedQuotationLabel)) ? selectedQuotationLabel : null,
                   items: quotationList.map((data) {
                     final qNo = data['quotation_no']?.toString() ?? 'N/A';
                     final label = data['label']?.toString() ?? qNo;
                     return DropdownMenuItem<String>(
-                      value: qNo,
+                      value: label,
                       child: Text(label, style: GoogleFonts.outfit(fontSize: 13.sp, fontWeight: FontWeight.normal)),
                     );
                   }).toList(),
                   onChanged: (newValue) {
                     if (newValue == null) return;
-                    setState(() { selectedQuotationNo = newValue; });
+                    setState(() { 
+                      selectedQuotationLabel = newValue; 
+                      selectedQuotationNo = quotationList.firstWhere((q) => q['label'] == newValue)['quotation_no'];
+                    });
                     _loadComparison();
                   },
                 ),

@@ -303,6 +303,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   }
 
   Future<void> _finalizeLogin(Map<String, dynamic> response) async {
+    debugPrint("DEBUG LOGIN RESPONSE: $response");
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_logged_in', true);
     await prefs.setString('login_response', jsonEncode(response));
@@ -312,6 +313,16 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     await prefs.setString('uid', uid);
     await prefs.setString('cid', cid);
     await prefs.setString('role_id', roleId);
+    
+    final rawName = response['name']?.toString() ?? '';
+    if (rawName.isNotEmpty && rawName != response['cus_id']?.toString()) {
+      await prefs.setString('name', rawName);
+    } else {
+       await prefs.setString('name', ''); // Force repair later if it's just the ID
+    }
+    final ledId = response['led_id']?.toString() ?? response['user_id']?.toString() ?? '';
+    await prefs.setString('led_id', ledId);
+    
     await prefs.setString('login_cus_id', uid); // For HRM module compatibility
     if (response['menu'] != null) if (mounted) context.read<MenuProvider>().setMenu(response['menu']);
     debugPrint("Finalizing login, navigating to HomeScreen...");

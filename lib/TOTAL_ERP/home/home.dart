@@ -17,6 +17,8 @@ import '../../providers/menu_provider.dart' hide ModuleItem;
 import 'package:provider/provider.dart';
 //import 'package:crm/Drawer/drawer_screen.dart' as crm_drawer;
 import '../../utils/widgets/dynamic_drawer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,7 +39,29 @@ class _HomeScreenState extends State<HomeScreen> {
     // Check location permission on start to ensure user friendliness
     WidgetsBinding.instance.addPostFrameCallback((_) {
       DeviceService.forceFetchLocation(context);
+      _repairSession();
     });
+  }
+
+  Future<void> _repairSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? currentName = prefs.getString('name');
+    debugPrint("DEBUG HOME: Current name in prefs: '$currentName'");
+    if (currentName == null || currentName.isEmpty || currentName == 'Admin' || currentName == '40') {
+      final loginResponseStr = prefs.getString('login_response');
+      if (loginResponseStr != null) {
+        try {
+          final decoded = json.decode(loginResponseStr);
+          final name = decoded['name']?.toString() ?? '';
+          if (name.isNotEmpty && name != '40') {
+            await prefs.setString('name', name);
+            debugPrint("Session Repaired: Name '$name' restored from login_response");
+          }
+        } catch (e) {
+          debugPrint("DEBUG HOME: Repair error: $e");
+        }
+      }
+    }
   }
 
   void _onModuleSelected(ModuleItem module, String moduleTitle) {

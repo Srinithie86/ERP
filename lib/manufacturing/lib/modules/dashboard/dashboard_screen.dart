@@ -59,8 +59,6 @@ class DashboardScreen extends StatelessWidget {
             SizedBox(height: sh * 0.025),
             _buildQuickActions(sw, sh),
             SizedBox(height: sh * 0.025),
-            _buildReportsBanner(sw, sh),
-            SizedBox(height: sh * 0.025),
             _buildSalesOverview(sw, sh),
             SizedBox(height: sh * 0.025),
             _buildDonutChart(sw, sh),
@@ -332,30 +330,6 @@ class DashboardScreen extends StatelessWidget {
   }
 
   // â”€â”€ Reports Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildReportsBanner(double sw, double sh) => Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: sw * 0.05,
-      vertical: sh * 0.02,
-    ),
-    decoration: BoxDecoration(
-      color: const Color(0xff26A69A),
-      borderRadius: BorderRadius.circular(sw * 0.035),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Reports & Analytics',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: sw * 0.044,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Icon(Icons.chevron_right, color: Colors.white, size: sw * 0.07),
-      ],
-    ),
-  );
 
   // â”€â”€ Sales Overview with Gradient Bars â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSalesOverview(double sw, double sh) {

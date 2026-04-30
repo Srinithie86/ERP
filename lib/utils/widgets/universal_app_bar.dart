@@ -6,6 +6,7 @@ import '../../theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'language_selector.dart';
+import 'location_indicator.dart';
 
 class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -102,6 +103,8 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
             
+            const SizedBox(width: 8),
+            LocationIndicator(isDark: isDark),
             const SizedBox(width: 16),
           ],
         ),

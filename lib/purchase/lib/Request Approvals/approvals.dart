@@ -6,10 +6,12 @@ import 'request_approval_details.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import '../QC/grn_inspection_screen.dart';
 import '../QC/modern_qc_inspection_screen.dart';
 import '../GRN/create_grn_screen.dart';
+import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
 import 'package:erp_smart/theme/app_theme.dart'; // Though we use Theme.of(context), keeping as fallback if needed
 
 class RequestApprovals extends StatefulWidget {
@@ -136,6 +138,39 @@ class RequestApprovals extends StatefulWidget {
 
   static List<dynamic> _groupPRItems(List<dynamic> rawList) {
     if (rawList.isEmpty) return [];
+
+    // Check if it's already nested (e.g. from API 4018)
+    if (rawList.isNotEmpty &&
+        rawList[0] is Map &&
+        (rawList[0] as Map).containsKey('items')) {
+      return rawList.map((item) {
+        return {
+          'master': {
+            'id': item['id'],
+            'no': (item['no'] ?? item['requ_no'] ?? item['id'] ?? '').toString(),
+            'date': item['req_date'] ?? item['date'] ?? item['dtime'] ?? 'N/A',
+            'department': item['department'] ?? 'N/A',
+            'requested_by': item['requested_by'] ?? item['name'] ?? 'N/A',
+            'status': item['status'],
+            'pdf_link': item['pdf_link'],
+            'total_qty': item['quantity_required'] ?? item['qty'] ?? '0',
+          },
+          'items': (item['items'] as List? ?? []).map((i) {
+            return {
+              'item_code': (i['item_code'] ?? '').toString().isEmpty
+                  ? 'N/A'
+                  : i['item_code'].toString(),
+              'product_name': i['product_name'] ?? i['item_description'] ?? 'N/A',
+              'uom': (i['uom'] ?? '').toString().isEmpty ? 'nos' : i['uom'].toString(),
+              'qty': i['quantity_required'] ?? i['qty'] ?? i['item_qty'] ?? '0',
+              'current_stock_qty': i['stk_qty'] ?? i['current_stock_qty'] ?? '0',
+              'dod_date': i['required_date'] ?? i['dod_date'] ?? item['req_date'] ?? 'N/A',
+            };
+          }).toList(),
+        };
+      }).toList();
+    }
+
     final Map<String, Map<String, dynamic>> grouped = {};
 
     for (var item in rawList) {
@@ -152,6 +187,8 @@ class RequestApprovals extends StatefulWidget {
             'department': item['department'] ?? 'N/A',
             'requested_by': item['requested_by'] ?? item['req_by'] ?? 'N/A',
             'type': item['type'] ?? '',
+            'status': item['status'],
+            'total_qty': item['qty'] ?? '0',
             'pdf_link': item['pdf_link'],
           },
           'items': [],
@@ -168,8 +205,8 @@ class RequestApprovals extends StatefulWidget {
       grouped[prNo]!['items'].add({
         'item_code': code.isEmpty ? 'N/A' : code,
         'product_name': item['product_name'] ?? 'N/A',
-        'uom': item['uom'] ?? 'N/A',
-        'qty': item['item_qty'] ?? item['qty'] ?? '0',
+        'uom': (item['uom'] ?? '').toString().isEmpty ? 'nos' : item['uom'].toString(),
+        'qty': item['item_qty'] ?? '0',
         'current_stock_qty':
             item['current_stock_qty'] ?? item['stock_qty'] ?? '0',
         'dod_date':
@@ -584,14 +621,12 @@ class _RequestApprovalsState extends State<RequestApprovals> {
         : '';
     if (itemCode == 'N/A') itemCode = '';
 
-    String prefix = (itemCode.isNotEmpty
-            ? itemCode
-            : (master['grn_no'] ??
-                master['no'] ??
-                master['po_no'] ??
-                master['requ_no'] ??
-                master['id'] ??
-                'N/A'))
+    String prefix = (master['grn_no'] ??
+            master['no'] ??
+            master['po_no'] ??
+            master['requ_no'] ??
+            master['id'] ??
+            (itemCode.isNotEmpty ? itemCode : 'N/A'))
         .toString();
 
     bool isQC = (data['grn_no'] != null || category == "QC");
@@ -640,19 +675,35 @@ class _RequestApprovalsState extends State<RequestApprovals> {
     } else if (isPO) {
       title = "Purchase Order Request";
       subtitle = master['supplier_name'] ?? 'N/A';
-      meta = "Total: ₹${master['grand_total'] ?? master['tot_amt'] ?? '0'}";
+      
+      String poStatus = "Pending";
+      String rawPOStatus = master['status']?.toString() ?? "";
+      if (rawPOStatus == "Approved" || rawPOStatus == "2") poStatus = "Approved";
+      else if (rawPOStatus == "Rejected" || rawPOStatus == "3") poStatus = "Rejected";
+      else if (rawPOStatus.toLowerCase().contains("approve po generated")) poStatus = "Pending";
+      
+      meta = "Status: $poStatus | Total: ₹${master['grand_total'] ?? master['tot_amt'] ?? '0'}";
     } else if (isPR) {
       final itemsList = data['items'] ?? [];
       String typeStr = master['type'] != null && master['type'].toString().isNotEmpty 
           ? ' [${master['type']}]' 
           : '';
       title = (itemsList.isNotEmpty
-          ? (itemsList[0]['product_name'] ?? 'Purchase Item')
+          ? (itemsList[0]['pro_name'] ?? itemsList[0]['product_name'] ?? 'Purchase Item')
           : 'Purchase Item') + typeStr;
       subtitle = master['department'] ?? 'N/A';
-      meta = userMap[master['requested_by']?.toString()] ??
+      
+      String statusStr = "Pending";
+      String rawStatus = master['status']?.toString() ?? "";
+      if (rawStatus == "2") statusStr = "Approved";
+      else if (rawStatus == "3") statusStr = "Rejected";
+      else if (rawStatus.toLowerCase().contains("approve po generated")) statusStr = "Pending";
+      else statusStr = "Pending"; // Handles "1", null, "", etc.
+
+      String reqBy = userMap[master['requested_by']?.toString()] ??
           master['requested_by']?.toString() ??
           'N/A';
+      meta = "Status: $statusStr | By: $reqBy";
     }
 
     Color accentColor = isPR
@@ -704,12 +755,32 @@ class _RequestApprovalsState extends State<RequestApprovals> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              prefix,
-                              style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp,
-                                  color: Colors.blueGrey.shade900),
+                            Row(
+                              children: [
+                                Text(
+                                  prefix,
+                                  style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15.sp,
+                                      color: Colors.blueGrey.shade900),
+                                ),
+                                if (master['pdf_link'] != null && master['pdf_link'].toString().isNotEmpty)
+                                  Padding(
+                                    padding: EdgeInsets.only(left: 8.w),
+                                    child: InkWell(
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PurchaseRequestPdfViewer(
+                                            pdfUrl: master['pdf_link'].toString(),
+                                            prNumber: prefix,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Icon(Icons.picture_as_pdf, color: Colors.red, size: 18.sp),
+                                    ),
+                                  ),
+                              ],
                             ),
                             Text(
                               date,
