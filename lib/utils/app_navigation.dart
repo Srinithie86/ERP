@@ -19,12 +19,7 @@ import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart';
 import 'package:sale_management/Direct_invoice_module/direct_generate_info.dart';
 import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
 import 'package:purchase_erp/dashboard.dart' as purchase;
-import 'package:crm/Screens/Home/dashboard_screen.dart' as crm;
-import 'package:crm/Screens/Leads/leads_screen.dart' as crm_leads;
-import 'package:crm/Screens/EnquiryScreen/enquiry_screen.dart' as crm_enquiry;
-import 'package:crm/Screens/Deals/deals_screen.dart' as crm_deals;
-import 'package:crm/Screens/Follows/follow_up_screen.dart' as crm_follows;
-import 'package:crm/Screens/Meeting/meeting_screen.dart' as crm_meetings;
+
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:hrm/views/home/settings.dart' as hrm_settings;
 import 'package:hrm/views/home_screen/leave_management.dart' as hrm_leave;
@@ -189,18 +184,7 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_ticket.TicketRaise()));
     }
 
-    // CRM Module
-    else if (n == "LEAD" || n == "LEADS") {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_leads.LeadsScreen()));
-    } else if (n == "ENQUIRY" || n == "ENQUIRIES" || n == "LEAD/ENQUIRY") {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_enquiry.EnquiryScreen()));
-    } else if (n == "DEAL" || n == "DEALS") {
-       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_deals.DealsScreen()));
-    } else if (n == "FOLLOW UP" || n == "FOLLOW UPS") {
-       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_follows.FollowUpScreen()));
-    } else if (n.contains("MEETING") || n.contains("VISIT")) {
-       Navigator.push(context, MaterialPageRoute(builder: (context) => const crm_meetings.MeetingVisitScreen()));
-    }
+
     // Service Module
     else if (n == "SERVICE" || n == "SERVICE TICKETS" || n == "ERP SERVICE") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const service.TechnicianDashboard()));
