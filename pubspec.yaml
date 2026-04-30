@@ -47,8 +47,7 @@ dependencies:
     path: lib/l10n/HRM-main 2
   hrm_admin_app:
     path: lib/l10n/HRM-main 2/hrm_admin_app
-  sale_management:
-    path: lib/sale_management
+
 
   geolocator: ^14.0.2
   device_info_plus: ^11.1.0

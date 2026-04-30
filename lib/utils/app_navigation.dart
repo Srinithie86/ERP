@@ -11,14 +11,7 @@ import 'package:purchase_erp/Request%20Approvals/approvals.dart';
 import 'package:purchase_erp/purchase_orders/purchase_orders.dart';
 import 'package:purchase_erp/QC/qc_inspections_screen.dart';
 
-// Sales Imports
-import 'package:sale_management/sales_order_module/all_voice_screen.dart';
-import 'package:sale_management/sales_invoice_module/all_voice_screen.dart';
-import 'package:sale_management/Delivery_chellan_module/all_voice_screen.dart';
-import 'package:sale_management/Proforma_Invoice_Module/all_voice_screen.dart';
-import 'package:sale_management/Direct_invoice_module/direct_generate_info.dart';
-import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
-import 'package:purchase_erp/dashboard.dart' as purchase;
+
 
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:hrm/views/home/settings.dart' as hrm_settings;
@@ -34,7 +27,7 @@ import 'package:hrm/views/attendance_history/attendance.dart' as hrm_emp_attenda
 import 'package:hrm/views/payroll/advance_salary_request.dart' as hrm_emp_advance;
 import 'package:hrm/views/home/feedback.dart' as hrm_emp_feedback;
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
-import 'package:sale_management/Sales_Module/receipt_voucher_screen.dart';
+
 
 import 'package:service_ticket/screens/technician_dashboard.dart' as service;
 
@@ -99,24 +92,7 @@ class AppNavigation {
       // but usually the caller will handle specific module dashboards.
     }
     
-    // Sales Module
-    else if (n.contains("SALES ORDER")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const AllSalesOrderPage()));
-    } else if (n.contains("SALES INVOICE")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesInvoiceAllScreen()));
-    } else if (n.contains("DELIVERY CHALLAN")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const DeliveryChallanAllScreen()));
-    } else if (n.contains("PROFORMA INVOICE")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const ProformaAllInvoicePage(title: 'Proforma Invoice')));
-    } else if (n.contains("DIRECT INVOICE")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const DirectInvoiceGenerateInfoScreen()));
-    } else if (n.contains("APPROVAL") || n.contains("RETURN")) {
-       // Generic implementation for Sales Approval/Return as found in Sales_Module
-       // Navigator.push(context, MaterialPageRoute(builder: (_) => const sales.ApproveScreen()));
-    } 
-    else if (n.contains("RECEIPT") || n.contains("VOUCHER")) {
-       Navigator.push(context, MaterialPageRoute(builder: (_) => const ReceiptVoucherScreen()));
-    }    
+
     // HRM Module
     else if (n == "CHECKIN/CHECK OUT" || n == "CHECKIN/CHECKOUT" || n == "CHECK-IN/CHECK-OUT" || n == "OFFICE ATTENDANCE") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_office_att.OfficeAttendanceScreen()));

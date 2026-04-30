@@ -8,7 +8,7 @@ import 'package:warehouse/providers/warehouse_provider.dart';
 import '../models/module_model.dart';
 import 'package:purchase_erp/dashboard.dart' as purchase;
 
-import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sale_mgmt;
+
 import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:warehouse/screens/view/dashboard_screen.dart' as warehouse;
@@ -51,14 +51,7 @@ List<ModuleItem> get allModules => [
     fallbackIcon: Icons.account_balance_wallet,
     screenBuilder: (context) => const accounting.MainShell(),
   ),
-  ModuleItem(
-    title: 'Sales',
-    imagePath: 'assets/images/sales_logo.png',
-    bgColor: Color(0xFFFFEBEE),
-    fallbackIcon: Icons.local_offer,
-    screenBuilder: (context) => sale_mgmt.DashboardPage(
-        isEmbedded: true, scaffoldKey: moduleScaffoldKey),
-  ),
+
   ModuleItem(
     title: 'Ecommerce',
     imagePath: 'assets/images/ecommerce.png',

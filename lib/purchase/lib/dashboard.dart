@@ -28,7 +28,7 @@ import 'package:erp_localization/erp_localization.dart';
 import 'package:erp_smart/utils/app_navigation.dart';
 import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 import 'package:hrm/main.dart'; // HRM module entry
-import 'package:crm/main.dart'; // CRM module entry
+
 import 'package:erp_smart/utils/widgets/language_selector.dart';
 
 class Dashboard extends StatefulWidget {
