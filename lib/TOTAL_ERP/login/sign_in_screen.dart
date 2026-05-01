@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 import '../home/home.dart';
 import 'login_types.dart';
 import '../../Models/erp_login_api.dart';
@@ -77,33 +78,17 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   @override
   void codeUpdated() {
     final autoCode = code;
-    if (autoCode == null || autoCode.length < 6 || !mounted) return;
+    if (autoCode == null || !mounted) return;
+    final match = RegExp(r'\d{6}').firstMatch(autoCode);
+    if (match == null) return;
 
-    final otp = autoCode.substring(0, 6);
+    final otp = match.group(0)!;
     for (int i = 0; i < 6; i++) {
       _otpControllers[i].text = otp[i];
     }
 
     debugPrint("Code received via Autofill: $otp");
     WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp());
-  }
-
-  Future<void> _pickPhoneNumber() async {
-    try {
-      final String? phone = await SmsAutoFill().hint;
-      if (phone != null && phone.isNotEmpty) {
-        // Extract 10 digits if needed
-        String cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-        if (cleanPhone.length > 10) {
-          cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
-        }
-        setState(() {
-          _mobileController.text = cleanPhone;
-        });
-      }
-    } catch (e) {
-      debugPrint("Phone hint error: $e");
-    }
   }
 
   Future<void> _initDevice() async {
@@ -147,15 +132,90 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     return "$minutes:$seconds";
   }
 
-  void _validateAndSubmit() async {
-      // Force fresh device/location info before login
+  Future<bool> _ensureLocationBeforeLogin() async {
+    await DeviceService.ensureLocationPermission(context);
+    await DeviceService.initDeviceInfo();
+
+    if (DeviceService.isInitialized) return true;
+    if (!mounted) return false;
+
+    final shouldRetry = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+          titlePadding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 8.h),
+          contentPadding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
+          actionsPadding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26A69A).withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.location_on, color: const Color(0xFF00897B), size: 20.sp),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  "Turn on Location",
+                  style: GoogleFonts.outfit(fontSize: 18.sp, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            "To continue login, please enable GPS and allow location permission. "
+            "After enabling, tap \"I Enabled, Continue\".",
+            style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black87, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text("Cancel", style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+            ),
+            TextButton(
+              onPressed: () async {
+                await Geolocator.openLocationSettings();
+                await Geolocator.openAppSettings();
+              },
+              child: Text("Enable Location", style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00897B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+              ),
+              child: Text("I Enabled, Continue", style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldRetry == true) {
+      await DeviceService.ensureLocationPermission(context);
       await DeviceService.initDeviceInfo();
-      
-      if (!DeviceService.isInitialized) {
-        setState(() => _errorText = "Location and Device Info required. Please enable GPS.");
+      return DeviceService.isInitialized;
+    }
+
+    return false;
+  }
+
+  void _validateAndSubmit() async {
+      final locationReady = await _ensureLocationBeforeLogin();
+      if (!locationReady) {
+        setState(() {
+          _errorText = "Please enable location services to continue login.";
+        });
         return;
       }
-      
+
       if (_isMobileLogin) {
         final mobile = _mobileController.text.trim();
         if (mobile.length < 10) {
@@ -193,8 +253,9 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         final cid = response['cid']?.toString() ?? "44555666";
         final otp = response['otp']?.toString() ?? "";
         if (otp.isNotEmpty) {
+          final verifyContact = (response['mobile']?.toString() ?? '').trim();
           setState(() {
-            _currentContact = username;
+            _currentContact = verifyContact.isNotEmpty ? verifyContact : username;
             _currentLoginType = LoginType.password;
             _currentCid = cid;
             _currentToken = token;
@@ -202,7 +263,8 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
             _lastVerifiedOtp = null;
           });
           
-          listenForCode();
+          cancel();
+          listenForCode(smsCodeRegexPattern: r'\d{6}');
           
           // Autofill OTP if provided in response
           if (otp.length == 6) {
@@ -217,10 +279,22 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           _finalizeLogin(response);
         }
       } else {
-        setState(() => _errorText = response['error_msg'] ?? 'Login failed');
+        final message = response['error_msg']?.toString() ?? 'Login failed';
+        setState(() => _errorText = message);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     } catch (e) {
-      setState(() => _errorText = 'Connection error: $e');
+      final message = 'Connection error: $e';
+      setState(() => _errorText = message);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -254,7 +328,8 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           _lastVerifiedOtp = null;
         });
 
-        listenForCode();
+        cancel();
+        listenForCode(smsCodeRegexPattern: r'\d{6}');
 
         // Autofill OTP if provided in response
         if (otp.length == 6) {
@@ -265,18 +340,54 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         }
         _startTimer();
       } else {
-        setState(() => _errorText = response['error_msg'] ?? 'Request failed');
+        final message = response['error_msg']?.toString() ?? 'Request failed';
+        setState(() => _errorText = message);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     } catch (e) {
-      setState(() => _errorText = 'Authentication failed: $e');
+      final message = 'Authentication failed: $e';
+      setState(() => _errorText = message);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   String? _lastVerifiedOtp;
+  String get _enteredOtp => _otpControllers.map((c) => c.text).join();
+
+  void _clearOtp() {
+    for (final controller in _otpControllers) {
+      controller.clear();
+    }
+    _lastVerifiedOtp = null;
+    if (_otpFocusNodes.isNotEmpty) {
+      _otpFocusNodes.first.requestFocus();
+    }
+  }
+
+  Future<void> _pasteOtpFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (text.length < 6) return;
+    final code = text.substring(0, 6);
+    for (int i = 0; i < 6; i++) {
+      _otpControllers[i].text = code[i];
+    }
+    _otpFocusNodes.last.unfocus();
+    _verifyOtp();
+  }
+
   Future<void> _verifyOtp() async {
-    final enteredOtp = _otpControllers.map((c) => c.text).join();
+    final enteredOtp = _enteredOtp;
     if (enteredOtp.length < 6) return;
     if (_isLoading || _lastVerifiedOtp == enteredOtp) return;
     
@@ -298,10 +409,23 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         _finalizeLogin(response);
       } else {
         _lastVerifiedOtp = null; // Allow retry on error
-        setState(() => _errorText = response['error_msg'] ?? 'Invalid OTP');
+        final message = response['error_msg']?.toString() ?? 'Invalid OTP';
+        setState(() => _errorText = message);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     } catch (e) {
-      setState(() => _errorText = 'Verification failed');
+      _lastVerifiedOtp = null; // Allow retry after transient/network failures
+      const message = 'Verification failed';
+      setState(() => _errorText = message);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -473,12 +597,11 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           Text(_isMobileLogin ? "Enter your mobile number to continue" : "Enter your user id and password to continue", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
           SizedBox(height: 16.h),
           if (_isMobileLogin)
-            GestureDetector(
-              onTap: _pickPhoneNumber,
-              child: AbsorbPointer(
-                absorbing: false,
-                child: _buildField("Phone Number", _mobileController, isPhone: true, autofillHints: [AutofillHints.telephoneNumber]),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildField("Phone Number", _mobileController, isPhone: true),
+              ],
             )
           else ...[
             _buildField("User ID", _usernameController, autofillHints: [AutofillHints.username]),
@@ -523,35 +646,32 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         SizedBox(height: 16.h),
         Text("Enter the 6-digit code sent to", style: GoogleFonts.outfit(fontSize: 14.sp, color: Colors.black54)),
         Text(_currentContact, style: GoogleFonts.outfit(fontSize: 15.sp, fontWeight: FontWeight.bold, color: const Color(0xFF00897B))),
-        SizedBox(height: 60.h),
+        SizedBox(height: 24.h),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: PinFieldAutoFill(
-                currentCode: _otpControllers.map((c) => c.text).join(),
-                decoration: BoxLooseDecoration(
-                  radius: Radius.circular(10.r),
-                  strokeColorBuilder: FixedColorBuilder(const Color(0xFF26A69A).withOpacity(0.3)),
-                  bgColorBuilder: FixedColorBuilder(Colors.white),
-                  textStyle: GoogleFonts.outfit(fontSize: 22.sp, fontWeight: FontWeight.bold, color: Colors.black),
-                ),
-                onCodeChanged: (code) {
-                  if (code != null && code.length == 6) {
-                    for (int i = 0; i < 6; i++) {
-                      _otpControllers[i].text = code[i];
-                    }
-                    // Wrap in post frame callback to avoid "setState during build" error
-                    WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp());
-                  }
-                },
-                codeLength: 6,
-              ),
+            Text("OTP", style: GoogleFonts.outfit(fontSize: 15.sp, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            TextButton(
+              onPressed: _pasteOtpFromClipboard,
+              child: Text("Paste Code", style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
             ),
           ],
         ),
+        SizedBox(height: 10.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(6, _buildOtpField),
+        ),
         if (_errorText != null) Padding(padding: EdgeInsets.only(top: 16.h), child: Text(_errorText!, style: GoogleFonts.outfit(color: Colors.red, fontSize: 13.sp))),
-        SizedBox(height: 40.h),
+        SizedBox(height: 14.h),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _clearOtp,
+            child: Text("Clear", style: GoogleFonts.outfit(color: Colors.grey.shade600)),
+          ),
+        ),
+        SizedBox(height: 20.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -633,9 +753,34 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r), borderSide: const BorderSide(color: Color(0xFF00897B), width: 1.5)),
         ),
         onChanged: (v) {
-          if (v.isNotEmpty && index < 5) _otpFocusNodes[index + 1].requestFocus();
-          if (v.isEmpty && index > 0) _otpFocusNodes[index - 1].requestFocus();
-          if (_otpControllers.every((c) => c.text.isNotEmpty)) _verifyOtp();
+          if (_errorText != null) {
+            setState(() => _errorText = null);
+          }
+          _lastVerifiedOtp = null; // User changed OTP, allow fresh verification
+          if (v.length > 1) {
+            final clean = v.replaceAll(RegExp(r'\D'), '');
+            if (clean.length >= 6) {
+              for (int i = 0; i < 6; i++) {
+                _otpControllers[i].text = clean[i];
+              }
+              _verifyOtp();
+              return;
+            }
+            _otpControllers[index].text = clean.isEmpty ? '' : clean.substring(clean.length - 1);
+            _otpControllers[index].selection = TextSelection.fromPosition(
+              TextPosition(offset: _otpControllers[index].text.length),
+            );
+          }
+          if (_otpControllers[index].text.isNotEmpty && index < 5) {
+            _otpFocusNodes[index + 1].requestFocus();
+          }
+          if (_otpControllers[index].text.isEmpty && index > 0) {
+            _otpFocusNodes[index - 1].requestFocus();
+          }
+          if (_otpControllers.every((c) => c.text.isNotEmpty)) {
+            _otpFocusNodes.last.unfocus();
+            _verifyOtp();
+          }
         },
       ),
     );

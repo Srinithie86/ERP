@@ -24,6 +24,7 @@ class DynamicDrawer extends StatefulWidget {
 }
 
 class _DynamicDrawerState extends State<DynamicDrawer> {
+  bool _isSwitching = false;
   String? currentCompanyName;
   String? userName;
   String? userId;
@@ -33,6 +34,11 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
   void initState() {
     super.initState();
     _loadCurrentCompany();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<MenuProvider>().fetchMenuFromServer();
+      }
+    });
   }
 
   Future<void> _loadCurrentCompany() async {
@@ -48,6 +54,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
   }
 
   Future<void> _showSwitchAccountDialog(BuildContext context) async {
+    setState(() => _isSwitching = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final uid = prefs.getString('uid') ?? prefs.getString('id') ?? '';
@@ -64,6 +71,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         lng: lng,
         token: token,
       );
+      if (mounted) setState(() => _isSwitching = false);
 
       if (response['error'] == false && response['company_map'] != null) {
         final List<dynamic> companies = response['company_map'];
@@ -167,6 +175,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         );
       }
     } catch (e) {
+      if (mounted) setState(() => _isSwitching = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -410,6 +419,28 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     );
   }
 
+  List<Map<String, dynamic>> _getUniqueItems(List<dynamic> items) {
+    final Map<String, Map<String, dynamic>> uniqueMenus = {};
+    for (var i in items) {
+      if (i is! Map) continue;
+      final Map<String, dynamic> item =
+          i is Map<String, dynamic> ? i : Map<String, dynamic>.from(i);
+      final name = (item['name'] ?? '').toString().trim().toUpperCase();
+      if (name.isEmpty) continue;
+
+      if (uniqueMenus.containsKey(name)) {
+        if (item.containsKey('sub_menu') &&
+            item['sub_menu'] is List &&
+            (item['sub_menu'] as List).isNotEmpty) {
+          uniqueMenus[name] = item;
+        }
+      } else {
+        uniqueMenus[name] = item;
+      }
+    }
+    return uniqueMenus.values.toList();
+  }
+
   List<Widget> _buildDynamicDrawerItems(BuildContext context, MenuProvider provider) {
     List<Widget> items = [];
 
@@ -421,9 +452,11 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
         }
         return true;
       }).toList();
+      final uniqueSubMenus = _getUniqueItems(subMenus);
       return [
         _buildModuleDashboardTile(context),
-        ...subMenus.map((item) => _buildDynamicTile(context, item, provider, widget.moduleName)),
+        ...uniqueSubMenus.map((item) =>
+            _buildDynamicTile(context, item, provider, widget.moduleName)),
       ];
     }
 
@@ -439,6 +472,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       
       final subMenus = provider.getSubMenus(module);
       if (subMenus.isEmpty) continue;
+      final uniqueSubMenus = _getUniqueItems(subMenus);
 
       items.add(Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -449,7 +483,8 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
           title: Text(module, style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
           children: [
             _buildModuleDashboardTile(context),
-            ...subMenus.map((item) => _buildDynamicTile(context, item, provider, module)),
+            ...uniqueSubMenus
+                .map((item) => _buildDynamicTile(context, item, provider, module)),
           ],
         ),
       ));
@@ -480,6 +515,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     final bool hasNestedSubMenu = item.containsKey('sub_menu') && item['sub_menu'] is List && (item['sub_menu'] as List).isNotEmpty;
     if (hasNestedSubMenu) {
       final List<dynamic> subMenu = item['sub_menu'];
+      final uniqueSubMenu = _getUniqueItems(subMenu);
       return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -488,7 +524,10 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
           leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
           title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
           childrenPadding: const EdgeInsets.only(left: 16),
-          children: subMenu.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
+          children: uniqueSubMenu
+              .map((child) => _buildDynamicTile(
+                  context, Map<String, dynamic>.from(child), provider, trimmedName))
+              .toList(),
         ),
       );
     }
@@ -499,6 +538,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       
       // Prevent infinite recursion if a folder points to its parent or itself
       if (children.isNotEmpty && trimmedName.toUpperCase() != parentModule?.toUpperCase()) {
+        final uniqueChildren = _getUniqueItems(children);
         return Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
@@ -507,7 +547,10 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
             leading: Icon(AppNavigation.getIcon(trimmedName), color: const Color(0xFF26A69A), size: 22),
             title: Text(trimmedName, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600)),
             childrenPadding: const EdgeInsets.only(left: 16),
-            children: children.map((child) => _buildDynamicTile(context, Map<String, dynamic>.from(child), provider, trimmedName)).toList(),
+            children: uniqueChildren
+                .map((child) => _buildDynamicTile(
+                    context, Map<String, dynamic>.from(child), provider, trimmedName))
+                .toList(),
           ),
         );
       }
@@ -624,12 +667,12 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: InkWell(
-                    onTap: () => _showSwitchAccountDialog(context),
+                    onTap: _isSwitching ? null : () => _showSwitchAccountDialog(context),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          "Switch Account",
+                          _isSwitching ? "Switching..." : "Switch Account",
                           style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 12.sp,
@@ -637,7 +680,18 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 18),
+                        _isSwitching
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor:
+                                      AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.keyboard_arrow_down_rounded,
+                                color: Colors.white, size: 18),
                       ],
                     ),
                   ),
