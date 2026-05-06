@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'product_model.dart';
 import 'invoice_view_screen.dart';
 import '../widgets/pdf_viewer_screen.dart';
+import 'package:sale_management/core/api_config.dart';
 
 // ─── Theme Constants ──────────────────────────────────────
 const kTeal = Color(0xFF26A69A);
@@ -78,7 +79,7 @@ class _DeliveryChallanAllScreenState extends State<DeliveryChallanAllScreen> {
       final uid = prefs.getString('uid') ?? '1';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8015',
           'cid': cid,

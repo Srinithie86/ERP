@@ -10,6 +10,7 @@ import '../Widgets/common_job_card.dart';
 import '../core/app_colors.dart';
 import '../data/app_data.dart';
 import 'Support/notification_screen.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({
@@ -59,7 +60,7 @@ class _HomeTabState extends State<HomeTab> {
       };
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiConfig.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -117,7 +118,7 @@ class _HomeTabState extends State<HomeTab> {
       };
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiConfig.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -1083,4 +1084,3 @@ class _PieChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

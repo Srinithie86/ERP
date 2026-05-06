@@ -40,14 +40,14 @@ dependencies:
   shared_preferences: ^2.5.5
   http: ^1.2.2
   provider: ^6.1.1
+  intl_phone_field: ^3.2.0
 
   purchase_erp:
     path: lib/purchase
   hrm:
-    path: lib/l10n/HRM-main 2
+    path: lib/HRM
   hrm_admin_app:
-    path: lib/l10n/HRM-main 2/hrm_admin_app
-
+    path: lib/HRM/hrm_admin_app
 
   geolocator: ^14.0.2
   device_info_plus: ^11.1.0
@@ -56,6 +56,7 @@ dependencies:
   permission_handler: ^12.0.1
   flutter_animate: ^4.5.2
   google_fonts: ^8.0.2
+  firebase_core: ^4.7.0
   ecommerce:
     path: lib/ecommerce
   warehouse:
@@ -63,14 +64,14 @@ dependencies:
   sale_management:
     path: lib/sale_management
   accountings:
-    path: lib/accounting
+    path: lib/ERP-Accounting-main
   manufacturing_erp:
     path: lib/manufacturing
 
   dealermanagment:
     path: lib/dealer_management
   service_ticket:
-    path: "lib/theme/Service "
+    path: lib/Service-main
   share_plus: ^12.0.1
   path_provider: ^2.1.4
   syncfusion_flutter_pdfviewer: ^28.2.7
@@ -113,7 +114,7 @@ flutter:
     - assets/icons/
     - assets/apple.png
     - assets/google.png
-    - assets/Profile.png
+    - assets/profile.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

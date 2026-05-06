@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'utils/device_services.dart';
 import 'invoice_item_details_screen.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class InvoiceItem {
   final TextEditingController productNameController = TextEditingController();
@@ -92,7 +93,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4010",
@@ -281,7 +282,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -392,7 +393,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4010",
@@ -417,7 +418,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4046",
@@ -485,7 +486,7 @@ class _PurchaseInvoiceScreenState extends State<PurchaseInvoiceScreen> {
       debugPrint("PURCHASE INVOICE REQUEST: $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -1139,7 +1140,7 @@ class _GRNSelectionSheetState extends State<_GRNSelectionSheet> {
       final cid = prefs.getString('cid') ?? '44555666';
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4046",
@@ -1310,7 +1311,7 @@ class _SupplierSelectionSheetState extends State<_SupplierSelectionSheet> {
       final cid = prefs.getString('cid') ?? '44555666';
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4010",

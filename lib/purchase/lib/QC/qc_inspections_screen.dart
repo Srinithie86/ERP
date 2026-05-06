@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import '../purchase_request_pdf_viewer.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class QCInspectionsScreen extends StatefulWidget {
   const QCInspectionsScreen({super.key});
@@ -36,7 +37,7 @@ class _QCInspectionsScreenState extends State<QCInspectionsScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4034",
           "cid": cid.isEmpty ? '44555666' : cid,

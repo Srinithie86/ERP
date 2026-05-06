@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class PODetailsScreen extends StatefulWidget {
   final Map<String, dynamic> poData;
@@ -31,7 +32,7 @@ class _PODetailsScreenState extends State<PODetailsScreen> {
       final String lt = deviceInfo['lt'] ?? "0.0";
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4030",
           "cid": cid,

@@ -7,6 +7,7 @@ import '../widgets/app_theme.dart';
 import 'product_model.dart';
 import 'selected_products_screen.dart';
 import 'invoice_view_screen.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class ProformaInvoicePaymentScreen extends StatefulWidget {
   final double totalAmount;
@@ -89,7 +90,7 @@ class _ProformaInvoicePaymentScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2084',
           'cid': cid,
@@ -142,7 +143,7 @@ class _ProformaInvoicePaymentScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8002',
           'cid': cid,
@@ -182,7 +183,7 @@ class _ProformaInvoicePaymentScreenState
     final ln = prefs.getString('ln') ?? '123';
     final deviceId = prefs.getString('device_id') ?? '123';
 
-    const url = 'https://erpsmart.in/total/api/m_api/';
+    final url = await ApiConfig.getBaseUrl();
     final body = {
       'type': '2083',
       'cid': cid,
@@ -352,13 +353,13 @@ class _ProformaInvoicePaymentScreenState
     }
 
     debugPrint("\n================ SUBMIT INVOICE REQUEST ================");
-    debugPrint("URL: https://erpsmart.in/total/api/m_api/");
+    debugPrint("URL: ${await ApiConfig.getBaseUrl()}");
     debugPrint("BODY: $debugBody");
     debugPrint("========================================================\n");
 
     try {
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

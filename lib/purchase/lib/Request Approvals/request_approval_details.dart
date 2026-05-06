@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
 import 'package:purchase_erp/utils/location_helper.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class RequestApprovalDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> masterData;
@@ -214,7 +215,7 @@ class _RequestApprovalDetailsScreenState
             };
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: bodyParams,
       );
 

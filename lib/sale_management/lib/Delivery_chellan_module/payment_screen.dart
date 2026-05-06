@@ -8,6 +8,7 @@ import '../widgets/app_theme.dart';
 import 'product_model.dart';
 import 'selected_products_screen.dart';
 import 'invoice_view_screen.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class DeliveryChallanPaymentScreen extends StatefulWidget {
   final double totalAmount;
@@ -169,7 +170,7 @@ class _DeliveryChallanPaymentScreenState
       };
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -229,7 +230,7 @@ class _DeliveryChallanPaymentScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': cid,
@@ -356,7 +357,7 @@ class _DeliveryChallanPaymentScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8006',
           'cid': cid,
@@ -398,7 +399,7 @@ class _DeliveryChallanPaymentScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2084',
           'cid': cid,

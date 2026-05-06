@@ -30,6 +30,7 @@ import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 import 'package:hrm/main.dart'; // HRM module entry
 
 import 'package:erp_smart/utils/widgets/language_selector.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class Dashboard extends StatefulWidget {
   final bool isEmbedded;
@@ -100,7 +101,7 @@ class _DashboardState extends State<Dashboard> {
       final deviceId = deviceData['device_id'] ?? 'Unknown';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4022",
           "cid": cid,
@@ -143,7 +144,7 @@ class _DashboardState extends State<Dashboard> {
       final deviceId = deviceData['device_id'] ?? 'Unknown';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4040",
           "cid": cid,
@@ -210,7 +211,7 @@ class _DashboardState extends State<Dashboard> {
       final deviceId = deviceData['device_id'] ?? 'Unknown';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4041",
           "cid": cid,

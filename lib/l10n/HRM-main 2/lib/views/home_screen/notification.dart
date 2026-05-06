@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hrm/services/api_config.dart';
 
 class NotificationApp extends StatelessWidget {
   const NotificationApp({super.key});
@@ -101,7 +102,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       final String ln = prefs.getDouble('lng')?.toString() ?? "0.0";
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "2052",
@@ -161,7 +162,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -286,7 +287,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ).format(DateTime(now.year, now.month + 1, 0));
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "2075",
           "cid": cid,
@@ -363,7 +364,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

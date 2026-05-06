@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hrm/services/api_config.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -13,7 +14,7 @@ class ApiClient {
 
   ApiClient._internal();
 
-  static const String baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   Future<http.Response> post(Map<String, dynamic> body) async {
     Map<String, String> finalBody = {};
@@ -43,7 +44,7 @@ class ApiClient {
       }
 
       final response = await _client.post(
-        Uri.parse(baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         headers: {
           if (token != null) 'Authorization': 'Bearer $token',
           if (token != null) 'token': token,
@@ -89,7 +90,7 @@ class ApiClient {
 
       debugPrint("API REQUEST JSON => $finalBody");
       final response = await _client.post(
-        Uri.parse(baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         headers: {
           "Content-Type": "application/json",
           if (token != null) 'Authorization': 'Bearer $token',

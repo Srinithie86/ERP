@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class TermsOfServiceScreen extends StatefulWidget {
   const TermsOfServiceScreen({super.key});
@@ -26,7 +27,7 @@ class _TermsOfServiceScreenState extends State<TermsOfServiceScreen> {
     try {
       final deviceData = await DeviceServices.getQuickDeviceInfo();
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '4042',
           'cid': '44555666',

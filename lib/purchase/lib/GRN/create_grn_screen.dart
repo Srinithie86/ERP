@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class GRNItemData {
   final TextEditingController itemCodeController = TextEditingController();
@@ -98,7 +99,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4014",
           "cid": cid,
@@ -132,7 +133,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4026",
           "cid": cid,
@@ -251,7 +252,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       }
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -442,7 +443,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4023",
           "cid": cid,
@@ -476,7 +477,7 @@ class _CreateGRNScreenState extends State<CreateGRNScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4024",
           "cid": prefs.getString('cid') ?? '',

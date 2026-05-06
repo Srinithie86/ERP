@@ -27,7 +27,7 @@ import 'package:hrm/views/home/ticket_raise.dart' as hrm_emp_ticket;
 import 'package:hrm/views/attendance_history/attendance.dart' as hrm_emp_attendance;
 import 'package:hrm/views/payroll/advance_salary_request.dart' as hrm_emp_advance;
 import 'package:hrm/views/home/feedback.dart' as hrm_emp_feedback;
-import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
+import 'package:accountings/screens/home/home_screen.dart' as accounting;
 
 import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
 
@@ -65,6 +65,9 @@ import 'package:hrm_admin_app/Screens/Admin/AttendanceManagement/mobile_attendan
 import 'package:hrm_admin_app/Screens/Admin/LeaveManagement/admin_leave_requests.dart' as hrm_admin_leave_req;
 import 'package:hrm_admin_app/Screens/Admin/PermissionManagement/admin_permission_report.dart' as hrm_admin_perm_rep;
 import 'package:hrm_admin_app/Screens/Admin/ExpenseManagement/admin_expense_requests.dart' as hrm_admin_exp_req;
+import 'package:hrm/views/marketing/marketing_screen.dart' as hrm_marketing;
+import 'package:hrm_admin_app/Screens/Admin/LeaveManagement/admin_leave_status.dart' as hrm_admin_leave_status;
+import 'package:hrm_admin_app/Screens/Admin/AttendanceManagement/marketing_attendance.dart' as hrm_admin_marketing;
 
 class AppNavigation {
   static void handleNavigation(BuildContext context, String name, {String? moduleContext}) {
@@ -126,6 +129,12 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_exp_req.AdminExpenseRequestsScreen()));
     } else if (n.contains("LEAVE APPROVAL") || n.contains("ADMIN LEAVE") || n.contains("LEAVE APPROVEL")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_leave.AdminLeaveManagementScreen()));
+    } else if (n == "LEAVE STATUS" || n.contains("LEAVE STATUS")) {
+       if (m.contains("ADMIN")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_leave_status.AdminLeaveStatusScreen()));
+       } else {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_leave.LeaveManagementScreen()));
+       }
     } else if (n.contains("LEAVE TYPES") || n == "LEAVE" || n == "LEAVE MANAGEMENT") {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_leave.LeaveManagementScreen()));
     } else if (n.contains("HRM SETTINGS") || n == "SETTINGS") {
@@ -172,7 +181,13 @@ class AppNavigation {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_training.TrainingManagementScreen()));
     } else if (n.contains("HEALTH") && n.contains("SAFETY")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_health.HealthSafetyManagementScreen()));
-    } else if (n.contains("MARKETING ATTENDANCE") || n.contains("MARKETING SELECTION") || n == "MARKETING" || n.contains("MARKETING")) {
+    } else if (n == "MARKETING" || n == "MARKETING ATTENDANCE") {
+       if (m.contains("ADMIN")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_admin_marketing.MarketingAttendanceScreen()));
+       } else {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_marketing.MarketingScreen()));
+       }
+    } else if (n.contains("MARKETING SELECTION") || n.contains("MARKETING")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_marketing.MarketingSelectionScreen()));
     } else if (n.contains("REPORTS") || n.contains("INSIGHTS")) {
        Navigator.push(context, MaterialPageRoute(builder: (_) => const hrm_emp_reports.ReportsScreen()));

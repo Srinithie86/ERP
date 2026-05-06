@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class InvoiceItemDetailsScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -32,7 +33,7 @@ class _InvoiceItemDetailsScreenState extends State<InvoiceItemDetailsScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4003",

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class ModernQCInspectionScreen extends StatefulWidget {
   final Map<String, dynamic> inspectionData;
@@ -102,7 +103,7 @@ class _ModernQCInspectionScreenState extends State<ModernQCInspectionScreen> {
         });
       }
 
-      final url = Uri.parse("https://erpsmart.in/total/api/m_api/");
+      final url = Uri.parse(await ApiConfig.getBaseUrl());
       final response = await http.post(
         url,
         body: {

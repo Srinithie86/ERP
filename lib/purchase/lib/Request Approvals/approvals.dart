@@ -13,6 +13,7 @@ import '../QC/modern_qc_inspection_screen.dart';
 import '../GRN/create_grn_screen.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
 import 'package:erp_smart/theme/app_theme.dart'; // Though we use Theme.of(context), keeping as fallback if needed
+import 'package:purchase_erp/core/api_config.dart';
 
 class RequestApprovals extends StatefulWidget {
   static List<dynamic> cachedApprovals = [];
@@ -20,7 +21,7 @@ class RequestApprovals extends StatefulWidget {
   static bool hasCachedData = false;
   static bool isPreFetching = false;
 
-  static const String apiUrl = 'https://erpsmart.in/total/api/m_api/';
+  
 
   final bool isEmbedded;
 
@@ -38,7 +39,7 @@ class RequestApprovals extends StatefulWidget {
 
       final results = await Future.wait([
         http.post(
-          Uri.parse(apiUrl),
+          Uri.parse(await ApiConfig.getBaseUrl()),
           body: {
             'type': '5001',
             'cid': cid,
@@ -48,7 +49,7 @@ class RequestApprovals extends StatefulWidget {
           },
         ),
         http.post(
-          Uri.parse(apiUrl),
+          Uri.parse(await ApiConfig.getBaseUrl()),
           body: {
             'type': '4036',
             'cid': cid,
@@ -273,7 +274,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse(RequestApprovals.apiUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '5001',
           'cid': cid,
@@ -310,7 +311,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse(RequestApprovals.apiUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '4036',
           'cid': cid,
@@ -352,7 +353,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse(RequestApprovals.apiUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '4044',
           'cid': cid,
@@ -393,7 +394,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final cid = prefs.getString('cid') ?? '44555666';
 
       final response = await http.post(
-        Uri.parse(RequestApprovals.apiUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4034",
           "cid": cid,
@@ -427,7 +428,7 @@ class _RequestApprovalsState extends State<RequestApprovals> {
       final prefs = await SharedPreferences.getInstance();
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
       final response = await http.post(
-        Uri.parse(RequestApprovals.apiUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4030",
           "cid": prefs.getString('cid') ?? '44555666',

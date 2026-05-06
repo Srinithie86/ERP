@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/item_details_screen.dart';
 import 'package:purchase_erp/purchase_orders/pr_details.dart';
 import 'package:purchase_erp/models/pr_model.dart' as model;
+import 'package:purchase_erp/core/api_config.dart';
 
 class ItemData {
   final TextEditingController itemCodeController = TextEditingController();
@@ -145,7 +146,7 @@ class _CreatePurchaseRequestScreenState
     }
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4004",
           "cid": cid ?? '',
@@ -287,7 +288,7 @@ class _CreatePurchaseRequestScreenState
 
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4000",
           "cid": cid ?? '',
@@ -361,7 +362,7 @@ class _CreatePurchaseRequestScreenState
 
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4001",
           "cid": cid ?? '',
@@ -410,7 +411,7 @@ class _CreatePurchaseRequestScreenState
     try {
       debugPrint("🔍 Searching for: '$query' (cid: $cid, device: $deviceId)");
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4003",
           "cid": cid ?? '',
@@ -537,13 +538,13 @@ class _CreatePurchaseRequestScreenState
         body["description[$i]"] = item.descriptionController.text;
       }
       debugPrint("=========== REQUEST START ===========");
-      debugPrint("URL: https://erpsmart.in/total/api/m_api/");
+      debugPrint("URL: ${await ApiConfig.getBaseUrl()}");
       body.forEach((key, value) {
         debugPrint("$key : $value");
       });
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
       debugPrint("=========== RESPONSE START ===========");

@@ -12,8 +12,10 @@ import 'login_types.dart';
 import '../../Models/erp_login_api.dart';
 import '../../providers/menu_provider.dart';
 import '../../utils/device_service.dart';
+import '../../utils/api_config.dart';
 import 'package:provider/provider.dart';
 import 'package:sms_autofill/sms_autofill.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -39,6 +41,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   bool _isLoading = false;
   bool _showWorkspaceStep = true;
   bool _showOtpView = false;
+  bool _isOtpProcessed = false; // STRICT: Prevents double verification
   String? _errorText;
   String? _appSignature;
   
@@ -48,7 +51,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   String _currentCid = "";
   String _currentToken = "";
 
-  static const String defaultUrl = "https://erpsmart.in/total/api/m_api/";
+  static const String defaultUrl = ApiConfig.defaultBaseUrl;
 
   @override
   void initState() {
@@ -78,17 +81,22 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   @override
   void codeUpdated() {
     final autoCode = code;
-    if (autoCode == null || !mounted) return;
-    final match = RegExp(r'\d{6}').firstMatch(autoCode);
-    if (match == null) return;
+    // STRICT: Only process if valid, exactly 6 digits, and not already processed
+    if (autoCode != null && autoCode.length >= 6 && !_isOtpProcessed && _showOtpView) {
+      final match = RegExp(r'\d{6}').firstMatch(autoCode);
+      if (match == null) return;
 
-    final otp = match.group(0)!;
-    for (int i = 0; i < 6; i++) {
-      _otpControllers[i].text = otp[i];
+      final otp = match.group(0)!;
+      for (int i = 0; i < 6; i++) {
+        _otpControllers[i].text = otp[i];
+      }
+
+      debugPrint("📩 Code received via Autofill: $otp");
+      setState(() => _isOtpProcessed = true);
+      
+      // Call verify with a small delay to ensure UI updates
+      Future.delayed(const Duration(milliseconds: 300), () => _verifyOtp());
     }
-
-    debugPrint("Code received via Autofill: $otp");
-    WidgetsBinding.instance.addPostFrameCallback((_) => _verifyOtp());
   }
 
   Future<void> _initDevice() async {
@@ -106,8 +114,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   }
 
   Future<void> _loadSavedDomain() async {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('company_domain_url') ?? '';
+    final saved = await ApiConfig.getBaseUrl();
     if (saved.isNotEmpty) {
       _domainController.text = saved;
       setState(() => _showWorkspaceStep = false);
@@ -133,7 +140,24 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   }
 
   Future<bool> _ensureLocationBeforeLogin() async {
-    await DeviceService.ensureLocationPermission(context);
+    // STRICT: Check service and permission first
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    LocationPermission permission = await Geolocator.checkPermission();
+
+    if (!serviceEnabled || permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      await DeviceService.ensureLocationPermission(context);
+    }
+
+    // Refresh status after dialogs
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    permission = await Geolocator.checkPermission();
+
+    if (!serviceEnabled || permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+       // Still not ready, return false to stop login
+       return false;
+    }
+
+    // Capture fresh coordinates
     await DeviceService.initDeviceInfo();
 
     if (DeviceService.isInitialized) return true;
@@ -265,15 +289,6 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           
           cancel();
           listenForCode(smsCodeRegexPattern: r'\d{6}');
-          
-          // Autofill OTP if provided in response
-          if (otp.length == 6) {
-            for (int i = 0; i < 6; i++) {
-              _otpControllers[i].text = otp[i];
-            }
-            Future.delayed(const Duration(milliseconds: 500), () => _verifyOtp());
-          }
-          
           _startTimer();
         } else {
           _finalizeLogin(response);
@@ -325,19 +340,12 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
           _currentCid = cid;
           _currentToken = token;
           _showOtpView = true;
+          _isOtpProcessed = false; // Reset for new OTP
           _lastVerifiedOtp = null;
         });
 
         cancel();
         listenForCode(smsCodeRegexPattern: r'\d{6}');
-
-        // Autofill OTP if provided in response
-        if (otp.length == 6) {
-          for (int i = 0; i < 6; i++) {
-            _otpControllers[i].text = otp[i];
-          }
-          Future.delayed(const Duration(milliseconds: 500), () => _verifyOtp());
-        }
         _startTimer();
       } else {
         final message = response['error_msg']?.toString() ?? 'Request failed';
@@ -428,6 +436,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      _isOtpProcessed = false; 
     }
   }
 
@@ -528,8 +537,7 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
               child: ElevatedButton(
                 onPressed: () async {
                   final url = _domainController.text.trim().isEmpty ? defaultUrl : _domainController.text.trim();
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('company_domain_url', url);
+                  await ApiConfig.saveBaseUrl(url);
                   setState(() => _showWorkspaceStep = false);
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00695C), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r))),
@@ -716,12 +724,29 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
   }
 
   Widget _buildField(String label, TextEditingController controller, {bool isPassword = false, bool isPhone = false, Iterable<String>? autofillHints}) {
+    if (isPhone) {
+      return IntlPhoneField(
+        controller: controller,
+        initialCountryCode: 'IN',
+        style: GoogleFonts.outfit(fontSize: 16.sp),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.outfit(color: Colors.black87),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466), width: 1.5)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        onChanged: (phone) {
+          // controller is already updated by IntlPhoneField, but we can handle extra logic if needed
+        },
+      );
+    }
     return TextField(
       controller: controller,
       obscureText: isPassword && _obscurePassword,
       autofillHints: autofillHints,
-      keyboardType: isPhone ? TextInputType.number : (isPassword ? TextInputType.visiblePassword : TextInputType.text),
-      inputFormatters: isPhone ? [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)] : null,
+      keyboardType: isPassword ? TextInputType.visiblePassword : TextInputType.text,
       style: GoogleFonts.outfit(fontSize: 16.sp),
       decoration: InputDecoration(
         labelText: label,

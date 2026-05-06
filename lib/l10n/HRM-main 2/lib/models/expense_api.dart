@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../services/api_client.dart';
+import 'package:hrm/services/api_config.dart';
 
 class ExpenseRepo {
   static final ApiClient _apiClient = ApiClient();
@@ -22,7 +23,7 @@ class ExpenseRepo {
     File? receiptImage,
   }) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse(ApiClient.baseUrl));
+      var request = http.MultipartRequest('POST', Uri.parse(await ApiConfig.getBaseUrl()));
 
       request.fields.addAll({
         "cid": cid,

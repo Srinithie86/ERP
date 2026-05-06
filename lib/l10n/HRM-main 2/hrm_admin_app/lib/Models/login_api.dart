@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class LoginResponse {
   final bool error;
@@ -47,7 +48,7 @@ class LoginResponse {
 }
 
 class LoginApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   // SMS Login API (type 2088)
   static Future<LoginResponse> sendSmsOtp({
@@ -69,7 +70,7 @@ class LoginApi {
       };
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -117,7 +118,7 @@ class LoginApi {
       };
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

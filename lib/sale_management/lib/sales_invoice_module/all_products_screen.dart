@@ -5,6 +5,7 @@ import 'product_model.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class SalesInvoiceCatalogScreen extends StatefulWidget {
   final String taxType;
@@ -52,7 +53,7 @@ class _SalesInvoiceCatalogScreenState extends State<SalesInvoiceCatalogScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': cid,

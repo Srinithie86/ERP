@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:hrm/services/api_config.dart';
 
 /// Data model for break entries used in reports
 class BreakEntry {
@@ -23,7 +24,7 @@ class BreakEntry {
 /// A mixin or helper class could work, but for a clean "separate file" request in Flutter, 
 /// we provide the core functional logic that can be imported or used as a reference.
 class BreakService {
-  static const String baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   /// Handle Break In API call (Type 2055)
   static Future<Map<String, dynamic>> startBreak({
@@ -46,7 +47,7 @@ class BreakService {
       if (token != null && token.isNotEmpty) "token": token,
     };
 
-    final response = await http.post(Uri.parse(baseUrl), body: body);
+    final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
     return jsonDecode(response.body);
   }
 
@@ -69,7 +70,7 @@ class BreakService {
       if (token != null && token.isNotEmpty) "token": token,
     };
 
-    final response = await http.post(Uri.parse(baseUrl), body: body);
+    final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
     return jsonDecode(response.body);
   }
 
@@ -93,7 +94,7 @@ class BreakService {
       if (token != null && token.isNotEmpty) "token": token,
     };
 
-    final response = await http.post(Uri.parse(baseUrl), body: body);
+    final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
     return jsonDecode(response.body);
   }
 

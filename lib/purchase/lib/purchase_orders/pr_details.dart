@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class PRDetailsScreen extends StatefulWidget {
   final String prId;
@@ -98,7 +99,7 @@ class _PRDetailsScreenState extends State<PRDetailsScreen> {
       };
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: bodyParams,
       );
 

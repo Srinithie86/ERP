@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/utils/device_services.dart';
 import '../purchase_request_pdf_viewer.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class GrnInspectionScreen extends StatefulWidget {
   final Map<String, dynamic> inspectionData;
@@ -139,7 +140,7 @@ class _GrnInspectionScreenState extends State<GrnInspectionScreen> {
       }
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4048",
           "cid": cid.isEmpty ? "44555666" : cid,

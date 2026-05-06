@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class QuotationComparisonScreen extends StatefulWidget {
   const QuotationComparisonScreen({super.key});
@@ -74,7 +75,7 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
     print("CID: $cid");
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {"type": "4031", "cid": cid!, "device_id": deviceId ?? "", "lt": lt ?? "0", "ln": ln ?? "0"},
       );
       
@@ -120,7 +121,7 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4029",
           "cid": cid!,
@@ -262,7 +263,7 @@ class _QuotationComparisonScreenState extends State<QuotationComparisonScreen> {
           "items": jsonEncode(supplierGroups[sId]),
         };
 
-        final response = await http.post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body);
+        final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);

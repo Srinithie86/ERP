@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class CreateRFQScreen extends StatefulWidget {
   const CreateRFQScreen({super.key});
@@ -83,7 +84,7 @@ class _CreateRFQScreenState extends State<CreateRFQScreen> {
       }
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '4014',
           'cid': cid ?? '',
@@ -132,7 +133,7 @@ class _CreateRFQScreenState extends State<CreateRFQScreen> {
     try {
       debugPrint("🔍 Searching for: '$query' (cid: $cid)");
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4003",
           "cid": cid ?? '',

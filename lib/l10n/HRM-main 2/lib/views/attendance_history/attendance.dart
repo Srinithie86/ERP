@@ -15,6 +15,7 @@ import 'check_out.dart';
 import '../main_root.dart';
 import 'package:hrm/views/widgets/user_avatar.dart';
 import 'marketing_timeline.dart';
+import 'package:hrm/services/api_config.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -159,7 +160,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -220,7 +221,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       debugPrint("BREAK HISTORY REQUEST (2079) => $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -596,7 +597,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       debugPrint("ATTENDANCE SUMMARY REQUEST => $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -856,7 +857,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       debugPrint("LEAVE STATISTICS REQUEST => $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -1065,7 +1066,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       debugPrint("BREAK IN POST REQUEST => $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -1215,7 +1216,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       debugPrint("BREAK OUT POST REQUEST => $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

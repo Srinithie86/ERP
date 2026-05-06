@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:manufacturing_erp/core/api_config.dart';
 import 'production_order_model.dart';
 
 class ProductionOrderFetchResult {
@@ -11,8 +12,7 @@ class ProductionOrderFetchResult {
 }
 
 class ProductionOrderApiService {
-  static const String _baseUrl = 'https://erpsmart.in/total/api/m_api/';
-
+  
   static List<Map<String, dynamic>>? _cachedBoms;
   static List<StaffMember>? _cachedStaff;
   static List<Map<String, dynamic>>? _cachedCustomers;
@@ -22,7 +22,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '9006',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -57,7 +57,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "2084",
           "cid": prefs.getString('cid') ?? '44555666',
@@ -89,7 +89,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -125,7 +125,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '9008',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -192,7 +192,7 @@ class ProductionOrderApiService {
       }).toList();
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '9009',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -233,7 +233,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -266,7 +266,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -313,7 +313,7 @@ class ProductionOrderApiService {
       };
       
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: bodyParams,
       ).timeout(const Duration(seconds: 30));
 
@@ -339,7 +339,7 @@ class ProductionOrderApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -389,7 +389,7 @@ class ProductionOrderApiService {
       }).toList();
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '9004',
           'cid': prefs.getString('cid') ?? '44555666',

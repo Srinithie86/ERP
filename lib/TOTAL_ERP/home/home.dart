@@ -83,170 +83,208 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
           resizeToAvoidBottomInset: false,
           drawer: DynamicDrawer(moduleName: _activeModuleTitle?.toUpperCase()),
-          appBar: _activeModule != null ? null : UniversalAppBar(
-            onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            title: _selectedIndex == 0
-                ? AppLocalization.of('Global Erp')
-                : (_selectedIndex == 1
-                    ? AppLocalization.of('Global Erp Dashboard')
-                    : AppLocalization.of('Settings')),
-            subtitle: _selectedIndex == 0
-                ? AppLocalization.of('Workplace Dashboard')
-                : (_selectedIndex == 1
-                    ? AppLocalization.of('Analytics & Reports')
-                    : AppLocalization.of('Manage preferences and configuration')),
-            isDark: isDark,
-          ),
-          body: Column(
-            children: [
-              Expanded(
-                child: _activeModule != null
-                    ? _activeModule!.screenBuilder!(context)
-                    : AppGridSubScreen(onModuleSelected: _onModuleSelected),
-              ),
-            ],
-          ),
-          bottomNavigationBar: null, // Removed as requested
+          appBar: null,
+          body: _activeModule != null
+              ? _activeModule!.screenBuilder!(context)
+              : ModernPremiumDashboard(onModuleSelected: _onModuleSelected),
+          bottomNavigationBar: null,
         ),
       ),
     );
   }
-
 }
 
-class AppGridSubScreen extends StatelessWidget {
+class ModernPremiumDashboard extends StatelessWidget {
   final Function(ModuleItem, String) onModuleSelected;
-  const AppGridSubScreen({super.key, required this.onModuleSelected});
+  const ModernPremiumDashboard({super.key, required this.onModuleSelected});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Column(
-      children: [
-        SizedBox(height: 10.h),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              AppLocalization.of('Select an App to Manage'),
-              style: GoogleFonts.outfit(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w900,
-                color: isDark ? Colors.white : Colors.black,
-                letterSpacing: -0.2,
+    final menuProvider = context.watch<MenuProvider>();
+    
+    final visibleModules = allModules
+        .where((m) => menuProvider.isModuleVisible(m.title))
+        .fold<List<ModuleItem>>([], (list, item) {
+          if (!list.any((e) => e.title.toUpperCase() == item.title.toUpperCase())) {
+            list.add(item);
+          }
+          return list;
+        });
+
+    return RefreshIndicator(
+      color: const Color(0xFF26A69A),
+      onRefresh: () async => await menuProvider.fetchMenuFromServer(),
+      child: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Header Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 15.h, 20.w, 10.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                  GestureDetector(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(4.w),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                    )
+                                  ]
+                                ),
+                                child: Image.asset('assets/images/logo.png', width: 38.w, height: 38.w),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Global Erp',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 20.sp,
+                                        fontWeight: FontWeight.w900,
+                                        color: const Color(0xFF1B2C61),
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Workplace Dashboard',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2F1),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on, color: const Color(0xFF26A69A), size: 14.sp),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'GPS ON',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF26A69A),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 30.h),
+                  Text(
+                    'Select an App to Manage',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22.sp,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0F172A),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
-        SizedBox(height: 20.h),
-        Expanded(
-          child: RefreshIndicator(
-            color: const Color(0xFF26A69A),
-            onRefresh: () async {
-              await context.read<MenuProvider>().fetchMenuFromServer();
-            },
-            child: GridView.count(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(left: 20.w, right: 20.w, bottom: 100.h),
-              crossAxisCount: 3,
-              mainAxisSpacing: 20.h,
-              crossAxisSpacing: 20.w,
-            childAspectRatio: 0.72,
-            children: [
-              ...allModules
-                  .where((module) => context.watch<MenuProvider>().isModuleVisible(module.title))
-                  .map((module) {
-                return _buildAppCard(
-                  context,
-                  module.title,
-                  module.imagePath,
-                  module.bgColor,
-                  module.fallbackIcon,
-                  () {
-                    if (module.screenBuilder != null) {
-                      onModuleSelected(module, module.title);
-                    }
-                  },
-                );
-              }),
-            ],
-          ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildAppCard(
-    BuildContext context,
-    String label,
-    String imagePath,
-    Color bgColor,
-    IconData fallbackIcon,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              double size = constraints.maxWidth;
-              return Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: bgColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 30.h),
+            sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 35.h,
+                  crossAxisSpacing: 15.w,
+                  childAspectRatio: 0.76,
                 ),
-                padding: EdgeInsets.all(imagePath.isNotEmpty ? 16.w : 20.w),
-                child: ClipOval(
-                  child: imagePath.isNotEmpty
-                      ? Image.asset(imagePath, fit: BoxFit.contain)
-                      : Icon(
-                          fallbackIcon,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : Colors.blueGrey.shade800,
-                          size: size * 0.5,
-                        ),
-                ),
-              );
-            },
-          ),
-          SizedBox(height: 8.h),
-          Expanded(
-            child: Container(
-              alignment: Alignment.topCenter,
-              child: Text(
-                AppLocalization.of(label),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1E293B),
-                  height: 1.1,
-                ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final module = visibleModules[index];
+                  return _buildAppCard(context, module, isDark);
+                },
+                childCount: visibleModules.length,
               ),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: 50.h)),
+        ],
+      ),
+    ),
+  );
+}
+
+  Widget _buildAppCard(BuildContext context, ModuleItem module, bool isDark) {
+    return GestureDetector(
+      onTap: () => onModuleSelected(module, module.title),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            height: 85.w,
+            width: 85.w,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Center(
+              child: module.imagePath.isNotEmpty
+                  ? Image.asset(module.imagePath, width: 48.w, height: 48.w, fit: BoxFit.contain)
+                  : Icon(module.fallbackIcon, color: const Color(0xFF26A69A), size: 35.sp),
+            ),
+          ),
+          SizedBox(height: 14.h),
+          Text(
+            module.title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.outfit(
+              fontSize: 11.5.sp,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1E293B),
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95), curve: Curves.easeOutBack, delay: 50.ms);
+    ).animate().scale(begin: const Offset(0.95, 0.95), duration: 400.ms, curve: Curves.easeOutBack);
   }
 }

@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:erp_smart/utils/api_config.dart';
 
 class ErpLoginApi {
-  static const String baseUrl = "https://erpsmart.in/total/api/m_api/";
-
   /// 1. Type 5001: Login with User ID & Password (Multipart/Form-Data)
   static Future<Map<String, dynamic>> loginWithUserPass({
     required String userId,
@@ -14,6 +13,7 @@ class ErpLoginApi {
     required String lng,
     String cid = "44555666",
   }) async {
+    final baseUrl = await ApiConfig.getBaseUrl();
     debugPrint("\n================ LOGIN REQUEST (Type 5001) ================");
     debugPrint("URL: $baseUrl");
     
@@ -52,6 +52,7 @@ class ErpLoginApi {
     required String lng,
     String? appSignature,
   }) async {
+    final baseUrl = await ApiConfig.getBaseUrl();
     debugPrint("\n================ SEND OTP REQUEST (Type 5001) ================");
     debugPrint("URL: $baseUrl");
 
@@ -94,6 +95,7 @@ class ErpLoginApi {
     required String lat,
     required String lng,
   }) async {
+    final baseUrl = await ApiConfig.getBaseUrl();
     debugPrint("\n================ VERIFY OTP REQUEST (Type 5002) ================");
     debugPrint("URL: $baseUrl");
 
@@ -132,6 +134,7 @@ class ErpLoginApi {
     required String lat,
     required String lng,
   }) async {
+    final baseUrl = await ApiConfig.getBaseUrl();
     try {
       var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
       request.fields['type'] = '5003';
@@ -158,6 +161,7 @@ class ErpLoginApi {
     required String lng,
     String? token,
   }) async {
+    final baseUrl = await ApiConfig.getBaseUrl();
     try {
       var request = http.MultipartRequest('POST', Uri.parse(baseUrl));
       request.fields['type'] = '5006';

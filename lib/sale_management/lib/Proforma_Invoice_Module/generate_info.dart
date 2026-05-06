@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'all_products_screen.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class ProformaGenerateInfoScreen extends StatefulWidget {
   final String title;
@@ -52,7 +53,7 @@ class _ProformaGenerateInfoScreenState
       final deviceId = prefs.getString('device_id') ?? '12345';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8002',
           'cid': cid,
@@ -101,7 +102,7 @@ class _ProformaGenerateInfoScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2084',
           'cid': cid,
@@ -155,7 +156,7 @@ class _ProformaGenerateInfoScreenState
     final ln = prefs.getString('ln') ?? '123';
     final deviceId = prefs.getString('device_id') ?? '123';
 
-    const url = 'https://erpsmart.in/total/api/m_api/';
+    final url = await ApiConfig.getBaseUrl();
     final body = {
       'type': '2083',
       'cid': cid,

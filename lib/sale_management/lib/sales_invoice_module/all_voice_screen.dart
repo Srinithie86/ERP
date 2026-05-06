@@ -6,6 +6,7 @@ import 'generate_info.dart';
 import 'package:flutter/services.dart';
 import 'invoice_view_screen.dart';
 import 'product_model.dart';
+import 'package:sale_management/core/api_config.dart';
 
 // ─── Theme Constants ──────────────────────────────────────
 const kTeal = Color(0xFF26A69A);
@@ -73,7 +74,7 @@ class _SalesInvoiceAllScreenState extends State<SalesInvoiceAllScreen> {
       final uid = prefs.getString('uid') ?? '1';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8010',
           'cid': cid,

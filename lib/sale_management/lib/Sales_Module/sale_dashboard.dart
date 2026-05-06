@@ -27,6 +27,7 @@ import 'package:sale_management/sales_order_module/all_voice_screen.dart'
 import 'package:sale_management/sales_invoice_module/all_voice_screen.dart'
     as si_voice;
 import 'package:sale_management/sales_invoice_module/generate_info.dart';
+import 'package:sale_management/core/api_config.dart';
 
 export 'approve_screen.dart';
 export 'receipt_voucher_screen.dart';
@@ -225,7 +226,7 @@ class _DashboardBodyState extends State<_DashboardBody> {
       final ln = prefs.getString('ln') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8016',
           'cid': cid,

@@ -6,6 +6,7 @@ import 'package:purchase_erp/utils/device_services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'po_item_details_screen.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class CreatePurchaseOrderScreen extends StatefulWidget {
   const CreatePurchaseOrderScreen({super.key});
@@ -74,7 +75,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       final prefs = await SharedPreferences.getInstance();
       final cid = prefs.getString('cid') ?? '44555666';
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "cid": cid,
           "type": "4010",
@@ -166,7 +167,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     setState(() => isLoadingTerms = true);
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4045",
           "cid": cid!,
@@ -195,7 +196,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     if (cid == null) return {};
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4008",
           "cid": cid!,
@@ -242,7 +243,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     if (query.trim().isEmpty || cid == null) return [];
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4003",
           "cid": cid!,
@@ -268,7 +269,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
     if (cid == null || query.isEmpty) return [];
     try {
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4010",
           "cid": cid!,
@@ -384,7 +385,7 @@ class _CreatePurchaseOrderScreenState extends State<CreatePurchaseOrderScreen> {
       };
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body);
+          .post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

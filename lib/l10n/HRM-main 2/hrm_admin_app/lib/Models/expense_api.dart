@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class ExpenseApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<Map<String, dynamic>> fetchExpenseRequests() async {
     try {
@@ -28,7 +29,7 @@ class ExpenseApi {
       print("Expense Request body: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -74,7 +75,7 @@ class ExpenseApi {
       };
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:erp_smart/utils/device_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:erp_smart/utils/api_config.dart';
 
 class TermsConditionsScreen extends StatefulWidget {
   const TermsConditionsScreen({super.key});
@@ -31,7 +32,7 @@ class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
       final String deviceId = DeviceService.deviceId.isNotEmpty ? DeviceService.deviceId : '123';
       
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4042",
           "cid": cid,

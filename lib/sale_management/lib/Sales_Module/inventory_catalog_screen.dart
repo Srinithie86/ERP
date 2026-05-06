@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../widgets/app_drawer.dart';
 import '../sales_order_module/product_model.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class SalesOrderInventoryCatalogScreen extends StatefulWidget {
   final String title;
@@ -59,7 +60,7 @@ class _SalesOrderInventoryCatalogScreenState
       };
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

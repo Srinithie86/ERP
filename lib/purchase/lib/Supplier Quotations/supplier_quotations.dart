@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'quotation_details.dart';
 import 'approve_quotation_screen.dart';
 import '../purchase_request_pdf_viewer.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class SupplierQuotationsScreen extends StatefulWidget {
   const SupplierQuotationsScreen({super.key});
@@ -33,7 +34,7 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
       final String? lt = prefs.getString('lt');
       final String? ln = prefs.getString('ln');
 
-      final url = Uri.parse("https://erpsmart.in/total/api/m_api/");
+      final url = Uri.parse(await ApiConfig.getBaseUrl());
       final response = await http.post(
         url,
         body: {
@@ -120,7 +121,7 @@ class _SupplierQuotationsScreenState extends State<SupplierQuotationsScreen> {
       final String? lt = prefs.getString('lt');
       final String? ln = prefs.getString('ln');
 
-      final url = Uri.parse("https://erpsmart.in/total/api/m_api/");
+      final url = Uri.parse(await ApiConfig.getBaseUrl());
       final response = await http.post(
         url,
         body: {

@@ -5,6 +5,8 @@ import 'payment_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
+import 'package:erp_localization/erp_localization.dart';
 
 class SalesOrderCatalogScreen extends StatefulWidget {
   final bool isReadOnly;
@@ -46,7 +48,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': '44555666',
@@ -173,8 +175,8 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Discount in',
+                Text(
+                  AppLocalization.of('Discount in'),
                   style: TextStyle(
                     color: Color(0xFF546E7A),
                     fontSize: 15,
@@ -242,7 +244,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  localIsPercentage ? 'Percentage' : 'Amount (₹)',
+                  localIsPercentage ? AppLocalization.of('Percentage') : AppLocalization.of('Amount (₹)'),
                   style: const TextStyle(
                     color: Color(0xFF90A4AE),
                     fontSize: 12,
@@ -282,7 +284,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Total Amount',
+                            AppLocalization.of('Total Amount'),
                             style: TextStyle(
                                 color: primaryColor,
                                 fontWeight: FontWeight.w600),
@@ -336,8 +338,8 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Continue',
+                    child: Text(
+                      AppLocalization.of('Continue'),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -369,7 +371,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
         //   ),
         // ),
         title: Text(
-          widget.isReadOnly ? 'Inventory' : 'Sales Orders',
+          widget.isReadOnly ? AppLocalization.of('Inventory') : AppLocalization.of('Sales Orders'),
           style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -411,8 +413,8 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                           onChanged: (val) => setState(() => _searchQuery = val),
                           decoration: InputDecoration(
                             hintText: widget.isReadOnly
-                                ? 'Search products...'
-                                : 'Search inventory catalog...',
+                                ? AppLocalization.of('Search products...')
+                                : AppLocalization.of('Search inventory catalog...'),
                             hintStyle: TextStyle(color: Colors.grey.shade500),
                             border: InputBorder.none,
                           ),
@@ -473,12 +475,12 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Available Products',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                Text(
+                  AppLocalization.of('Available Products'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 Text(
-                  'Showing ${_filteredProducts.length} items',
+                  '${AppLocalization.of("Showing")} ${_filteredProducts.length} ${AppLocalization.of("items")}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               ],
@@ -490,7 +492,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
             child: _isFetchingProducts
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredProducts.isEmpty
-                    ? const Center(child: Text('No products found'))
+                    ? Center(child: Text(AppLocalization.of('No products found')))
                     : widget.isReadOnly
                         ? GridView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -548,7 +550,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Item : $_totalItems | Qty : $_totalQty',
+                          '${AppLocalization.of("Item")} : $_totalItems | ${AppLocalization.of("Qty")} : $_totalQty',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -558,7 +560,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Disc : ₹${_totalDiscount.toInt()} | Amount : ${_totalAmount.toInt()}',
+                          '${AppLocalization.of("Disc")} : ₹${_totalDiscount.toInt()} | ${AppLocalization.of("Amount")} : ${_totalAmount.toInt()}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -593,12 +595,12 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Continue',
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            AppLocalization.of('Continue'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           SizedBox(width: 4),
                           Icon(Icons.chevron_right, size: 18),
@@ -655,7 +657,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      '${product.stock} left',
+                      '${product.stock} ${AppLocalization.of("left")}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 9,
@@ -708,7 +710,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'FREE Delivery',
+                      AppLocalization.of('FREE Delivery'),
                       style: TextStyle(
                         color: Colors.green.shade700,
                         fontSize: 9,
@@ -754,7 +756,7 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${product.stock} IN STOCK',
+                      '${product.stock} ${AppLocalization.of("IN STOCK")}',
                       style: const TextStyle(
                         color: Color(0xFFB14D00),
                         fontWeight: FontWeight.w800,
@@ -773,11 +775,11 @@ class _SalesOrderCatalogScreenState extends State<SalesOrderCatalogScreen> {
                           Text(
                             product.isPercentageDiscount
                                 ? (product.discountPercentage > 0
-                                    ? 'Discount: ${product.discountPercentage}%'
-                                    : 'Add Discount')
+                                    ? '${AppLocalization.of("Discount")}: ${product.discountPercentage}%'
+                                    : AppLocalization.of('Add Discount'))
                                 : (product.discountAmount > 0
-                                    ? 'Discount: ₹${product.discountAmount}'
-                                    : 'Add Discount'),
+                                    ? '${AppLocalization.of("Discount")}: ₹${product.discountAmount}'
+                                    : AppLocalization.of('Add Discount')),
                             style: const TextStyle(
                               color: Colors.green,
                               fontSize: 12,

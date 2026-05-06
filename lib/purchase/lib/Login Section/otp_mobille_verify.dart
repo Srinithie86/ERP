@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class MobileverifyOTP extends StatefulWidget {
   final String phoneNumber;
@@ -52,7 +53,7 @@ class _MobileverifyOTPState extends State<MobileverifyOTP> {
       final deviceId = prefs.getString('device_id') ?? '1';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "type": 5002,

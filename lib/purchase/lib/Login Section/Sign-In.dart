@@ -9,6 +9,7 @@ import 'otp_mobille_verify.dart';
 import 'Sign-in-Mail.dart';
 import 'Sign-in-whatsapp.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class MobileLoginScreen extends StatefulWidget {
   const MobileLoginScreen({super.key});
@@ -68,7 +69,7 @@ class _MobileLoginScreenState extends State<MobileLoginScreen> {
       }
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "5001",
           "ln": ln,

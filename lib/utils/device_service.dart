@@ -24,8 +24,9 @@ class DeviceService {
 
     // Load cached values first
     _deviceId = prefs.getString('device_id') ?? '';
-    _ln = prefs.getString('ln') ?? prefs.getString('lng') ?? prefs.getDouble('lng')?.toString() ?? '';
-    _lt = prefs.getString('lt') ?? prefs.getString('lat') ?? prefs.getDouble('lat')?.toString() ?? '';
+    // STRICT: Do NOT load coordinates from cache for critical initialization
+    _ln = "";
+    _lt = "";
 
     // Sync cached values to all variants immediately
     if (_lt.isNotEmpty) {

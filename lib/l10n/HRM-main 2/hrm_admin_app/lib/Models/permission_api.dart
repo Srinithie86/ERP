@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class PermissionRequestResponse {
   final bool error;
@@ -85,7 +86,7 @@ class PermissionRequestData {
 }
 
 class PermissionApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<PermissionRequestResponse> fetchPermissionRequests({String? reportingManager}) async {
     try {
@@ -107,7 +108,7 @@ class PermissionApi {
       print("Permission Request Request body: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -151,11 +152,11 @@ class PermissionApi {
       };
 
       print("--- UPDATING PERMISSION STATUS ---");
-      print("URL: $_baseUrl");
+      print("URL: ${await ApiConfig.getBaseUrl()}");
       print("BODY: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

@@ -3,9 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'device_service.dart';
 import 'storage_service.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class ApiService {
-  static const String baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<dynamic> login({
     required String mobile,
@@ -15,7 +16,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5001",
         "lt": lat,
@@ -41,7 +42,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5002",
         "lt": lat,
@@ -70,7 +71,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5021",
         "cid": cid,
@@ -94,7 +95,7 @@ class ApiService {
     String cid = await StorageService.getCid() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "2084",
         "cid": cid,
@@ -115,7 +116,7 @@ class ApiService {
     String cid = await StorageService.getCid() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "2083",
         "cid": cid,
@@ -145,7 +146,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5022",
         "cid": cid,
@@ -178,7 +179,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5023",
         "cid": cid,
@@ -230,7 +231,7 @@ class ApiService {
     }
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: body,
     );
 
@@ -247,7 +248,7 @@ class ApiService {
 
   static void _fetchAndCacheJobs(Map<String, String> body) async {
     try {
-      var response = await http.post(Uri.parse(baseUrl), body: body);
+      var response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       var decoded = await compute(jsonDecode, response.body);
       if (decoded != null && decoded["error"] == false) {
         _cachedJobs = decoded["records"];
@@ -269,7 +270,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5026",
         "cid": cid,
@@ -299,7 +300,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5017",
         "cid": cid,
@@ -334,7 +335,7 @@ class ApiService {
     String engineerId = await StorageService.getEngineerId() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5030",
         "cid": cid,
@@ -370,7 +371,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5025",
         "cid": cid,
@@ -398,7 +399,7 @@ class ApiService {
     String cusId = await StorageService.getCusId() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5033",
         "cid": cid,
@@ -426,7 +427,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5027",
         "cid": cid,
@@ -453,7 +454,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5028",
         "cid": cid,
@@ -480,7 +481,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5029",
         "cid": cid,
@@ -537,7 +538,7 @@ class ApiService {
     }
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: body,
     );
 
@@ -554,7 +555,7 @@ class ApiService {
 
   static void _fetchAndCacheDispatch(Map<String, String> body) async {
     try {
-      var response = await http.post(Uri.parse(baseUrl), body: body);
+      var response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       var decoded = await compute(jsonDecode, response.body);
       if (decoded != null && decoded["error"] == false) {
         _cachedDispatch = decoded["data"];
@@ -577,7 +578,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await ApiConfig.getBaseUrl()),
       body: {
         "type": "5032",
         "cid": cid,

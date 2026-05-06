@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class QCItemData {
   final TextEditingController itemCodeController = TextEditingController();
@@ -84,7 +85,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
       final deviceData = await DeviceServices.getAndStoreDeviceInfo();
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4034",
           "cid": cid,
@@ -179,7 +180,7 @@ class _CreateQCInspectionScreenState extends State<CreateQCInspectionScreen> {
         body['remarks[$i]'] = item.remarksController.text;
       }
 
-      var request = http.Request('POST', Uri.parse("https://erpsmart.in/total/api/m_api/"));
+      var request = http.Request('POST', Uri.parse(await ApiConfig.getBaseUrl()));
       request.bodyFields = body;
 
       final response = await request.send();

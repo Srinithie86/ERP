@@ -7,6 +7,7 @@ import 'invoice_view_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class DirectInvoicePaymentScreen extends StatefulWidget {
   final double totalAmount;
@@ -130,7 +131,7 @@ class _DirectInvoicePaymentScreenState extends State<DirectInvoicePaymentScreen>
       debugPrint("Creating Direct Invoice with body: $body");
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

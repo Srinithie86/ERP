@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class SupplierSelectionScreen extends StatefulWidget {
   final String rfqNo;
@@ -55,7 +56,7 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
       debugPrint("API 4014 REQUEST BODY: $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -125,7 +126,7 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
       debugPrint("API 4017 REQUEST BODY: $requestBody");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: requestBody,
       );
 

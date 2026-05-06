@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_theme.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class ApproveScreen extends StatefulWidget {
   const ApproveScreen({super.key});
@@ -36,7 +37,7 @@ class _ApproveScreenState extends State<ApproveScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'type': '8012',
@@ -101,7 +102,7 @@ class _ApproveScreenState extends State<ApproveScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'type': '8014',

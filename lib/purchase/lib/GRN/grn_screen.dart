@@ -8,6 +8,7 @@ import '../QC/grn_inspection_screen.dart';
 import '../QC/create_qc_inspection.dart';
 import 'create_grn_screen.dart';
 import 'grn_details_screen.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class GRNScreen extends StatefulWidget {
   const GRNScreen({super.key});
@@ -70,7 +71,7 @@ class _GRNScreenState extends State<GRNScreen> {
       debugPrint("API 4047 REQUEST BODY: $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -143,7 +144,7 @@ class _GRNScreenState extends State<GRNScreen> {
       final deviceId = deviceData['device_id'] ?? '123';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4035",
           "cid": cid,

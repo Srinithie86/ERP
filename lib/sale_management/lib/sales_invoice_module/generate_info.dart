@@ -4,6 +4,7 @@ import 'all_voice_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class SalesInvoiceGenerateInfoScreen extends StatefulWidget {
   const SalesInvoiceGenerateInfoScreen({super.key});
@@ -39,7 +40,7 @@ class _SalesInvoiceGenerateInfoScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8007',
           'cid': cid,
@@ -100,7 +101,7 @@ class _SalesInvoiceGenerateInfoScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2084',
           'cid': cid,
@@ -162,7 +163,7 @@ class _SalesInvoiceGenerateInfoScreenState
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': cid,

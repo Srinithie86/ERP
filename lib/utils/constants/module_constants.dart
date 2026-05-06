@@ -8,7 +8,7 @@ import 'package:purchase_erp/dashboard.dart' as purchase;
 import 'package:sale_management/Sales_Module/sale_dashboard.dart' as sales;
 
 
-import 'package:accountings/Dashboard_Module/dashboard_screen.dart' as accounting;
+import 'package:accountings/screens/home/home_screen.dart' as accounting;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:warehouse/screens/view/dashboard_screen.dart' as warehouse;
 import 'package:warehouse/providers/warehouse_provider.dart';
@@ -109,9 +109,7 @@ List<ModuleItem> get allModules => [
     imagePath: 'assets/images/service_logo.png',
     bgColor: Color(0xFFE8EAF6),
     fallbackIcon: Icons.home_repair_service,
-    screenBuilder: (context) => const service_erp.TechnicianDashboard(
-      drawer: DynamicDrawer(moduleName: "ERP SERVICE"),
-    ),
+    screenBuilder: (context) => const service_erp.TechnicianDashboard(),
   ),
 
 ];

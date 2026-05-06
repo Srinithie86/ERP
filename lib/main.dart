@@ -44,13 +44,13 @@ void main() async {
   final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 
   Widget initialScreen;
-  if (isLoggedIn) {
-    initialScreen = const HomeScreen();
-  } else if (savedPin != null && savedPin.isNotEmpty) {
+  if (savedPin != null && savedPin.isNotEmpty) {
     initialScreen = const SecurityPinScreen(
       isSetup: false,
       isAppLock: true,
     );
+  } else if (isLoggedIn) {
+    initialScreen = const HomeScreen();
   } else {
     initialScreen = const WalkthroughScreen();
   }

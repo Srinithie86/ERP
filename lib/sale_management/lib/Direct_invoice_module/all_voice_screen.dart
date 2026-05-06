@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'direct_generate_info.dart';
 import 'invoice_view_screen.dart';
+import 'package:sale_management/core/api_config.dart';
 
 // ─── Theme Constants ──────────────────────────────────────
 const kTeal = Color(0xFF26A69A);
@@ -110,7 +111,7 @@ class _AllInvoicePageState extends State<AllInvoicePage> {
       final uid = prefs.getString('uid') ?? '1';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '8012', // Placeholder for Direct Invoice List
           'cid': cid,

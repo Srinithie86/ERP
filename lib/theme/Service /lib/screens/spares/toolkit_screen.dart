@@ -6,6 +6,7 @@ import '../../services/device_service.dart';
 import '../../services/storage_service.dart';
 import '../../Widgets/app_status_bar_wrapper.dart';
 import '../../core/app_colors.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class ToolkitScreen extends StatefulWidget {
   const ToolkitScreen({super.key});
@@ -50,7 +51,7 @@ class _ToolkitScreenState extends State<ToolkitScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

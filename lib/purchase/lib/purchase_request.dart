@@ -7,6 +7,8 @@ import 'package:purchase_erp/dashboard.dart';
 import 'package:purchase_erp/purchase_orders/pr_details.dart';
 import 'package:purchase_erp/purchase_request_pdf_viewer.dart';
 import 'package:purchase_erp/models/pr_model.dart';
+import 'package:purchase_erp/core/api_config.dart';
+import 'package:erp_localization/erp_localization.dart';
 
 class PurchaseRequestScreen extends StatefulWidget {
   final bool isEmbedded;
@@ -39,7 +41,7 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
       final String roleId = prefs.getString('role_id') ?? '';
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "4018",
           "cid": cid,
@@ -89,7 +91,7 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const Dashboard())),
           ),
-          title: const Text("Purchase Request", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+          title: Text(AppLocalization.of("Purchase Request"), style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
         ),
         body: Padding(
           padding: EdgeInsets.symmetric(horizontal: width * 0.04, vertical: 16),
@@ -146,7 +148,7 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)),
             child: TextField(
               decoration: InputDecoration(
-                hintText: "Search PR number or department....",
+                hintText: AppLocalization.of("Search PR number or department...."),
                 hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
                 prefixIcon: const Icon(Icons.search, color: Colors.black, size: 22),
                 border: InputBorder.none,
@@ -159,14 +161,14 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
         PopupMenuButton<String>(
           icon: const Icon(Icons.filter_list, size: 28),
           onSelected: (val) => setState(() => selectedFilter = val),
-          itemBuilder: (context) => ["All", "Approved", "Rejected", "Pending"].map((e) => PopupMenuItem(value: e, child: Text(e))).toList(),
+          itemBuilder: (context) => ["All", "Approved", "Rejected", "Pending"].map((e) => PopupMenuItem(value: e, child: Text(AppLocalization.of(e)))).toList(),
         ),
       ],
     );
   }
 
   Widget _buildErrorState(String error) => Center(child: Text(error, style: const TextStyle(color: Colors.red)));
-  Widget _buildEmptyState() => const Center(child: Text("No purchase requests found"));
+  Widget _buildEmptyState() => Center(child: Text(AppLocalization.of("No purchase requests found")));
 
   Widget prCard(BuildContext context, double width, Map<String, dynamic> fullData) {
     String id = (fullData["no"] ?? fullData["requ_no"] ?? fullData["pr_no"] ?? "N/A").toString();
@@ -360,7 +362,7 @@ class _PurchaseRequestScreenState extends State<PurchaseRequestScreen> {
                     ),
                   ),
                   child: Text(
-                    "View Details",
+                    AppLocalization.of("View Details"),
                     style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w600, fontSize: 13),
                   ),

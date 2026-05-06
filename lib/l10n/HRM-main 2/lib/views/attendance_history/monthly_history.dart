@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:hrm/services/api_config.dart';
 
 class AttendanceMonthlyHistory extends StatefulWidget {
   const AttendanceMonthlyHistory({super.key});
@@ -133,7 +134,7 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
       debugPrint("Monthly Request: $body");
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiConfig.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 20));
 
       debugPrint("Monthly RAW RESPONSE: ${response.body.substring(0, response.body.length.clamp(0, 500))}");

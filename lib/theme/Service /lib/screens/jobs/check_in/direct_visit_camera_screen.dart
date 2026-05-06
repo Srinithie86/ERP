@@ -16,6 +16,7 @@ import '../Work_in_progress/work_in_progress.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:http_parser/http_parser.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class DirectVisitCameraScreen extends StatefulWidget {
   const DirectVisitCameraScreen({
@@ -188,7 +189,7 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
       print('DEBUG: Final POST Body Fields: $allFields');
 
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5013'},
         options: dio_pkg.Options(

@@ -13,6 +13,8 @@ import 'package:erp_smart/utils/device_service.dart';
 import 'profile_details_sheet.dart';
 import 'package:erp_smart/TOTAL_ERP/login/sign_in_screen.dart' as erp;
 import 'package:erp_smart/TOTAL_ERP/home/terms_conditions_screen.dart';
+import 'package:erp_smart/TOTAL_ERP/services/lock_service.dart';
+import 'package:erp_smart/TOTAL_ERP/home/security_pin_screen.dart';
 
 class DynamicDrawer extends StatefulWidget {
   final String? moduleName;
@@ -27,13 +29,15 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
   bool _isSwitching = false;
   String? currentCompanyName;
   String? userName;
-  String? userId;
+  String? userMobile;
   String? profilePhoto;
+  bool _isLockEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentCompany();
+    _checkLockStatus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<MenuProvider>().fetchMenuFromServer();
@@ -41,15 +45,20 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     });
   }
 
+  Future<void> _checkLockStatus() async {
+    final enabled = await LockService.isLockEnabled();
+    if (mounted) setState(() => _isLockEnabled = enabled);
+  }
+
   Future<void> _loadCurrentCompany() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        currentCompanyName = prefs.getString('company_name') ?? 'Global ERP';
-        userName = prefs.getString('name') ?? 'User';
-        userId = prefs.getString('employee_code') ?? 'ID: ${prefs.getString('uid') ?? "N/A"}';
-        profilePhoto = prefs.getString('profile_photo') ?? '';
-      });
+      currentCompanyName = prefs.getString('company_name') ?? 'Global ERP';
+      userName = prefs.getString('name') ?? 'User';
+      userMobile = prefs.getString('mobile') ?? '';
+      profilePhoto = prefs.getString('profile_photo') ?? '';
+    });
     }
   }
 
@@ -277,7 +286,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       backgroundColor: Colors.white,
       child: Column(
         children: [
-          _buildHeader(context, displayTitle, userName ?? "User", userId ?? ""),
+          _buildHeader(context, displayTitle, userName ?? "User", userMobile ?? ""),
           
           Expanded(
             child: (widget.moduleName != null && menuProvider.getSubMenus(widget.moduleName!).isEmpty)
@@ -305,29 +314,18 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                           onTap: () => showProfileDetailsSheet(context),
                           trailing: const Icon(Icons.chevron_right, size: 20),
                         ),
-                        StatefulBuilder(
-                          builder: (context, setInternalState) {
-                            return _DrawerTile(
-                              icon: Icons.lock_outline_rounded,
-                              title: "App Lock Pin",
-                              onTap: () {},
-                              trailing: FutureBuilder<SharedPreferences>(
-                                future: SharedPreferences.getInstance(),
-                                builder: (context, snapshot) {
-                                  bool isLocked = snapshot.data?.getBool('app_lock_enabled') ?? false;
-                                  return Switch(
-                                    value: isLocked,
-                                    onChanged: (v) async {
-                                      final prefs = await SharedPreferences.getInstance();
-                                      await prefs.setBool('app_lock_enabled', v);
-                                      setInternalState(() {});
-                                    },
-                                    activeColor: const Color(0xFF26A69A),
-                                  );
-                                }
-                              ),
-                            );
-                          }
+                        _DrawerTile(
+                          icon: Icons.lock_outline_rounded,
+                          title: "App Lock Settings",
+                          onTap: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SecurityPinScreen(isSetup: true),
+                                ),
+                              );
+                              if (result == true) _checkLockStatus();
+                          },
                         ),
                         
                         _buildSectionHeader("Preference"),
@@ -376,34 +374,18 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                         ),
                         
                         const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.clear();
-                              if (!mounted) return;
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (context) => const erp.SignInScreen()),
-                                (route) => false,
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade600,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 2,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.logout_rounded, size: 20),
-                                const SizedBox(width: 10),
-                                Text("Logout", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                              ],
-                            ),
-                          ),
+                        _DrawerTile(
+                          icon: Icons.logout_rounded,
+                          title: "Logout",
+                          onTap: () async {
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.clear();
+                            if (!mounted) return;
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (context) => const erp.SignInScreen()),
+                              (route) => false,
+                            );
+                          },
                         ),
                         const SizedBox(height: 30),
                         const Divider(),
@@ -448,6 +430,9 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
       final subMenus = provider.getSubMenus(widget.moduleName!).where((item) {
         final name = (item['name'] ?? '').toString().toUpperCase();
         if (name.contains("CREATE") && (name.contains("QC") || name.contains("INSPECTION"))) {
+          return false;
+        }
+        if (name == "DASHBOARD" || name == "MAIN DASHBOARD") {
           return false;
         }
         return true;
@@ -566,20 +551,21 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, String displayTitle, String name, String email) {
+  Widget _buildHeader(BuildContext context, String displayTitle, String name, String mobile) {
+    const tealColor = Color(0xFF00695C); // Back to professional teal
     bool isModuleHeader = widget.moduleName != null;
-    
+
     if (isModuleHeader) {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 10,
+          top: MediaQuery.of(context).padding.top + 15,
           left: 20,
           right: 12,
-          bottom: 20,
+          bottom: 15,
         ),
         decoration: const BoxDecoration(
-          color: Color(0xFF26A69A),
+          color: tealColor,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -589,7 +575,7 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
                 displayTitle,
                 style: GoogleFonts.outfit(
                   color: Colors.white,
-                  fontSize: 22.sp,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,
@@ -608,96 +594,116 @@ class _DynamicDrawerState extends State<DynamicDrawer> {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 20,
+        top: MediaQuery.of(context).padding.top + 15,
         left: 20,
         right: 12,
-        bottom: 25,
+        bottom: 20,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFF00695C), // Deeper teal as in screenshot
+        color: tealColor,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Image.asset(
-              'assets/images/logo.png',
-              width: 70.w,
-              height: 70.w,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(Icons.business, size: 50.sp, color: const Color(0xFF26A69A)),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 45.w,
+                  height: 45.w,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(Icons.business, size: 35.sp, color: tealColor),
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name.toUpperCase(),
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      mobile,
+                      style: GoogleFonts.outfit(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
                   currentCompanyName?.toUpperCase() ?? "GLOBAL ERP",
                   style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  email.isNotEmpty && email != "N/A" ? email : name,
-                  style: GoogleFonts.outfit(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: InkWell(
-                    onTap: _isSwitching ? null : () => _showSwitchAccountDialog(context),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _isSwitching ? "Switching..." : "Switch Account",
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                child: InkWell(
+                  onTap: _isSwitching ? null : () => _showSwitchAccountDialog(context),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isSwitching ? "..." : "Switch Account",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 4),
-                        _isSwitching
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Icon(Icons.keyboard_arrow_down_rounded,
-                                color: Colors.white, size: 18),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      _isSwitching
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

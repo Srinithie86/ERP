@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/app_drawer.dart';
 import 'payment_screen.dart';
 import 'product_model.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class DeliveryChallanCatalogScreen extends StatefulWidget {
   final String taxType;
@@ -47,7 +48,7 @@ class _DeliveryChallanCatalogScreenState extends State<DeliveryChallanCatalogScr
     final ln = prefs.getString('ln') ?? '123';
     final deviceId = prefs.getString('device_id') ?? '123';
 
-    const url = 'https://erpsmart.in/total/api/m_api/';
+    final url = await ApiConfig.getBaseUrl();
     final body = {
       'type': '2083',
       'cid': cid,

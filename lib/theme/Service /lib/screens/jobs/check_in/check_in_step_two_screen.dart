@@ -10,6 +10,7 @@ import '../../../core/app_colors.dart';
 import '../../../data/app_data.dart';
 import 'check_in_step_three_screen.dart';
 import 'check_in_widgets.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class CheckInStepTwoScreen extends StatefulWidget {
   const CheckInStepTwoScreen({super.key});
@@ -79,7 +80,7 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
       final dio = dio_pkg.Dio();
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: dio_pkg.FormData.fromMap(body),
       );
 
@@ -279,7 +280,7 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
     try {
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5014'},
         options: dio_pkg.Options(validateStatus: (status) => true),

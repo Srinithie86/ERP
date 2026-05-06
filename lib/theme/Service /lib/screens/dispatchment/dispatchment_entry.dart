@@ -13,6 +13,7 @@ import '../../core/app_colors.dart';
 import '../../data/app_data.dart';
 import '../../services/device_service.dart';
 import 'dispatchment_history.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class DispatchmentEntryScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -107,7 +108,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         ),
       );
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -181,7 +182,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         ),
       );
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -279,7 +280,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
 
       final dio = dio_pkg.Dio();
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -502,7 +503,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
       }
 
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: formData,
       );
 

@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart'; 
 import 'marketing_checkout.dart';
 import '../../models/marketing_api.dart';
+import 'package:hrm/services/api_config.dart';
 
 class MarketingScreen extends StatefulWidget {
   const MarketingScreen({super.key});
@@ -75,7 +76,7 @@ class _MarketingScreenState extends State<MarketingScreen> {
       final String dId = deviceId ?? prefs.getString('device_id') ?? "";
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           "type": "2062",
           "cid": cid,

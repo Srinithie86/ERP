@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_client.dart';
+import 'package:hrm/services/api_config.dart';
 
 class AttendanceApi {
   static final ApiClient _apiClient = ApiClient();
@@ -89,7 +90,7 @@ class AttendanceApi {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
       );
 
       request.fields.addAll({
@@ -147,7 +148,7 @@ class AttendanceApi {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
       );
 
       request.fields.addAll({

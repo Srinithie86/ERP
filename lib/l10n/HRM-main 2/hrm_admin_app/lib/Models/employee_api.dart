@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class EmployeeDetailResponse {
   final bool error;
@@ -203,7 +204,7 @@ class EmployeeData {
 }
 
 class EmployeeApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<EmployeeDetailResponse> fetchEmployeeDetails({
     String? employeeName,
@@ -235,7 +236,7 @@ class EmployeeApi {
       print("Employee Details Request body: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -274,7 +275,7 @@ class EmployeeApi {
       print("Resignation Process Request body: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

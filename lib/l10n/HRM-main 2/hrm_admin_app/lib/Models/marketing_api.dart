@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class MarketingAttendanceResponse {
   final bool error;
@@ -107,7 +108,7 @@ class MarketingAttendanceData {
 }
 
 class MarketingApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<MarketingAttendanceResponse> fetchMarketingAttendance() async {
     try {
@@ -134,7 +135,7 @@ class MarketingApi {
       print("Marketing Attendance Request body: $body");
 
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

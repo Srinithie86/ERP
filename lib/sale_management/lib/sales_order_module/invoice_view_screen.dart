@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class SalesOrderInvoiceViewScreen extends StatefulWidget {
   final List<SalesOrderProduct> selectedProducts;
@@ -65,7 +66,7 @@ class _SalesOrderInvoiceViewScreenState
           try {
             final prefs = await SharedPreferences.getInstance();
             final response = await http.post(
-              Uri.parse('https://erpsmart.in/total/api/m_api/'),
+              Uri.parse(await ApiConfig.getBaseUrl()),
               body: {
                 'type': '2083',
                 'cid': prefs.getString('cid') ?? '44555666',
@@ -178,7 +179,7 @@ class _SalesOrderInvoiceViewScreenState
       if (apiType == '8003') fetchType = '8006';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': fetchType.toString(),
           'cid': cid.toString(),
@@ -345,7 +346,7 @@ class _SalesOrderInvoiceViewScreenState
       debugPrint("Converting Order with body: $body");
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

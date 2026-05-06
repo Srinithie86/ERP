@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchase_erp/utils/device_services.dart';
+import 'package:purchase_erp/core/api_config.dart';
 
 class RFQScreen extends StatefulWidget {
   const RFQScreen({super.key});
@@ -47,7 +48,7 @@ class _RFQScreenState extends State<RFQScreen> {
       debugPrint("API 4016 REQUEST BODY: $body");
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 

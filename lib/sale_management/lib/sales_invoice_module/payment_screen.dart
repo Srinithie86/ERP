@@ -8,6 +8,7 @@ import 'selected_products_screen.dart';
 import 'invoice_view_screen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sale_management/core/api_config.dart';
 
 class SalesInvoicePaymentScreen extends StatefulWidget {
   final double totalAmount;
@@ -129,7 +130,7 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
       }
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: body,
       );
 
@@ -234,7 +235,7 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2083',
           'cid': cid,
@@ -290,7 +291,7 @@ class _SalesInvoicePaymentScreenState extends State<SalesInvoicePaymentScreen> {
       final deviceId = prefs.getString('device_id') ?? '123';
 
       final response = await http.post(
-        Uri.parse('https://erpsmart.in/total/api/m_api/'),
+        Uri.parse(await ApiConfig.getBaseUrl()),
         body: {
           'type': '2084',
           'cid': cid,

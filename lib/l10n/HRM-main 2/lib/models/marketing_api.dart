@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_client.dart';
+import 'package:hrm/services/api_config.dart';
 
 class MarketingApi {
   static final ApiClient _apiClient = ApiClient();
@@ -87,7 +88,7 @@ class MarketingApi {
     File? attachment,
   }) async {
     try {
-      var request = http.MultipartRequest('POST', Uri.parse(ApiClient.baseUrl));
+      var request = http.MultipartRequest('POST', Uri.parse(await ApiConfig.getBaseUrl()));
       request.fields.addAll({
         'cid': cid,
         'device_id': deviceId,

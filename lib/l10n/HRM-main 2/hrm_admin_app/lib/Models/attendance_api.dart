@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class AttendanceResponse {
   final bool error;
@@ -131,7 +132,7 @@ class AttendanceData {
 }
 
 class AttendanceApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<AttendanceResponse> fetchMobileAttendance() async {
     try {
@@ -150,7 +151,7 @@ class AttendanceApi {
         'select': '*',
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       if (response.statusCode == 200) {
         return AttendanceResponse.fromJson(jsonDecode(response.body));
       }
@@ -174,7 +175,7 @@ class AttendanceApi {
         'select': '*',
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       if (response.statusCode == 200) {
         return AttendanceResponse.fromJson(jsonDecode(response.body));
       }
@@ -198,7 +199,7 @@ class AttendanceApi {
         'select': '*',
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       if (response.statusCode == 200) {
         return AttendanceResponse.fromJson(jsonDecode(response.body));
       }
@@ -222,7 +223,7 @@ class AttendanceApi {
         'select': '*',
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       if (response.statusCode == 200) {
         return AttendanceResponse.fromJson(jsonDecode(response.body));
       }

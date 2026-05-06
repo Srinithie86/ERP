@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Utils/shared_prefs_util.dart';
+import 'api_config.dart';
 
 class LeaveRequestResponse {
   final bool error;
@@ -138,7 +139,7 @@ class LeaveRequestData {
 }
 
 class LeaveApi {
-  static const String _baseUrl = "https://erpsmart.in/total/api/m_api/";
+  
 
   static Future<LeaveRequestResponse> fetchLeaveRequests({String? reportingManager}) async {
     try {
@@ -157,7 +158,7 @@ class LeaveApi {
           'where': 'reporting_manager=$reportingManager',
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       if (response.statusCode == 200) {
         return LeaveRequestResponse.fromJson(jsonDecode(response.body));
       }
@@ -191,7 +192,7 @@ class LeaveApi {
         if (rejectReason != null) 'reject_reason': rejectReason,
       };
 
-      final response = await http.post(Uri.parse(_baseUrl), body: body);
+      final response = await http.post(Uri.parse(await ApiConfig.getBaseUrl()), body: body);
       return jsonDecode(response.body);
     } catch (e) {
       return {"error": true, "message": e.toString()};

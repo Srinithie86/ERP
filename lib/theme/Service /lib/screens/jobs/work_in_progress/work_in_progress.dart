@@ -12,6 +12,7 @@ import '../../../data/app_data.dart';
 import '../../../services/device_service.dart';
 import '../Check_in/check_in_step_two_screen.dart';
 import '../Check_in/check_in_widgets.dart';
+import 'package:service_ticket/core/api_config.dart';
 
 class WorkInProgressScreen extends StatefulWidget {
   const WorkInProgressScreen({super.key, required this.jobData});
@@ -109,7 +110,7 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
 
     try {
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiConfig.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5014'},
         options: dio_pkg.Options(validateStatus: (status) => true),
