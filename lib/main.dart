@@ -19,6 +19,7 @@ import 'TOTAL_ERP/home/home.dart';
 import 'TOTAL_ERP/home/security_pin_screen.dart';
 import 'TOTAL_ERP/splash/walkthrough_screen.dart';
 import 'package:erp_localization/erp_localization.dart'; // import from new package
+import 'theme/Service /lib/core/size_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +73,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     return ScreenUtilInit(
       designSize: const Size(360, 690),
       minTextAdapt: true,

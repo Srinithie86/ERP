@@ -12,6 +12,7 @@ import '../../services/user_data_manager.dart';
 import 'package:http/http.dart' as http;
 import '../../services/api_client.dart';
 import 'dart:convert';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 class MarketingCheckInScreen extends StatefulWidget {
   final Map<String, dynamic>? task;
@@ -746,9 +747,6 @@ class _MarketingCheckInScreenState extends State<MarketingCheckInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isTablet = width > 600;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -762,7 +760,7 @@ class _MarketingCheckInScreenState extends State<MarketingCheckInScreen> {
         title: Text(
           "Marketing",
           style: GoogleFonts.poppins(
-            fontSize: isTablet ? 22 : 20,
+            fontSize: 20.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -770,17 +768,17 @@ class _MarketingCheckInScreenState extends State<MarketingCheckInScreen> {
       body: RefreshIndicator(
         onRefresh: _fetchHistoryFromApi,
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(isTablet ? 24 : 16),
+          padding: EdgeInsets.all(16.r),
           child: Column(
             children: [
               if (!isCheckedIn) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: EdgeInsets.all(16.r),
+                  margin: EdgeInsets.only(bottom: 16.h),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                     border: Border.all(
                       color: const Color(0xFF26A69A).withOpacity(0.3),
                     ),

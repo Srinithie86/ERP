@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import '../home/home.dart';
@@ -465,6 +465,13 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
     }
     final ledId = response['led_id']?.toString() ?? response['user_id']?.toString() ?? '';
     await prefs.setString('led_id', ledId);
+    
+    // STRICT: Save token for all modules to use
+    final String token = response['token']?.toString() ?? response['Token']?.toString() ?? _currentToken;
+    if (token.isNotEmpty) {
+      await prefs.setString('token', token);
+      debugPrint("MainRoot => Token Persisted: $token");
+    }
     
     await prefs.setString('login_cus_id', uid); // For HRM module compatibility
     if (response['menu'] != null) if (mounted) context.read<MenuProvider>().setMenu(response['menu']);

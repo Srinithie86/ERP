@@ -25,7 +25,7 @@ class PayrollRepo {
         "device_id": deviceId,
         "lt": lat,
         "ln": lng,
-        if (token != null && token.isNotEmpty) "token": token,
+
       };
 
       final response = await _apiClient.post(body);

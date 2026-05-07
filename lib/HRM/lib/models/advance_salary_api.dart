@@ -26,22 +26,25 @@ class AdvanceSalaryApi {
     required String deviceId,
     required String lt,
     required String ln,
+    required String employeeName,
+    required String employeeCode,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final String? empId = await getEmployeeId();
 
     final Map<String, dynamic> body = {
-      "type": "2067",
+      "type": "2082",
+      "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
       "uid": empId ?? "",
-      "id": empId ?? "",
-      "advance_amount": amount,
-      "reason": reason,
-      "request_date": date,
-      "token": prefs.getString('token') ?? "",
-      "device_id": deviceId, 
       "lt": lt,
       "ln": ln,
-      "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
+      "device_id": deviceId,
+      "form": "sm_main_form_16322",
+      "advance_amount": amount,
+      "reason": reason,
+      "employee_name": employeeName,
+      "employee_id": employeeCode,
+      "request_date": date,
     };
 
     try {
@@ -63,13 +66,21 @@ class AdvanceSalaryApi {
   static Future<Map<String, dynamic>> getAdvanceHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final String? empId = await getEmployeeId();
+    final String cid = (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString();
+    final String deviceId = prefs.getString('device_id') ?? "";
+    final String lat = (prefs.getDouble('lat') ?? 0.0).toString();
+    final String lng = (prefs.getDouble('lng') ?? 0.0).toString();
 
     final Map<String, dynamic> body = {
-      "type": "2068",
+      "type": "2083",
+      "cid": cid,
       "uid": empId ?? "",
-      "id": empId ?? "",
-      "token": prefs.getString('token') ?? "",
-      "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
+      "lt": lat,
+      "ln": lng,
+      "device_id": deviceId,
+      "form": "sm_main_form_16322",
+      "select": "*",
+      "where": "uid=${empId ?? ''}",
     };
 
     try {

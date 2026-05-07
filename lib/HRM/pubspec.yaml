@@ -58,7 +58,7 @@ dependencies:
   printing: ^5.13.2
   local_auth: ^3.0.0
   flutter_screen_lock: ^9.2.2+2
-  firebase_core: ^4.7.0
+  firebase_core: ^4.4.0
   firebase_messaging: ^16.1.1
   flutter_local_notifications: ^20.1.0
   camera: ^0.11.4

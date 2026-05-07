@@ -121,7 +121,7 @@ class LeadService {
         ...leadData,
       };
 
-      debugPrint("------------ ADD LEAD API REQUEST ------------");
+      debugPrint("------------ z API REQUEST ------------");
       debugPrint("URL: $_apiUrl");
       debugPrint("BODY: $body");
 

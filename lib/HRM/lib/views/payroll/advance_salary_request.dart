@@ -5,25 +5,52 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/advance_salary_api.dart';
 
 class AdvanceSalaryRequestScreen extends StatefulWidget {
-  const AdvanceSalaryRequestScreen({super.key});
+  final int initialTabIndex;
+  const AdvanceSalaryRequestScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<AdvanceSalaryRequestScreen> createState() => _AdvanceSalaryRequestScreenState();
 }
 
-class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen> {
+class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController();
   
   bool _isLoading = false;
-  final Color _themeColor = const Color(0xff26A69A);
+  bool _isHistoryLoading = true;
+  List<dynamic> _historyList = [];
+  final Color _themeColor = const Color(0xFF26A69A);
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
+    _fetchHistory();
+  }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _amountController.dispose();
     _reasonController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchHistory() async {
+    setState(() => _isHistoryLoading = true);
+    try {
+      final res = await AdvanceSalaryApi.getAdvanceHistory();
+      if (mounted) {
+        setState(() {
+          _historyList = res['data'] ?? [];
+          _isHistoryLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isHistoryLoading = false);
+    }
   }
 
   Future<void> _submitRequest() async {
@@ -37,6 +64,8 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
       final String lat = (prefs.getDouble('lat') ?? 0.0).toString();
       final String lng = (prefs.getDouble('lng') ?? 0.0).toString();
       final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final String empName = prefs.getString('name') ?? "User";
+      final String empCode = prefs.getString('employee_code') ?? "";
 
       final res = await AdvanceSalaryApi.submitAdvanceRequest(
         amount: _amountController.text,
@@ -45,6 +74,8 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
         deviceId: deviceId,
         lt: lat,
         ln: lng,
+        employeeName: empName,
+        employeeCode: empCode,
       );
 
       if (!mounted) return;
@@ -56,7 +87,10 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        _amountController.clear();
+        _reasonController.clear();
+        _tabController.animateTo(1);
+        _fetchHistory();
       } else {
         throw Exception(res['error_msg'] ?? "Submission failed");
       }
@@ -74,137 +108,277 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFB),
       appBar: AppBar(
-        backgroundColor: _themeColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
-          'Advance Salary Request',
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
+          'Salary Advance',
+          style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 20),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: _themeColor,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: _themeColor,
+          indicatorWeight: 3,
+          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14),
+          tabs: const [
+            Tab(text: "Apply"),
+            Tab(text: "History"),
+          ],
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 32),
-              
-              _buildLabel("Requested Amount (₹)"),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                style: GoogleFonts.poppins(),
-                decoration: _inputDecoration("e.g. 5000", Icons.payments_outlined),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Please enter amount';
-                  if (double.tryParse(v) == null) return 'Enter a valid number';
-                  return null;
-                },
-              ),
-              
-              const SizedBox(height: 24),
-              
-              _buildLabel("Reason for Advance"),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _reasonController,
-                maxLines: 4,
-                style: GoogleFonts.poppins(),
-                decoration: _inputDecoration("Enter reason here...", Icons.edit_note_outlined),
-                validator: (v) => (v == null || v.isEmpty) ? 'Please enter reason' : null,
-              ),
-              
-              const SizedBox(height: 40),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _themeColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : Text(
-                          "Submit Request",
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildRequestTab(),
+          _buildHistoryTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildLabel("Requested Amount (₹)"),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _amountController,
+              keyboardType: TextInputType.number,
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+              decoration: _inputDecoration("Enter amount e.g. 5000", Icons.payments_rounded),
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Please enter amount';
+                if (double.tryParse(v) == null) return 'Enter a valid number';
+                return null;
+              },
+            ),
+            
+            const SizedBox(height: 24),
+            
+            _buildLabel("Reason for Advance"),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _reasonController,
+              maxLines: 4,
+              style: GoogleFonts.poppins(),
+              decoration: _inputDecoration("Briefly explain your requirement...", Icons.edit_note_rounded),
+              validator: (v) => (v == null || v.isEmpty) ? 'Please enter reason' : null,
+            ),
+            
+            const SizedBox(height: 40),
+            
+            SizedBox(
+              width: double.infinity,
+              height: 58,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _submitRequest,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _themeColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                  shadowColor: _themeColor.withOpacity(0.4),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : Text(
+                        "Submit Request",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                ),
+                      ),
               ),
-              
-              const SizedBox(height: 20),
-              Text(
-                "Note: All advance requests are subject to approval by the management. The amount will be deducted from your net salary.",
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontStyle: FontStyle.italic,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+            ),
+            
+            const SizedBox(height: 24),
+            _buildNoticeCard(),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHistoryTab() {
+    if (_isHistoryLoading) {
+      return Center(child: CircularProgressIndicator(color: _themeColor));
+    }
+    if (_historyList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_rounded, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              "No previous requests found",
+              style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _fetchHistory,
+      color: _themeColor,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: _historyList.length,
+        itemBuilder: (context, index) {
+          final item = _historyList[index];
+          return _buildHistoryCard(item);
+        },
+      ),
+    );
+  }
+
+  Widget _buildHistoryCard(Map<String, dynamic> item) {
+    String status = (item['status'] ?? "Pending").toString().toLowerCase();
+    Color statusColor = Colors.orange;
+    String displayStatus = "Pending";
+    
+    if (status.contains("accept") || status == "1") {
+      statusColor = Colors.green;
+      displayStatus = "Approved";
+    } else if (status.contains("reject") || status == "2") {
+      statusColor = Colors.red;
+      displayStatus = "Rejected";
+    } else {
+      displayStatus = "Pending";
+    }
+
+    final String requestedAmount = item['advance_amount'] ?? '0';
+    final String? approvedAmount = item['approved_amount'];
+    final String? recoveryStart = item['recovery_start_month'];
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _themeColor.withOpacity(0.05),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _themeColor.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Requested: ₹$requestedAmount",
+                    style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                  ),
+                  if (approvedAmount != null && approvedAmount != "null")
+                    Text(
+                      "Approved: ₹$approvedAmount",
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.green.shade700),
+                    ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  displayStatus,
+                  style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item['reason'] ?? "No reason provided",
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
+          ),
+          if (recoveryStart != null && recoveryStart != "null") ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 14, color: Colors.blue),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Recovery starts: $recoveryStart",
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.blue.shade800, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined, size: 12, color: Colors.grey.shade500),
+                  const SizedBox(width: 4),
+                  Text(
+                    item['request_date'] ?? item['dtime']?.toString().split(' ')[0] ?? "N/A",
+                    style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+              if (item['id'] != null)
+                Text(
+                  "Ref: #${item['id']}",
+                  style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade400),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildNoticeCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade200),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _themeColor,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.info_outline, color: Colors.white),
-          ),
-          const SizedBox(width: 16),
+          Icon(Icons.lightbulb_outline_rounded, color: Colors.amber.shade800, size: 20),
+          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Need financial assistance?",
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: _themeColor,
-                  ),
-                ),
-                Text(
-                  "Fill out the form below to request an advance on your salary.",
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-              ],
+            child: Text(
+              "Note: Approved advance amounts are typically deducted from your next month's salary.",
+              style: GoogleFonts.poppins(fontSize: 11, color: Colors.amber.shade900, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -215,11 +389,7 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
+      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
     );
   }
 
@@ -227,25 +397,14 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
     return InputDecoration(
       hintText: hint,
       hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14),
-      prefixIcon: Icon(icon, color: _themeColor, size: 20),
+      prefixIcon: Icon(icon, color: _themeColor, size: 22),
       filled: true,
-      fillColor: Colors.grey.shade50,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade200),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: _themeColor, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red),
-      ),
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: _themeColor, width: 2)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.red)),
     );
   }
 }

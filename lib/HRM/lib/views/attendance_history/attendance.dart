@@ -160,7 +160,6 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         "device_id": dId,
         "lt": lat,
         "ln": lng,
-        if (token.isNotEmpty) "token": token,
       };
 
       final response = await http.post(
@@ -610,8 +609,6 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         "lt": lat,
         "ln": lng,
         "report_type": "attendance",
-        if (sessionToken != null && sessionToken.isNotEmpty)
-          "token": sessionToken,
       };
 
       debugPrint("ATTENDANCE SUMMARY REQUEST => $body");
@@ -772,7 +769,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
           int weeklyCount = 0;
           for (final r in records) {
             if (r == null || r is! Map) continue;
-            if (!isTimeValid(r["in_time"]) || !isTimeValid(r["out_time"]))
+            if (!isTimeValid(r["in_time"]))
               continue;
             if (r["del"]?.toString() == "1" || r["is_d"]?.toString() == "1")
               continue;
@@ -895,6 +892,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
             data['data'] is Map &&
             data['data']['leave_applications'] != null) {
           historyList = data['data']['leave_applications'];
+        } else if (data['data'] != null && data['data'] is List) {
+          historyList = data['data'];
         }
 
         double totalTaken = 0;

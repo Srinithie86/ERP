@@ -64,6 +64,7 @@ class _DashboardState extends State<Dashboard> {
   double totalLeaveBalance = 0;
   int _pendingLeaveCount = 0;
   bool _isCountLoading = false;
+  Map<String, dynamic>? _payrollData;
 
   @override
   void initState() {
@@ -163,6 +164,7 @@ class _DashboardState extends State<Dashboard> {
     _fetchCheckInStatus(prefs);
     _fetchAttendanceStatus2092(prefs);
     _fetchAdminLeaveCount();
+    _fetchAttendanceSummary(prefs);
 
     // Mark as not fetching after critical ones or a short timeout
     Future.delayed(const Duration(milliseconds: 800), () {
@@ -174,6 +176,63 @@ class _DashboardState extends State<Dashboard> {
     setState(() {
       totalMonthDays = DateTime(now.year, now.month + 1, 0).day;
     });
+  }
+
+  Future<void> _fetchAttendanceSummary(SharedPreferences prefs) async {
+    try {
+      final String uid = prefs.getString('login_cus_id') ?? 
+                         prefs.getString('server_uid') ?? 
+                         prefs.get('uid')?.toString() ?? "";
+      final String cid = prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
+      final String deviceId = prefs.getString('device_id') ?? "";
+      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "0.0";
+      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "0.0";
+      
+      final now = DateTime.now();
+      
+      final body = {
+        "type": "2064",
+        "cid": cid,
+        "uid": uid,
+        "id": uid,
+        "device_id": deviceId,
+        "lt": lat,
+        "ln": lng,
+        "report_type": "attendance",
+        "month": DateFormat('MM').format(now),
+        "year": DateFormat('yyyy').format(now),
+      };
+
+      final response = await _apiClient.post(body);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data["error"] == false || data["error"] == "false") {
+          final summary = data["summary"];
+          final statistics = data["statistics"];
+          
+          if (mounted) {
+            setState(() {
+              _payrollData = data;
+              // Try multiple possible keys for present days
+              dynamic presentValue = 0;
+              if (summary != null) {
+                presentValue = summary["present"] ?? summary["present_days"] ?? summary["total_present"] ?? summary["total_records"];
+              } else if (statistics != null) {
+                presentValue = statistics["present"] ?? statistics["present_days"] ?? statistics["total_present"] ?? statistics["total_records"];
+              }
+              
+              totalPresentDays = int.tryParse(presentValue?.toString() ?? "0") ?? 
+                                (double.tryParse(presentValue?.toString() ?? "0")?.toInt() ?? 0);
+              
+              debugPrint("Dashboard: Resolved totalPresentDays => $totalPresentDays");
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Dashboard: Error fetching attendance summary: $e");
+    }
   }
 
   Future<void> _fetchAdminLeaveCount() async {
@@ -218,7 +277,6 @@ class _DashboardState extends State<Dashboard> {
       final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "123";
       final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "123";
       final String dId = prefs.getString('device_id') ?? "abc123";
-      final String token = prefs.getString('token') ?? "";
 
       final response = await _apiClient.post({
           "type": "2092",
@@ -227,7 +285,6 @@ class _DashboardState extends State<Dashboard> {
           "lt": lat,
           "ln": lng,
           "device_id": dId,
-          "token": token,
       });
 
       if (response.statusCode == 200) {
@@ -285,7 +342,6 @@ class _DashboardState extends State<Dashboard> {
         "device_id": deviceId,
         "lt": lat,
         "ln": lng,
-        if (prefs.getString('token') != null) "token": prefs.getString('token'),
       };
 
       final response = await _apiClient.post(body);
@@ -331,14 +387,11 @@ class _DashboardState extends State<Dashboard> {
     try {
       final String uid =
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
-      final lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
-      final lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
 
       final response = await _apiClient.post({
           "type": "2051",
           "uid": uid,
           "id": uid,
-          "token": prefs.getString('token') ?? "",
       });
 
       if (response.statusCode == 200) {
@@ -356,7 +409,6 @@ class _DashboardState extends State<Dashboard> {
             double currentBalance = 0;
             setState(() {
               for (var staticItem in leaveBalanceData) {
-                // ... logic to update leaveBalanceData ...
                 String staticType = staticItem['type'].toString().toLowerCase();
                 var apiItem = apiList.firstWhere((api) {
                   String apiType =
@@ -417,15 +469,11 @@ class _DashboardState extends State<Dashboard> {
       final prefs = await SharedPreferences.getInstance();
       final String uid =
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
-      final String token = prefs.getString('token') ?? "";
-      final String lt = prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String ln = prefs.getDouble('lng')?.toString() ?? "0.0";
 
       final response = await _apiClient.post({
           "type": "2052",
           "uid": uid,
           "id": uid,
-          "token": token,
       });
 
       if (response.statusCode == 200) {
@@ -454,7 +502,6 @@ class _DashboardState extends State<Dashboard> {
 
         if (mounted) {
           setState(() {
-            // Sort by ID descending — highest ID (latest applied) shows first
             fetchedList.sort((a, b) {
               int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
               int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
@@ -462,7 +509,6 @@ class _DashboardState extends State<Dashboard> {
             });
             leaveHistory = fetchedList;
             
-            // Only recalculate if summary was missing or 0
             if (leavesTakenThisMonth == 0) {
               double monthLeaves = 0;
               String currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
@@ -485,7 +531,6 @@ class _DashboardState extends State<Dashboard> {
               leavesTakenThisMonth = monthLeaves;
             }
 
-            // Sync leave balance data with the list
             for (var b in leaveBalanceData) b['taken'] = 0;
             for (var h in fetchedList) {
                String status = (h['status'] ?? "0").toString().toLowerCase();
@@ -532,17 +577,11 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _fetchMonthlyPerformance(SharedPreferences prefs) async {
     try {
-      final String cid =
-          prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
       final String uid =
           prefs.getString('uid') ??
           prefs.getString('login_cus_id') ??
           prefs.get('uid')?.toString() ??
           "";
-      final String deviceId = prefs.getString('device_id') ?? "";
-      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
-      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
-      final String? token = prefs.getString('token');
 
       DateTime now = DateTime.now();
       String fromDate = DateFormat('yyyy-MM-01').format(now);
@@ -553,7 +592,6 @@ class _DashboardState extends State<Dashboard> {
       final response = await _apiClient.post({
           "type": "2075",
           "uid": uid,
-          "token": token ?? "",
           "from_date": fromDate,
           "to_date": toDate,
       });
@@ -581,15 +619,11 @@ class _DashboardState extends State<Dashboard> {
           prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
       final String uid =
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
-      final String token = prefs.getString('token') ?? "";
-      final String lat = prefs.getDouble('lat')?.toString() ?? "";
-      final String lng = prefs.getDouble('lng')?.toString() ?? "";
       final String dId = prefs.getString('device_id') ?? "";
 
       final response = await _apiClient.post({
           "type": "2064",
           "uid": uid,
-          "token": token,
       });
 
       if (response.statusCode == 200) {
@@ -599,7 +633,6 @@ class _DashboardState extends State<Dashboard> {
           final List<dynamic> records = data["data"] ?? [];
           final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-          // find the record for today - be flexible with date matching
           final todayRecord = records.firstWhere(
             (e) => (e != null && e is Map && (e["date"]?.toString().contains(today) ?? false)) &&
                    e["del"]?.toString() != "1" &&
@@ -607,14 +640,12 @@ class _DashboardState extends State<Dashboard> {
             orElse: () => null,
           );
 
-          // Use Summary if available from API (User's JSON shows summary: {total: 13, present: 0})
           int presentCount = 0;
           if (data['summary'] != null && data['summary'] is Map) {
             presentCount = int.tryParse(data['summary']['total']?.toString() ?? "0") ?? 
                            int.tryParse(data['summary']['present']?.toString() ?? "0") ?? 0;
           }
 
-          // If no summary, calculate from records for current month
           if (presentCount == 0 && records.isNotEmpty) {
             String currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
             presentCount = records
@@ -626,7 +657,6 @@ class _DashboardState extends State<Dashboard> {
                 .length;
           }
 
-          // Helper to check if a time is valid (not empty and not a dummy value)
           bool isTimeValid(dynamic time) {
             if (time == null) return false;
             String t = time.toString().trim().toLowerCase();
@@ -644,17 +674,14 @@ class _DashboardState extends State<Dashboard> {
               setState(() {
                 totalPresentDays = presentCount;
                 if (hasIn && !hasOut) {
-                  // ✅ DATABASE SAYS: CHECKED IN
                   isCheckedInByServer = true;
                   isTodayFinished = false;
-                  isCheckedInByLocal = true; // Sync local state too!
+                  isCheckedInByLocal = true;
                 } else if (hasIn && hasOut) {
-                  // ✅ DATABASE SAYS: COMPLETED
                   isCheckedInByServer = false;
                   isTodayFinished = true;
                   isCheckedInByLocal = false;
                 } else {
-                  // ✅ DATABASE SAYS: NO RECORD
                   isCheckedInByServer = false;
                   isTodayFinished = false;
                   isCheckedInByLocal = false;
@@ -664,14 +691,12 @@ class _DashboardState extends State<Dashboard> {
               });
             }
             
-            // ✅ FETCH MARKETING STATUS FROM SERVER (SYCHRONIZE WITH POSTMAN)
-            await _syncMarketingStatusFromServer(cid, uid, dId, token);
+            await _syncMarketingStatusFromServer(cid, uid, dId, "");
             
             await prefs.setBool('isCheckedIn', isCheckedInByServer);
             if (hasIn) await prefs.setString('last_checkin_date', today);
             if (hasOut) await prefs.setString('last_checkout_date', today);
 
-            // ✅ SYNC BREAK STATUS FROM SERVER
             final String serverStatus =
                 todayRecord["status"]?.toString().toLowerCase() ?? "";
             final bool serverSaysOnBreak = serverStatus.contains("break");
@@ -682,24 +707,20 @@ class _DashboardState extends State<Dashboard> {
                   if (serverSaysOnBreak) {
                     isOnBreak = true;
                   } else {
-                    // ✅ SAFE STOP: Only stop break if local prefs ALSO confirm not on break
                     final bool localSaysOnBreak =
                         prefs.getBool('is_on_break') ?? false;
                     if (!localSaysOnBreak) {
                       isOnBreak = false;
                       _breakTimer?.cancel();
                     }
-                    // If local says on break, keep running — local wins
                   }
                 } else {
-                  // Checked out — definitely end break
                   isOnBreak = false;
                   _breakTimer?.cancel();
                 }
               });
             }
 
-            // Sync Preference — only clear if server confirmed checkout
             if (!isCheckedInByServer) {
               await prefs.setBool('is_on_break', false);
               await prefs.remove('break_start_time');
@@ -714,11 +735,9 @@ class _DashboardState extends State<Dashboard> {
               await prefs.setBool('marketing_attendance_mode', isMkt);
 
               if (isMkt) {
-                // If chosen marketing, check if they actually did a marketing check-in
                 final historyResp = await _apiClient.post({
                     "type": "2062",
                     "uid": uid,
-                    "token": token,
                 });
                 final hData = jsonDecode(historyResp.body);
                 if (hData['error'] == false) {
@@ -748,7 +767,6 @@ class _DashboardState extends State<Dashboard> {
               }
             }
           } else {
-            // ✅ NO RECORD ON SERVER FOR TODAY - FORCE RESET LOCAL STATE
             if (mounted) {
               setState(() {
                 totalPresentDays = presentCount;
@@ -823,7 +841,7 @@ class _DashboardState extends State<Dashboard> {
             left: padding,
             right: padding,
             top: padding,
-            bottom: padding + 80, // Extra padding for bottom nav space
+            bottom: padding + 80,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,16 +863,7 @@ class _DashboardState extends State<Dashboard> {
             ],
             _buildModernSummaryCards(w, h),
             SizedBox(height: h * 0.02),
-            Text(
-              "HRM Modules",
-              style: GoogleFonts.poppins(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: h * 0.015),
-            _buildModuleGrid(w, h),
-            SizedBox(height: h * 0.02),
+
             if (roleId != '3') ...[
               _buildApprovalsCard(w, h),
               SizedBox(height: h * 0.02),
@@ -996,6 +1005,16 @@ class _DashboardState extends State<Dashboard> {
             ),
             SizedBox(height: h * 0.01),
             leaveReport(),
+            const SizedBox(height: 24),
+            Text(
+              "Salary & Advance",
+              style: GoogleFonts.poppins(
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildSalaryAdvanceCard(),
             if (leaveHistory.isNotEmpty) ...[
               SizedBox(height: h * 0.02),
               Row(
@@ -1336,86 +1355,6 @@ class _DashboardState extends State<Dashboard> {
             const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget menuBox(
-    BuildContext context,
-    double width,
-    String title,
-    String asset,
-    Gradient gradient, {
-    bool isFullWidth = false,
-  }) {
-    double w = MediaQuery.of(context).size.width;
-    return GestureDetector(
-      onTap: () async {
-        Widget? target;
-        if (title == "Admin") {
-          target = admin.AdminDashboard(
-            onBackToHrm: () {
-              Navigator.pop(context);
-            },
-          );
-        } else if (title == "Reports") {
-          target = const ReportsScreen();
-        } else if (title == "Marketing") {
-          target = const MarketingSelectionScreen();
-        } else if (title == "Performance") {
-          target = const PerformanceScreen();
-        } else if (title == "Leave") {
-          target = const LeaveManagementScreen();
-        }
-        if (target != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => target!),
-          ).then((_) => _initializeApp());
-        }
-      },
-      child: Container(
-        width: width,
-        padding: EdgeInsets.all(isFullWidth ? w * 0.06 : w * 0.03),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(w * 0.03),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 10,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: isFullWidth
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(asset, height: w * 0.15),
-                  SizedBox(width: w * 0.04),
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: w * 0.06,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                children: [
-                  Image.asset(asset, height: w * 0.12),
-                  SizedBox(height: w * 0.02),
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: w * 0.035,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
       ),
     );
   }
@@ -1807,12 +1746,12 @@ class _DashboardState extends State<Dashboard> {
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.yellow.shade700.withValues(alpha: 0.3),
+          color: Colors.yellow.shade700.withOpacity(0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.yellow.shade700.withValues(alpha: 0.1),
+            color: Colors.yellow.shade700.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1828,7 +1767,7 @@ class _DashboardState extends State<Dashboard> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.white.withOpacity(0.5),
                 shape: BoxShape.circle,
               ),
               child: Image.asset(
@@ -1966,17 +1905,85 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  Widget _buildSalaryAdvanceCard() {
+    final netPay = _payrollData?['net_pay']?['net_paid'] ?? '0';
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0F2F1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.payments_rounded, color: Color(0xFF26A69A), size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Estimated Net Pay",
+                      style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      "₹$netPay",
+                      style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1B2C61)),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollScreen())).then((_) => _initializeApp()),
+                child: Text("Details", style: GoogleFonts.poppins(color: const Color(0xFF26A69A), fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 15),
+          // InkWell(
+          //   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdvanceSalaryRequestScreen())).then((_) => _initializeApp()),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.center,
+          //     children: [
+          //       const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF26A69A), size: 20),
+          //       const SizedBox(width: 8),
+          //       Text(
+          //         "Request Salary Advance",
+          //         style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF26A69A)),
+          //       ),
+          //     ],
+          //   ),
+          // ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _syncMarketingStatusFromServer(
       String cid, String uid, String dId, String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
-      final lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
 
       final response = await _apiClient.post({
-          "type": "2062", // Marketing history type
+          "type": "2062",
           "uid": uid,
-          "token": token,
       });
 
       final data = jsonDecode(response.body);

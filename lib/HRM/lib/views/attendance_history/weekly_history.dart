@@ -106,19 +106,22 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       // Assuming API handles "month" param.
 
       final prefs = await SharedPreferences.getInstance();
-      final String? sessionToken = prefs.getString('token');
+      final String resolvedCid = prefs.getString('cid') ?? cid;
+      final String resolvedUid = prefs.getString('login_cus_id') ??
+          prefs.getString('server_uid') ??
+          prefs.getInt('uid')?.toString() ??
+          uid.toString();
 
       final body = {
         "type": "2064",
-        "cid": cid,
-        "uid": uid.toString(),
+        "cid": resolvedCid,
+        "uid": resolvedUid,
+        "id": resolvedUid,
         "device_id": deviceId ?? "",
         "lt": position?.latitude.toString() ?? "0.0",
         "ln": position?.longitude.toString() ?? "0.0",
         "report_type": "attendance",
-        if (sessionToken != null && sessionToken.isNotEmpty)
-          "token": sessionToken,
-        "month": startOfWeek.month.toString(),
+        "month": startOfWeek.month.toString().padLeft(2, '0'),
         "year": startOfWeek.year.toString(),
       };
 
@@ -184,6 +187,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       return t.isNotEmpty && t != "null" && t != "00:00:00" && t != "00:00";
     }
 
+    double totalHoursWorked = 0.0;
+
     daysPresent = attendanceList.where((record) {
       String dateStr = record["date"] ?? "";
       if (dateStr.isEmpty) return false;
@@ -194,8 +199,15 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           rd.isAfter(endOfWeek.add(const Duration(days: 1)))) {
         return false;
       }
-      // Count only days with both check-in AND check-out (approved/completed)
-      return _isTimeValid(record["in_time"]) && _isTimeValid(record["out_time"]);
+      // Count only days with at least a check-in
+      bool valid = _isTimeValid(record["in_time"]);
+      if (valid) {
+        String? hrs = record["overall_hours"]?.toString() ?? record["duration_decimal"]?.toString();
+        if (hrs != null) {
+          totalHoursWorked += double.tryParse(hrs) ?? 0.0;
+        }
+      }
+      return valid;
     }).length;
 
     // Days passed in week (denominator)
@@ -339,9 +351,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       Expanded(
                         child: statsBox(
                           "Total Hours",
-                          stats != null && stats!["total_hours_worked"] != null
-                              ? "${stats!["total_hours_worked"]}h"
-                              : "0h",
+                          "${totalHoursWorked.toStringAsFixed(1)}h",
                           valueColor: Colors.black,
                         ),
                       ),
@@ -479,9 +489,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               : Colors.green,
                           checkIn: record["in_time"],
                           checkOut: record["out_time"],
-                          breakTime:
-                              "0h 00m", // Assuming break info not in list or adjust
-                          total: "${record["overall_hours"] ?? 0}h",
+                          breakTime: record["total_break_time"] ?? "0h 00m",
+                          overtime: record["overtime"]?.toString(),
+                          total: "${record["overall_hours"] ?? record["duration_decimal"] ?? 0}h",
                         );
                       },
                     ),

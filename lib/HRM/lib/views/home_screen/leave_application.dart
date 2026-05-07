@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:image_picker/image_picker.dart';
@@ -655,11 +656,11 @@ class _LeaveFormState extends State<LeaveForm> {
                         const SizedBox(height: 2),
                         Text(
                           "This Month: ${fmt(selectedLeaveTypeObj!['taken_month'])} / ${selectedLeaveTypeObj!['max_month']} Taken",
-                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87),
+                          style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.black87),
                         ),
                         Text(
                           "This Year: ${fmt(selectedLeaveTypeObj!['taken_year'])} / ${selectedLeaveTypeObj!['max_year']} Taken",
-                          style: GoogleFonts.poppins(fontSize: 11, color: Colors.black87),
+                          style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.black87),
                         ),
                         if (selectedLeaveTypeObj!['is_exhausted'] == true)
                           Padding(
@@ -705,22 +706,22 @@ class _LeaveFormState extends State<LeaveForm> {
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 50.h,
             child: ElevatedButton(
               onPressed: isLoading ? null : _applyLeave,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff26A69A),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
                 elevation: 0,
               ),
               child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
+                  ? SizedBox(
+                      width: 20.r,
+                      height: 20.r,
+                      child: const CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
                       ),
@@ -728,7 +729,7 @@ class _LeaveFormState extends State<LeaveForm> {
                   : Text(
                       'Submit',
                       style: GoogleFonts.poppins(
-                        fontSize: 16,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

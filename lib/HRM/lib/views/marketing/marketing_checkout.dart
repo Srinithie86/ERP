@@ -13,6 +13,7 @@ import 'package:geocoding/geocoding.dart';
 import '../../models/marketing_api.dart';
 import '../../models/employee_api.dart'; // Import EmployeeApi
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final String? checkinId;
@@ -502,7 +503,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     radius: const Radius.circular(8),
                     child: Container(
                       width: double.infinity,
-                      height: 160,
+                      height: 160.h,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(8),
@@ -571,16 +572,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             SizedBox(height: isTablet ? 40 : 30),
 
             SizedBox(
-              width: 350,
-              height: 55,
+              width: double.infinity,
+              height: 55.h,
               child: ElevatedButton(
                 onPressed: _submitForm,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF26A69A),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(50.r),
                   ),
                   elevation: 3,
                 ),

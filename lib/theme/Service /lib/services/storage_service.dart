@@ -22,11 +22,11 @@ class StorageService {
       final prefs = await SharedPreferences.getInstance();
       
       // Extract IDs safely from various possible keys
-      final userId = (data["user_id"] ?? data["uid"] ?? data["id"] ?? data["data"]?[0]?["id"])?.toString();
+      final userId = (data["user_id"] ?? data["uid"] ?? data["id"] ?? data["login_cus_id"] ?? data["data"]?[0]?["id"])?.toString();
       final roleId = (data["role_id"] ?? data["data"]?[0]?["role_id"])?.toString();
-      final token = (data["token"] ?? data["data"]?[0]?["token"])?.toString();
-      final cid = (data["cid"] ?? data["data"]?[0]?["cid"])?.toString();
-      final cusId = (data["cus_id"] ?? data["engineer_id"] ?? data["eg_id"] ?? data["data"]?[0]?["cus_id"])?.toString();
+      final token = (data["token"] ?? data["Token"] ?? data["auth-token"] ?? data["f_token"] ?? data["data"]?[0]?["token"])?.toString();
+      final cid = (data["cid"] ?? data["cid_str"] ?? data["login_cid"] ?? data["data"]?[0]?["cid"])?.toString();
+      final cusId = (data["cus_id"] ?? data["engineer_id"] ?? data["eg_id"] ?? data["login_cus_id"] ?? data["data"]?[0]?["cus_id"])?.toString();
       final name = (data["name"] ?? data["user_name"] ?? data["data"]?[0]?["name"])?.toString();
       final email = (data["email"] ?? data["user_email"] ?? data["data"]?[0]?["email"])?.toString();
       final phone = (data["mobile"] ?? data["phone"] ?? data["user_phone"] ?? data["data"]?[0]?["mobile"])?.toString();

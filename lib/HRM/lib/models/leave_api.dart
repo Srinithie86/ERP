@@ -27,13 +27,9 @@ class LeaveService {
   /// ===============================
   static Future<Map<String, dynamic>> getLeaveSummary() async {
     final prefs = await SharedPreferences.getInstance();
-    final empId = await getEmployeeTableId(prefs);
     
     final body = {
       "type": "2051",
-      "uid": empId ?? "",
-      "id": empId ?? "",
-      "token": prefs.getString('token') ?? "",
       "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
       "device_id": prefs.getString('device_id') ?? "",
       "lt": (prefs.getDouble('lat') ?? 0.0).toString(),
@@ -55,7 +51,6 @@ class LeaveService {
       "type": "2052",
       "uid": empId ?? "",
       "id": empId ?? "",
-      "token": prefs.getString('token') ?? "",
       "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
       "device_id": prefs.getString('device_id') ?? "",
       "lt": (prefs.getDouble('lat') ?? 0.0).toString(),
@@ -103,18 +98,13 @@ class LeaveService {
   static Future<List<Map<String, dynamic>>> getLeaveTypes() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final empId = await getEmployeeTableId(prefs);
       
       final body = {
         "type": "2044",
-        "uid": empId ?? "",
-        "id": empId ?? "",
-        "token": prefs.getString('token') ?? "",
         "cid": (prefs.get('cid') ?? prefs.get('cid_str') ?? "").toString(),
         "device_id": prefs.getString('device_id') ?? "",
         "lt": (prefs.getDouble('lat') ?? 0.0).toString(),
         "ln": (prefs.getDouble('lng') ?? 0.0).toString(),
-        "select": "*",
       };
 
       final res = await _apiClient.post(body);
@@ -150,12 +140,8 @@ class LeaveService {
       debugPrint("API Error in getLeaveTypes: $e");
     }
     
-    // Fallback if API fails (common leave types)
-    return [
-      {"id": "1", "name": "Casual Leave", "max_month": "1", "max_year": "12"},
-      {"id": "2", "name": "Sick Leave", "max_month": "1", "max_year": "12"},
-      {"id": "3", "name": "Earned Leave", "max_month": "1", "max_year": "15"},
-    ];
+    // NO FALLBACKS - Bind exclusively to server
+    return [];
   }
 
   /// ===============================
@@ -182,7 +168,6 @@ class LeaveService {
         "type": "2043",
         "uid": empId,
         "id": empId,
-        "token": prefs.getString('token') ?? "",
         "leave_type": leaveType,
         "leave_start_date": fromDate,
         "leave_end_date": toDate,

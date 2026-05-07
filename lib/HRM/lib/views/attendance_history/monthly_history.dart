@@ -53,16 +53,12 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       cid = prefs.getString('cid') ?? "";
-      // Use same UID resolution as the rest of the app
-      uid =
-          int.tryParse(
+      uid = int.tryParse(
             prefs.getString('login_cus_id') ??
                 prefs.getString('server_uid') ??
-                prefs.getString('employee_table_id') ??
                 prefs.getInt('uid')?.toString() ??
                 "0",
-          ) ??
-          0;
+          ) ?? 0;
     });
     await _getDeviceId();
     _fetchMonthlyData();
@@ -107,9 +103,8 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
       final prefs = await SharedPreferences.getInstance();
       final String? sessionToken = prefs.getString('token');
       final String resolvedCid = prefs.getString('cid') ?? cid;
-      final String resolvedUid = prefs.getString('server_uid') ??
-          prefs.getString('login_cus_id') ??
-          prefs.getString('employee_table_id') ??
+      final String resolvedUid = prefs.getString('login_cus_id') ??
+          prefs.getString('server_uid') ??
           prefs.getInt('uid')?.toString() ??
           uid.toString();
       final String resolvedDeviceId =
@@ -124,10 +119,8 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
         "lt": position?.latitude.toString() ?? "0.0",
         "ln": position?.longitude.toString() ?? "0.0",
         "report_type": "attendance",
-        "month": selectedMonth.toString(),
+        "month": selectedMonth.toString().padLeft(2, '0'),
         "year": selectedYear.toString(),
-        if (sessionToken != null && sessionToken.isNotEmpty)
-          "token": sessionToken,
       };
 
       debugPrint("Monthly Request: $body");
@@ -143,7 +136,8 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
         setState(() {
           if (data["statistics"] != null) {
             stats = Map<String, dynamic>.from(data["statistics"]);
-            debugPrint("Monthly Stats: $stats");
+          } else if (data["summary"] != null) {
+            stats = Map<String, dynamic>.from(data["summary"]);
           }
           if (data["data"] != null) {
             attendanceList = List<dynamic>.from(data["data"]);
@@ -308,6 +302,12 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
     );
   }
 
+  bool isTimeValid(dynamic time) {
+    if (time == null) return false;
+    String t = time.toString().trim().toLowerCase();
+    return t.isNotEmpty && t != "null" && t != "00:00:00" && t != "00:00";
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -322,11 +322,7 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
     // Count days present:
     // Primary: use API statistics.total_records (most accurate — server computed)
     // Fallback: count records with at least a valid in_time
-    bool isTimeValid(dynamic time) {
-      if (time == null) return false;
-      String t = time.toString().trim().toLowerCase();
-      return t.isNotEmpty && t != "null" && t != "00:00:00" && t != "00:00";
-    }
+
 
     if (stats != null && stats!["total_records"] != null) {
       daysPresent = int.tryParse(stats!["total_records"].toString()) ?? 0;
@@ -438,8 +434,8 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
                       Expanded(
                         child: _statsBox(
                           "Total Hours",
-                          stats != null && stats!["total_hours_worked"] != null
-                              ? "${stats!["total_hours_worked"]}h"
+                          stats != null && (stats!["total_hours"] != null || stats!["total_hours_worked"] != null)
+                              ? "${stats!["total_hours"] ?? stats!["total_hours_worked"]}h"
                               : "0h",
                         ),
                       ),
@@ -920,8 +916,7 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
           totalHours +=
               (double.tryParse(record["duration_decimal"]?.toString() ?? "0") ??
               0.0);
-          String status = record["status"]?.toString().toLowerCase() ?? "";
-          if (status.contains("present") || status.contains("check out")) {
+          if (isTimeValid(record["in_time"])) {
             daysPresent++;
           }
         }

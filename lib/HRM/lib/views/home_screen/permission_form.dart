@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 import '../../models/permission_api.dart';
 
@@ -216,7 +217,7 @@ class _PermissionFormState extends State<PermissionForm> {
                   Text(
                     "Request Permission",
                     style: GoogleFonts.outfit(
-                      fontSize: 22,
+                      fontSize: 22.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -224,7 +225,7 @@ class _PermissionFormState extends State<PermissionForm> {
                   Text(
                     "Short duration leave request",
                     style: GoogleFonts.poppins(
-                      fontSize: 13,
+                      fontSize: 13.sp,
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
@@ -368,14 +369,14 @@ class _PermissionFormState extends State<PermissionForm> {
   Widget _buildSubmitButton() {
     return Container(
       width: double.infinity,
-      height: 58,
+      height: 58.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18.r),
         boxShadow: [
           BoxShadow(
             color: themeGreen.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 15.r,
+            offset: Offset(0, 8.h),
           ),
         ],
       ),
@@ -384,18 +385,18 @@ class _PermissionFormState extends State<PermissionForm> {
         style: ElevatedButton.styleFrom(
           backgroundColor: themeGreen,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+            ? SizedBox(
+                width: 24.r,
+                height: 24.r,
+                child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
               )
             : Text(
                 "Submit Request",
-                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                style: GoogleFonts.outfit(fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5),
               ),
       ),
     );

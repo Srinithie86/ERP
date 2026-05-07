@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart'; 
 import 'marketing_checkout.dart';
 import '../../models/marketing_api.dart';
+import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 class MarketingScreen extends StatefulWidget {
   const MarketingScreen({super.key});
@@ -293,7 +294,7 @@ class _MarketingScreenState extends State<MarketingScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -301,15 +302,15 @@ class _MarketingScreenState extends State<MarketingScreen> {
             if (isCheckedIn)
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(color: const Color(0xFF98D1C1), borderRadius: BorderRadius.circular(10)),
-                child: Row(children: [const Icon(Icons.check_circle, color: Colors.white), const SizedBox(width: 12), Text("Check in Successfully", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w500))]),
+                margin: EdgeInsets.only(bottom: 24.h),
+                padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
+                decoration: BoxDecoration(color: const Color(0xFF98D1C1), borderRadius: BorderRadius.circular(10.r)),
+                child: Row(children: [Icon(Icons.check_circle, color: Colors.white, size: 20.r), SizedBox(width: 12.w), Text("Check in Successfully", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w500))]),
               ),
             Row(
               children: [
                 Expanded(child: _buildTimeBox(isCheckedIn ? "Add New Check In" : "Check In", checkInTime, isCheckedIn: isCheckedIn, onTap: _showCheckInDialog, showAddIcon: isCheckedIn)),
-                const SizedBox(width: 20),
+                SizedBox(width: 20.w),
                 Expanded(child: _buildTimeBox("Check Out", checkOutTime, isCheckedIn: false, onTap: () async {
                   if (!isCheckedIn) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please Check In first"), backgroundColor: Colors.orange));
@@ -360,15 +361,15 @@ class _MarketingScreenState extends State<MarketingScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: isCheckedIn ? const Color(0xFF76C73F) : const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(12)),
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(color: isCheckedIn ? const Color(0xFF76C73F) : const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(12.r)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showAddIcon) const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
-            Text(label, style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: isCheckedIn ? Colors.white : const Color(0xFF2C3E50))),
-            const SizedBox(height: 4),
-            Text(time, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: isCheckedIn ? Colors.white : const Color(0xFF2C3E50))),
+            if (showAddIcon) Icon(Icons.add_circle_outline, color: Colors.white, size: 20.r),
+            Text(label, style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600, color: isCheckedIn ? Colors.white : const Color(0xFF2C3E50))),
+            SizedBox(height: 4.h),
+            Text(time, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: isCheckedIn ? Colors.white : const Color(0xFF2C3E50))),
           ],
         ),
       ),
@@ -378,35 +379,35 @@ class _MarketingScreenState extends State<MarketingScreen> {
   Widget _buildHistoryItem({required String company, required String time, required String status, required Color badgeBg, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(12.r),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12.r), border: Border.all(color: Colors.grey.shade300)),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.person_pin_circle_outlined, color: status == "Completed" ? const Color(0xFF2ECC71) : const Color(0xFFE67E22), size: 28),
-            const SizedBox(width: 12),
+            Icon(Icons.person_pin_circle_outlined, color: status == "Completed" ? const Color(0xFF2ECC71) : const Color(0xFFE67E22), size: 28.r),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(company, style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.w600)),
-                  Text(time, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
-                  const SizedBox(height: 8),
+                  Text(company, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                  Text(time, style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey.shade600)),
+                  SizedBox(height: 8.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(6)),
-                        child: Text(status, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                        decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(6.r)),
+                        child: Text(status, style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w600, color: Colors.white)),
                       ),
                       if (onTap != null)
                         ElevatedButton(
                           onPressed: onTap,
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A), padding: const EdgeInsets.symmetric(horizontal: 12), minimumSize: const Size(60, 28)),
-                          child: Text("Checkout", style: GoogleFonts.poppins(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A), padding: EdgeInsets.symmetric(horizontal: 12.w), minimumSize: Size(60.w, 28.h)),
+                          child: Text("Checkout", style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.white, fontWeight: FontWeight.w600)),
                         ),
                     ],
                   ),
