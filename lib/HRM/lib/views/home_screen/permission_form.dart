@@ -179,6 +179,7 @@ class _PermissionFormState extends State<PermissionForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildHeaderCard(),
             _buildFormCard(),
             SizedBox(height: 32.h),
             _buildSubmitButton(),

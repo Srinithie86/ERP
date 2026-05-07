@@ -95,6 +95,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               
               // Auth Tabs (Figma style)
               TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 controller: _tabController,
                 indicatorColor: AppTheme.primaryTeal,
                 labelColor: AppTheme.primaryTeal,

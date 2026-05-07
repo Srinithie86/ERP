@@ -55,6 +55,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 controller: _tabController,
                 indicatorWeight: 0,
                 dividerColor: Colors.transparent,
@@ -473,6 +475,8 @@ class _ApplyLeaveFormScreenState extends State<ApplyLeaveFormScreen>
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 controller: _tabController,
                 indicatorWeight: 0,
                 dividerColor: Colors.transparent,

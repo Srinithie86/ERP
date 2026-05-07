@@ -550,6 +550,8 @@ class _RequestApprovalsState extends State<RequestApprovals> {
             ),
           ],
           bottom: TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             onTap: (index) {
               setState(() {
                 _currentTab = _tabs[index];

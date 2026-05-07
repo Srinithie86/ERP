@@ -121,6 +121,8 @@ class _AdvanceSalaryRequestScreenState extends State<AdvanceSalaryRequestScreen>
           style: GoogleFonts.poppins(color: Colors.black87, fontWeight: FontWeight.w700, fontSize: 20),
         ),
         bottom: TabBar(
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           controller: _tabController,
           labelColor: _themeColor,
           unselectedLabelColor: Colors.grey,
