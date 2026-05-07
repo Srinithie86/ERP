@@ -134,7 +134,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       final data = jsonDecode(response.body);
       if (data["error"] == false || data["error"] == "false") {
         setState(() {
-          if (data["statistics"] != null) {
+          if (data["summary"] != null) {
+            stats = Map<String, dynamic>.from(data["summary"]);
+          } else if (data["statistics"] != null) {
             stats = Map<String, dynamic>.from(data["statistics"]);
           }
           if (data["data"] != null) {
@@ -189,26 +191,52 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
 
     double totalHoursWorked = 0.0;
 
-    daysPresent = attendanceList.where((record) {
+    daysPresent = 0;
+    for (var record in attendanceList) {
       String dateStr = record["date"] ?? "";
-      if (dateStr.isEmpty) return false;
+      if (dateStr.isEmpty) continue;
       DateTime? rd = DateTime.tryParse(dateStr);
-      if (rd == null) return false;
-      // Check it's within this week
-      if (rd.isBefore(startOfWeek) ||
-          rd.isAfter(endOfWeek.add(const Duration(days: 1)))) {
-        return false;
+      if (rd == null) continue;
+
+      // Correct range check
+      if (rd.isBefore(startOfWeek) || rd.isAfter(endOfWeek.add(const Duration(hours: 23, minutes: 59)))) {
+        continue;
       }
-      // Count only days with at least a check-in
-      bool valid = _isTimeValid(record["in_time"]);
-      if (valid) {
-        String? hrs = record["overall_hours"]?.toString() ?? record["duration_decimal"]?.toString();
-        if (hrs != null) {
-          totalHoursWorked += double.tryParse(hrs) ?? 0.0;
+
+      if (_isTimeValid(record["in_time"])) {
+        daysPresent++;
+        
+        // 1. Try duration fields first
+        String hrsStr = record["duration_decimal"]?.toString() ?? record["overall_hours"]?.toString() ?? "";
+        double hrs = double.tryParse(hrsStr) ?? 0.0;
+
+        // 2. Fallback: Calculate from in_time and out_time if fields are missing
+        if (hrs == 0 && _isTimeValid(record["out_time"])) {
+          try {
+            DateFormat format = DateFormat("HH:mm:ss");
+            DateTime inT = format.parse(record["in_time"]);
+            DateTime outT = format.parse(record["out_time"]);
+            hrs = outT.difference(inT).inMinutes / 60.0;
+            if (hrs < 0) hrs = 0; // Handle overnight if needed, but usually same day
+          } catch (e) {
+            // If HH:mm:ss fails, try HH:mm
+            try {
+               DateFormat formatShort = DateFormat("HH:mm");
+               DateTime inT = formatShort.parse(record["in_time"]);
+               DateTime outT = formatShort.parse(record["out_time"]);
+               hrs = outT.difference(inT).inMinutes / 60.0;
+            } catch (_) {}
+          }
         }
+        
+        totalHoursWorked += hrs;
       }
-      return valid;
-    }).length;
+    }
+
+    // Format like Monthly history: "8h 30m"
+    int hTotal = totalHoursWorked.floor();
+    int mTotal = ((totalHoursWorked - hTotal) * 60).round();
+    String formattedTotalHours = "${hTotal}h ${mTotal}m";
 
     // Days passed in week (denominator)
     // If current week: up to today (or end of week if past)
@@ -351,7 +379,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       Expanded(
                         child: statsBox(
                           "Total Hours",
-                          "${totalHoursWorked.toStringAsFixed(1)}h",
+                          formattedTotalHours,
                           valueColor: Colors.black,
                         ),
                       ),
@@ -465,6 +493,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           }
                         }
 
+                        double dayHrs = double.tryParse(record["duration_decimal"]?.toString() ?? "") ?? 
+                                       double.tryParse(record["overall_hours"]?.toString() ?? "") ?? 0.0;
+                        int dh = dayHrs.floor();
+                        int dm = ((dayHrs - dh) * 60).round();
+
                         return attendanceCard(
                           day: recordDate != null
                               ? DateFormat('E').format(recordDate)
@@ -491,7 +524,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                           checkOut: record["out_time"],
                           breakTime: record["total_break_time"] ?? "0h 00m",
                           overtime: record["overtime"]?.toString(),
-                          total: "${record["overall_hours"] ?? record["duration_decimal"] ?? 0}h",
+                          total: "${dh}h ${dm}m",
                         );
                       },
                     ),

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../Models/employee_api.dart';
-import 'employee_confirmation.dart';
-import 'resignation_process.dart';
-import 'employee_history.dart';
+// import 'employee_confirmation.dart';
+// import 'resignation_process.dart';
+// import 'employee_history.dart';
 
 class AdminEmployeeFeatureScreen extends StatelessWidget {
   const AdminEmployeeFeatureScreen({super.key});
@@ -43,19 +43,19 @@ class AdminEmployeeFeatureScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              _buildFeatureCard(
-                context,
-                title: "Confirmation Process",
-                icon: Icons.assignment_turned_in_outlined,
-                color: const Color(0xFFE8F5E9),
-                iconColor: const Color(0xFF388E3C),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EmployeeConfirmationScreen(),
-                  ),
-                ),
-              ),
+              // _buildFeatureCard(
+              //   context,
+              //   title: "Confirmation Process",
+              //   icon: Icons.assignment_turned_in_outlined,
+              //   color: const Color(0xFFE8F5E9),
+              //   iconColor: const Color(0xFF388E3C),
+              //   onTap: () => Navigator.push(
+              //     context,
+              //     MaterialPageRoute(
+              //       builder: (context) => const EmployeeConfirmationScreen(),
+              //     ),
+              //   ),
+              // ),
               // _buildFeatureCard(
               //   context,
               //   title: "Transfer Management",
@@ -64,32 +64,28 @@ class AdminEmployeeFeatureScreen extends StatelessWidget {
               //   iconColor: const Color(0xFFF57C00),
               //   onTap: () {},
               // ),
-              _buildFeatureCard(
-                context,
-                title: "Resignation Process",
-                icon: Icons.exit_to_app_outlined,
-                color: const Color(0xFFFFEBEE),
-                iconColor: const Color(0xFFD32F2F),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ResignationProcessScreen(),
-                  ),
-                ),
-              ),
-              _buildFeatureCard(
-                context,
-                title: "Employee History",
-                icon: Icons.history_outlined,
-                color: const Color(0xFFF3E5F5),
-                iconColor: const Color(0xFF7B1FA2),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EmployeeHistoryScreen(),
-                  ),
-                ),
-              ),
+//               _buildFeatureCard(
+//                 context,
+//                 title: "Resignation Process",
+//                 icon: Icons.exit_to_app_outlined,
+//                 color: const Color(0xFFFFEBEE),
+// ,                iconColor: const Color(0xFFD32F2F),
+//                 onTap: () => Navigator.push(
+//                 )
+//               ),
+              // _buildFeatureCard(
+              //   context,
+              //   title: "Employee History",
+              //   icon: Icons.history_outlined,
+              //   color: const Color(0xFFF3E5F5),
+              //   iconColor: const Color(0xFF7B1FA2),
+              //   onTap: () => Navigator.push(
+              //     context,
+              //     MaterialPageRoute(
+              //       builder: (context) => const EmployeeHistoryScreen(),
+              //     ),
+              //   ),
+              // ),
               // _buildFeatureCard(
               //   context,
               //   title: "Memo & Termination",
@@ -650,18 +646,18 @@ class AdminEmployeeDetailsScreen extends StatelessWidget {
   Widget _buildActionMenus(BuildContext context) {
     return Column(
       children: [
-        _menuTile(
-          Icons.assignment_turned_in_outlined,
-          "Confirmation Process",
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const EmployeeConfirmationScreen(),
-              ),
-            );
-          },
-        ),
+        // _menuTile(
+        //   Icons.assignment_turned_in_outlined,
+        //   "Confirmation Process",
+        //   onTap: () {
+        //     Navigator.push(
+        //       context,
+        //       MaterialPageRoute(
+        //         builder: (context) => const EmployeeConfirmationScreen(),
+        //       ),
+        //     );
+        //   },
+        // ),
         _menuTile(Icons.history_outlined, "Employment History"),
         _menuTile(Icons.insights_outlined, "Performance Track"),
         _menuTile(Icons.folder_shared_outlined, "Document Vault"),

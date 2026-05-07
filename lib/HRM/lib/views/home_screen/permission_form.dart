@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 import '../../models/permission_api.dart';
+import '../../utils/background_fetch_service.dart';
 
 extension TimeOfDayExtension on TimeOfDay {
   String format12Hour() {
@@ -122,6 +122,8 @@ class _PermissionFormState extends State<PermissionForm> {
           // Redirect to Dashboard after 1 second delay
           Future.delayed(const Duration(seconds: 1), () {
             if (mounted) {
+              // Trigger a check to record the new pending status locally
+              BackgroundFetchService.checkNow();
               Navigator.of(context).maybePop();
             }
           });
@@ -217,7 +219,7 @@ class _PermissionFormState extends State<PermissionForm> {
                   Text(
                     "Request Permission",
                     style: GoogleFonts.outfit(
-                      fontSize: 22.sp,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -225,7 +227,7 @@ class _PermissionFormState extends State<PermissionForm> {
                   Text(
                     "Short duration leave request",
                     style: GoogleFonts.poppins(
-                      fontSize: 13.sp,
+                      fontSize: 13,
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
@@ -369,14 +371,14 @@ class _PermissionFormState extends State<PermissionForm> {
   Widget _buildSubmitButton() {
     return Container(
       width: double.infinity,
-      height: 58.h,
+      height: 58,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18.r),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             color: themeGreen.withOpacity(0.3),
-            blurRadius: 15.r,
-            offset: Offset(0, 8.h),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -385,18 +387,18 @@ class _PermissionFormState extends State<PermissionForm> {
         style: ElevatedButton.styleFrom(
           backgroundColor: themeGreen,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
         child: isLoading
-            ? SizedBox(
-                width: 24.r,
-                height: 24.r,
-                child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
               )
             : Text(
                 "Submit Request",
-                style: GoogleFonts.outfit(fontSize: 16.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
               ),
       ),
     );

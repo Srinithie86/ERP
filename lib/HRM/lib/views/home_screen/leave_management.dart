@@ -8,7 +8,6 @@ import 'leave_application.dart';
 import 'permission_form.dart';
 import '../../models/permission_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:erp_smart/theme/Service /lib/core/size_utils.dart';
 
 enum LeaveManagementMode {
   selection,
@@ -63,10 +62,13 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
     setState(() => isHolidaysLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String cid = prefs.getString('cid') ?? prefs.getString('cid_str') ?? "99994444";
+      final String cid =
+          prefs.getString('cid') ?? prefs.getString('cid_str') ?? "99994444";
       final String deviceId = prefs.getString('device_id') ?? "123";
-      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "0.0";
+      final String lat =
+          prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "0.0";
+      final String lng =
+          prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "0.0";
 
       final response = await http.post(
         Uri.parse("https://erpsmart.in/total/api/m_api/"),
@@ -106,8 +108,10 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
       List<dynamic> apiSummaryList = [];
       if (summaryRes['error'] == false || summaryRes['error'] == "false") {
         var sData = summaryRes['data'];
-        if (sData is List) apiSummaryList = sData;
-        else if (sData is Map) apiSummaryList = sData['leave_types'] ?? sData['summary'] ?? [];
+        if (sData is List)
+          apiSummaryList = sData;
+        else if (sData is Map)
+          apiSummaryList = sData['leave_types'] ?? sData['summary'] ?? [];
       }
 
       // 2. Fetch Leave Types (Type 2044)
@@ -118,23 +122,30 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
           int index = entry.key;
           var t = entry.value;
           String tid = t['id']?.toString() ?? "";
-          
+
           // Look for this type in the summary list if available
           var summaryItem = apiSummaryList.firstWhere(
-            (s) => s['id']?.toString() == tid || s['leave_type_id']?.toString() == tid,
-            orElse: () => null
-          );
+              (s) =>
+                  s['id']?.toString() == tid ||
+                  s['leave_type_id']?.toString() == tid,
+              orElse: () => null);
 
           double taken = 0;
           if (summaryItem != null) {
-            taken = double.tryParse(summaryItem['taken']?.toString() ?? summaryItem['leave_taken']?.toString() ?? "0") ?? 0;
+            taken = double.tryParse(summaryItem['taken']?.toString() ??
+                    summaryItem['leave_taken']?.toString() ??
+                    "0") ??
+                0;
           }
 
           return {
             "id": tid,
             "type": t['name'],
             "taken": taken,
-            "total": int.tryParse(t['max_year']?.toString() ?? summaryItem?['total']?.toString() ?? "12") ?? 12,
+            "total": int.tryParse(t['max_year']?.toString() ??
+                    summaryItem?['total']?.toString() ??
+                    "12") ??
+                12,
             "balance": "0/0",
             "progressColor": _progressColors[index % _progressColors.length],
           };
@@ -156,7 +167,8 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
     try {
       final res = await LeaveService.getLeaveHistory();
       if (res['error'] == false) {
-        List<dynamic> fetchedList = res['leave_applications'] ?? res['data'] ?? [];
+        List<dynamic> fetchedList =
+            res['leave_applications'] ?? res['data'] ?? [];
         // Sort by ID descending — highest ID (latest applied) shows first
         fetchedList.sort((a, b) {
           int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
@@ -291,30 +303,30 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
           child: _buildDashboardMode(),
         );
       case LeaveManagementMode.leaveForm:
-        return SingleChildScrollView(
-            padding: EdgeInsets.all(20.r), child: const LeaveForm());
+        return const SingleChildScrollView(
+            padding: EdgeInsets.all(20), child: LeaveForm());
       case LeaveManagementMode.permissionForm:
-        return SingleChildScrollView(
-            padding: EdgeInsets.all(20.r), child: const PermissionForm());
+        return const SingleChildScrollView(
+            padding: EdgeInsets.all(20), child: PermissionForm());
     }
   }
 
   Widget _buildSelectionMode() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 10),
           Text("Welcome back!",
               style: GoogleFonts.poppins(
-                  fontSize: 24.sp,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF1B2C61))),
           Text("Select a category to manage your requests.",
               style: GoogleFonts.poppins(
-                  fontSize: 14.sp, color: const Color(0xFF64748B))),
+                  fontSize: 14, color: const Color(0xFF64748B))),
           const SizedBox(height: 32),
           _selectionCardResponsive(
               "Leave Request",
@@ -362,10 +374,10 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
             boxShadow: [
               BoxShadow(
                   color: color.withOpacity(0.12),
-                  blurRadius: 20.r,
-                  offset: Offset(0, 10.h))
+                  blurRadius: 20,
+                  offset: const Offset(0, 10))
             ],
-            border: Border.all(color: color.withOpacity(0.1), width: 1.5.w),
+            border: Border.all(color: color.withOpacity(0.1), width: 1.5),
           ),
           child: Stack(
             children: [
@@ -373,18 +385,18 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
                   top: -30,
                   right: -30,
                   child: CircleAvatar(
-                      radius: 70.r, backgroundColor: color.withOpacity(0.04))),
+                      radius: 70, backgroundColor: color.withOpacity(0.04))),
               Padding(
-                padding: EdgeInsets.all(24.r),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                        padding: EdgeInsets.all(12.r),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                             color: color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16.r)),
-                        child: Icon(icon, color: color, size: 28.r)),
+                            borderRadius: BorderRadius.circular(16)),
+                        child: Icon(icon, color: color, size: 28)),
                     const Spacer(),
                     Text(title,
                         style: GoogleFonts.poppins(
@@ -405,12 +417,12 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
               ),
               Positioned(
                   bottom: 20,
-                  right: 20.w,
+                  right: 20,
                   child: CircleAvatar(
-                      radius: 20.r,
+                      radius: 20,
                       backgroundColor: color,
-                      child: Icon(Icons.arrow_forward_ios,
-                          size: 14.r, color: Colors.white))),
+                      child: const Icon(Icons.arrow_forward_ios,
+                          size: 14, color: Colors.white))),
             ],
           ),
         ),
@@ -714,8 +726,8 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
                       children: [
                         _buildNavBtn(Icons.chevron_left_rounded, () {
                           setDialogState(() {
-                            calendarViewDate = DateTime(
-                                calendarViewDate.year, calendarViewDate.month - 1);
+                            calendarViewDate = DateTime(calendarViewDate.year,
+                                calendarViewDate.month - 1);
                           });
                         }),
                         Text(
@@ -728,8 +740,8 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
                         ),
                         _buildNavBtn(Icons.chevron_right_rounded, () {
                           setDialogState(() {
-                            calendarViewDate = DateTime(
-                                calendarViewDate.year, calendarViewDate.month + 1);
+                            calendarViewDate = DateTime(calendarViewDate.year,
+                                calendarViewDate.month + 1);
                           });
                         }),
                       ],
@@ -774,17 +786,18 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
                           if (index < offset) return const SizedBox.shrink();
 
                           int day = index - offset + 1;
-                          DateTime date = DateTime(
-                              calendarViewDate.year, calendarViewDate.month, day);
-                          String dateStr = DateFormat('yyyy-MM-dd').format(date);
+                          DateTime date = DateTime(calendarViewDate.year,
+                              calendarViewDate.month, day);
+                          String dateStr =
+                              DateFormat('yyyy-MM-dd').format(date);
 
                           var holiday = apiHolidays.firstWhere(
                               (h) => h['date'] == dateStr,
                               orElse: () => null);
 
-                          bool isToday = DateFormat('yyyy-MM-dd')
-                                  .format(DateTime.now()) ==
-                              dateStr;
+                          bool isToday =
+                              DateFormat('yyyy-MM-dd').format(DateTime.now()) ==
+                                  dateStr;
 
                           return Container(
                             decoration: BoxDecoration(

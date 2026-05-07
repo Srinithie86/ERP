@@ -76,6 +76,8 @@ dependencies:
   sms_autofill: ^2.4.1
   hrm_admin_app:
     path: ./hrm_admin_app
+  timezone: ^0.10.1
+  workmanager: ^0.9.0+3
   
 dev_dependencies:
   flutter_test:

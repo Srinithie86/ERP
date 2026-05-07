@@ -15,6 +15,7 @@ import 'check_out.dart';
 import '../main_root.dart';
 import 'package:hrm/views/widgets/user_avatar.dart';
 import 'marketing_timeline.dart';
+import 'package:hrm/utils/notification_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -78,6 +79,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
   String lopTakenStr = "0";
   int daysWorked = 0; // Monthly approved days (both in+out valid)
   int weeklyDaysWorked = 0; // Weekly approved days (within current Mon-Sun)
+  double weeklyTotalHours = 0.0; // Track total hours for the week
   DateTime? _selectedBreakDate = DateTime.now();
 
   Timer? _syncTimer;
@@ -767,18 +769,41 @@ class AttendanceScreenState extends State<AttendanceScreen> {
 
           int workedCount = 0;
           int weeklyCount = 0;
+          double weeklyHoursSum = 0.0;
           for (final r in records) {
             if (r == null || r is! Map) continue;
             if (!isTimeValid(r["in_time"]))
               continue;
             if (r["del"]?.toString() == "1" || r["is_d"]?.toString() == "1")
               continue;
+            
             workedCount++;
             final String? dateStr = r["date"]?.toString();
             if (dateStr != null) {
               final DateTime? recDate = DateTime.tryParse(dateStr);
               if (recDate != null && !recDate.isBefore(weekStart)) {
                 weeklyCount++;
+                
+                // Calculate hours for this weekly record
+                double hrs = double.tryParse(r["duration_decimal"]?.toString() ?? r["overall_hours"]?.toString() ?? "0") ?? 0.0;
+                
+                // Fallback to manual calc if fields missing
+                if (hrs == 0 && isTimeValid(r["out_time"])) {
+                  try {
+                    DateFormat format = DateFormat("HH:mm:ss");
+                    DateTime inT = format.parse(r["in_time"]);
+                    DateTime outT = format.parse(r["out_time"]);
+                    hrs = outT.difference(inT).inMinutes / 60.0;
+                  } catch (_) {
+                     try {
+                        DateFormat formatShort = DateFormat("HH:mm");
+                        DateTime inT = formatShort.parse(r["in_time"]);
+                        DateTime outT = formatShort.parse(r["out_time"]);
+                        hrs = outT.difference(inT).inMinutes / 60.0;
+                     } catch (_) {}
+                  }
+                }
+                weeklyHoursSum += hrs;
               }
             }
           }
@@ -787,6 +812,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
             setState(() {
               daysWorked = workedCount;
               weeklyDaysWorked = weeklyCount;
+              weeklyTotalHours = weeklyHoursSum;
             });
           }
 
@@ -2315,6 +2341,10 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                   setState(() {
                     isCheckedIn = true;
                   });
+                  // Schedule a reminder 10 minutes before 9 hours shift ends
+                  NotificationService().scheduleCheckoutReminder(DateTime.now(), shiftDurationHours: 9, reminderBeforeMinutes: 10);
+                  // Cancel the check-in reminder since user has checked in
+                  NotificationService().cancelCheckInReminder();
                 }
               },
             ),
@@ -2359,6 +2389,10 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                       stopBreakTimer();
                     }
                   });
+                  // Cancel the reminder once checked out
+                  NotificationService().cancelCheckoutReminder();
+                  // Schedule next day's check-in reminder
+                  NotificationService().scheduleCheckInReminder(shiftStartHour: 9, shiftStartMinute: 0, reminderBeforeMinutes: 10);
                 }
               },
             ),
@@ -2794,10 +2828,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                 Expanded(
                   child: statsBox(
                     "Total Hours",
-                    attendanceHistory != null &&
-                            attendanceHistory!["total_hours_worked"] != null
-                        ? "${attendanceHistory!["total_hours_worked"]}h"
-                        : "0h",
+                    "${weeklyTotalHours.toInt()}h ${((weeklyTotalHours - weeklyTotalHours.toInt()) * 60).toInt()}m",
                     valueColor: Colors.black,
                   ),
                 ),

@@ -25,17 +25,8 @@ class ApiClient {
         body.map((key, value) => MapEntry(key, value.toString()))
       );
 
-      // Robust CID retrieval with fallbacks
-      final String? cid = prefs.getString('cid') ?? 
-                         prefs.getString('login_cid') ?? 
-                         prefs.getString('cid_str') ??
-                         prefs.getString('corporate_id');
-
-      // Robust Token retrieval with fallbacks
-      final String? token = prefs.getString('token') ?? 
-                           prefs.getString('Token') ?? 
-                           prefs.getString('auth-token') ??
-                           prefs.getString('f_token');
+      final String? token = prefs.getString('token');
+      final String? cid = prefs.getString('cid') ?? prefs.getString('cid_str');
 
       if (!finalBody.containsKey('cid') && cid != null) {
         finalBody['cid'] = cid;
@@ -87,24 +78,11 @@ class ApiClient {
   Future<http.Response> postJson(Map<String, dynamic> body) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // Robust CID retrieval with fallbacks
-      final String? cid = prefs.getString('cid') ?? 
-                         prefs.getString('login_cid') ?? 
-                         prefs.getString('cid_str') ??
-                         prefs.getString('corporate_id');
-
-      // Robust Token retrieval with fallbacks
-      final String? token = prefs.getString('token') ?? 
-                           prefs.getString('Token') ?? 
-                           prefs.getString('auth-token') ??
-                           prefs.getString('f_token');
-
       final Map<String, dynamic> finalBody = Map<String, dynamic>.from(body);
+      final String? token = prefs.getString('token');
+      final String? cid = prefs.getString('cid') ?? prefs.getString('cid_str');
 
-      if (!finalBody.containsKey('cid') && cid != null) {
-        finalBody['cid'] = cid;
-      }
+      if (!finalBody.containsKey('cid') && cid != null) finalBody['cid'] = cid;
       if (!finalBody.containsKey('lt')) finalBody['lt'] = prefs.getDouble('lat') ?? 0.0;
       if (!finalBody.containsKey('ln')) finalBody['ln'] = prefs.getDouble('lng') ?? 0.0;
       if (!finalBody.containsKey('device_id')) finalBody['device_id'] = prefs.getString('device_id') ?? "Unknown";
@@ -141,17 +119,8 @@ class ApiClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      // Robust CID retrieval
-      final String? cid = prefs.getString('cid') ?? 
-                         prefs.getString('login_cid') ?? 
-                         prefs.getString('cid_str') ??
-                         prefs.getString('corporate_id');
-
-      // Robust Token retrieval
-      final String? token = prefs.getString('token') ?? 
-                           prefs.getString('Token') ?? 
-                           prefs.getString('auth-token') ??
-                           prefs.getString('f_token');
+      final String? token = prefs.getString('token');
+      final String? cid = prefs.getString('cid') ?? prefs.getString('cid_str');
 
       if (request is http.MultipartRequest && cid != null) {
         if (!request.fields.containsKey('cid')) request.fields['cid'] = cid;

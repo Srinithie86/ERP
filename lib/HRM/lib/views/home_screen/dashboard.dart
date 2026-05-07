@@ -25,6 +25,8 @@ import '../home/payroll.dart';
 import '../../services/api_client.dart';
 import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
 import 'package:erp_smart/utils/widgets/language_selector.dart';
+import 'package:hrm/utils/notification_service.dart';
+import 'package:hrm/utils/background_fetch_service.dart';
 
 class Dashboard extends StatefulWidget {
   final bool isEmbedded;
@@ -35,7 +37,7 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
   String userName = "User";
   String userRole = "";
   String roleId = "1";
@@ -50,6 +52,7 @@ class _DashboardState extends State<Dashboard> {
   String breakPurpose = "";
   Duration breakDuration = Duration.zero;
   Timer? _breakTimer;
+  Timer? _statusCheckTimer;
   bool isStatusFetching = true;
 
   bool get isCheckedIn => isCheckedInByServer || isCheckedInByLocal;
@@ -69,13 +72,28 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeApp();
+    // ✅ Add 10-second active timer for Instant Notification checks while app is open
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      BackgroundFetchService.checkNow();
+    });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _breakTimer?.cancel();
+    _statusCheckTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.resumed) {
+      // Trigger an immediate check when app is minimized or reopened
+      BackgroundFetchService.checkNow();
+    }
   }
 
   Future<void> _initializeApp() async {
@@ -138,6 +156,13 @@ class _DashboardState extends State<Dashboard> {
           _breakTimer?.cancel();
         }
       });
+    }
+
+    // ✅ SCHEDULE OR CANCEL CHECK-IN REMINDER based on local check-in state
+    if (!isCheckedInByLocal) {
+      NotificationService().scheduleCheckInReminder(shiftStartHour: 9, shiftStartMinute: 0, reminderBeforeMinutes: 10);
+    } else {
+      NotificationService().cancelCheckInReminder();
     }
 
     await _loadDashboardData();
