@@ -528,11 +528,13 @@ class _LeaveFormState extends State<LeaveForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Material(
+      color: Colors.transparent,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           _label('Leave Type'),
           DropdownButtonFormField<String>(
             value: selectedLeaveTypeObj?['id'],
@@ -740,8 +742,9 @@ class _LeaveFormState extends State<LeaveForm> {
           const SizedBox(height: 40),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _label(String text) {
     return Padding(

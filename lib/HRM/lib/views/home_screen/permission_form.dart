@@ -171,17 +171,17 @@ class _PermissionFormState extends State<PermissionForm> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+    return Material(
+      color: Colors.transparent,
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildFormCard(),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
             _buildSubmitButton(),
-            const SizedBox(height: 40),
+            SizedBox(height: 40.h),
           ],
         ),
       ),

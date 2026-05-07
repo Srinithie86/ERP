@@ -303,11 +303,11 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen> {
           child: _buildDashboardMode(),
         );
       case LeaveManagementMode.leaveForm:
-        return const SingleChildScrollView(
-            padding: EdgeInsets.all(20), child: LeaveForm());
+        return SingleChildScrollView(
+            padding: EdgeInsets.all(20.r), child: const LeaveForm());
       case LeaveManagementMode.permissionForm:
-        return const SingleChildScrollView(
-            padding: EdgeInsets.all(20), child: PermissionForm());
+        return SingleChildScrollView(
+            padding: EdgeInsets.all(20.r), child: const PermissionForm());
     }
   }
 
