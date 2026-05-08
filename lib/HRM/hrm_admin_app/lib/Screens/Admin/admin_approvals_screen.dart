@@ -41,15 +41,21 @@ class _AdminApprovalsScreenState extends State<AdminApprovalsScreen> {
           // Filter Row
           Container(
             color: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildFilterChip("All"),
-                _buildFilterChip("Leave"),
-                _buildFilterChip("Permission"),
-                _buildFilterChip("Expense"),
-              ],
+            padding: EdgeInsets.symmetric(vertical: 12.h),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(
+                children: [
+                  _buildFilterChip("All"),
+                  SizedBox(width: 12.w),
+                  _buildFilterChip("Leave"),
+                  SizedBox(width: 12.w),
+                  _buildFilterChip("Permission"),
+                  SizedBox(width: 12.w),
+                  _buildFilterChip("Expense"),
+                ],
+              ),
             ),
           ),
           Expanded(

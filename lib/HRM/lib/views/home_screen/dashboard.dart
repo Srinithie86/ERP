@@ -90,7 +90,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.resumed) {
       // Trigger an immediate check when app is minimized or reopened
       BackgroundFetchService.checkNow();
     }
@@ -104,7 +105,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       setState(() {
         userName = prefs.getString('name') ?? "User";
         userRole = prefs.getString('role_name') ?? "";
-        roleId = prefs.getString('role_id') ?? prefs.getInt('role_id')?.toString() ?? "1";
+        roleId = prefs.getString('role_id') ??
+            prefs.getInt('role_id')?.toString() ??
+            "1";
 
         // ✅ LOAD LOCAL PERSISTENCE FIRST (FASTER UI)
         isCheckedInByLocal = prefs.getBool('isCheckedIn') ?? false;
@@ -160,7 +163,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
     // ✅ SCHEDULE OR CANCEL CHECK-IN REMINDER based on local check-in state
     if (!isCheckedInByLocal) {
-      NotificationService().scheduleCheckInReminder(shiftStartHour: 9, shiftStartMinute: 0, reminderBeforeMinutes: 10);
+      NotificationService().scheduleCheckInReminder(
+          shiftStartHour: 9, shiftStartMinute: 0, reminderBeforeMinutes: 10);
     } else {
       NotificationService().cancelCheckInReminder();
     }
@@ -205,16 +209,20 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _fetchAttendanceSummary(SharedPreferences prefs) async {
     try {
-      final String uid = prefs.getString('login_cus_id') ?? 
-                         prefs.getString('server_uid') ?? 
-                         prefs.get('uid')?.toString() ?? "";
-      final String cid = prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
+      final String uid = prefs.getString('login_cus_id') ??
+          prefs.getString('server_uid') ??
+          prefs.get('uid')?.toString() ??
+          "";
+      final String cid =
+          prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
       final String deviceId = prefs.getString('device_id') ?? "";
-      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "0.0";
-      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "0.0";
-      
+      final String lat =
+          prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "0.0";
+      final String lng =
+          prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "0.0";
+
       final now = DateTime.now();
-      
+
       final body = {
         "type": "2064",
         "cid": cid,
@@ -235,22 +243,32 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
         if (data["error"] == false || data["error"] == "false") {
           final summary = data["summary"];
           final statistics = data["statistics"];
-          
+
           if (mounted) {
             setState(() {
               _payrollData = data;
               // Try multiple possible keys for present days
               dynamic presentValue = 0;
               if (summary != null) {
-                presentValue = summary["present"] ?? summary["present_days"] ?? summary["total_present"] ?? summary["total_records"];
+                presentValue = summary["present"] ??
+                    summary["present_days"] ??
+                    summary["total_present"] ??
+                    summary["total_records"];
               } else if (statistics != null) {
-                presentValue = statistics["present"] ?? statistics["present_days"] ?? statistics["total_present"] ?? statistics["total_records"];
+                presentValue = statistics["present"] ??
+                    statistics["present_days"] ??
+                    statistics["total_present"] ??
+                    statistics["total_records"];
               }
-              
-              totalPresentDays = int.tryParse(presentValue?.toString() ?? "0") ?? 
-                                (double.tryParse(presentValue?.toString() ?? "0")?.toInt() ?? 0);
-              
-              debugPrint("Dashboard: Resolved totalPresentDays => $totalPresentDays");
+
+              totalPresentDays =
+                  int.tryParse(presentValue?.toString() ?? "0") ??
+                      (double.tryParse(presentValue?.toString() ?? "0")
+                              ?.toInt() ??
+                          0);
+
+              debugPrint(
+                  "Dashboard: Resolved totalPresentDays => $totalPresentDays");
             });
           }
         }
@@ -266,12 +284,13 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
     setState(() => _isCountLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String uid = prefs.getString('login_cus_id') ?? 
-                         prefs.getString('uid') ?? "";
-      
+      final String uid =
+          prefs.getString('login_cus_id') ?? prefs.getString('uid') ?? "";
+
       String? reportingManager;
       try {
-        final empResponse = await admin_emp_api.EmployeeApi.fetchEmployeeDetails(uid: uid);
+        final empResponse =
+            await admin_emp_api.EmployeeApi.fetchEmployeeDetails(uid: uid);
         if (empResponse.data.isNotEmpty) {
           reportingManager = empResponse.data.first.reportingManager;
         }
@@ -279,7 +298,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
         debugPrint("Dashboard Error fetching reporting manager for count: $e");
       }
 
-      final response = await admin_api.LeaveApi.fetchLeaveRequests(reportingManager: reportingManager);
+      final response = await admin_api.LeaveApi.fetchLeaveRequests(
+          reportingManager: reportingManager);
       if (mounted) {
         setState(() {
           _pendingLeaveCount = response.data.where((doc) {
@@ -297,35 +317,43 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _fetchAttendanceStatus2092(SharedPreferences prefs) async {
     try {
-      final String cid = prefs.getString('cid') ?? prefs.getString('cid_str') ?? "44555666";
-      final String uid = prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "145";
-      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "123";
-      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "123";
+      final String cid =
+          prefs.getString('cid') ?? prefs.getString('cid_str') ?? "44555666";
+      final String uid = prefs.getString('login_cus_id') ??
+          prefs.get('uid')?.toString() ??
+          "145";
+      final String lat =
+          prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "123";
+      final String lng =
+          prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "123";
       final String dId = prefs.getString('device_id') ?? "abc123";
 
       final response = await _apiClient.post({
-          "type": "2092",
-          "cid": cid,
-          "uid": uid,
-          "lt": lat,
-          "ln": lng,
-          "device_id": dId,
+        "type": "2092",
+        "cid": cid,
+        "uid": uid,
+        "lt": lat,
+        "ln": lng,
+        "device_id": dId,
       });
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data["error"] == false || data["error"] == "false") {
           final bool isServerCheck = data['is_checkedin'] == true;
-          final String statusStr = data['status']?.toString().toLowerCase() ?? "";
-          
+          final String statusStr =
+              data['status']?.toString().toLowerCase() ?? "";
+
           if (mounted) {
             setState(() {
-              if (isServerCheck || statusStr.contains("check in") || statusStr == "checked_in") {
-                 isCheckedInByServer = true;
-                 isCheckedInByLocal = true;
+              if (isServerCheck ||
+                  statusStr.contains("check in") ||
+                  statusStr == "checked_in") {
+                isCheckedInByServer = true;
+                isCheckedInByLocal = true;
               } else {
-                 isCheckedInByServer = false;
-                 isCheckedInByLocal = false;
+                isCheckedInByServer = false;
+                isCheckedInByLocal = false;
               }
             });
           }
@@ -346,8 +374,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _backgroundProfileFetch(SharedPreferences prefs) async {
     try {
-      final String sessionUid =
-          prefs.getString('login_cus_id') ??
+      final String sessionUid = prefs.getString('login_cus_id') ??
           prefs.getString('uid') ??
           prefs.getString('employee_table_id') ??
           prefs.get('uid')?.toString() ??
@@ -355,8 +382,10 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
       final String cid =
           prefs.getString('cid') ?? prefs.getString('cid_str') ?? "";
-      final String lat = prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
-      final String lng = prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
+      final String lat =
+          prefs.getString('lt') ?? prefs.getDouble('lat')?.toString() ?? "";
+      final String lng =
+          prefs.getString('ln') ?? prefs.getDouble('lng')?.toString() ?? "";
       final String deviceId = prefs.getString('device_id') ?? "";
 
       final body = {
@@ -379,8 +408,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
         if (data["error"] == false || data["error"] == "false") {
           if (mounted) {
             setState(() {
-              userName =
-                  profileData["name"]?.toString() ??
+              userName = profileData["name"]?.toString() ??
                   prefs.getString('name') ??
                   "User";
             });
@@ -414,9 +442,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
 
       final response = await _apiClient.post({
-          "type": "2051",
-          "uid": uid,
-          "id": uid,
+        "type": "2051",
+        "uid": uid,
+        "id": uid,
       });
 
       if (response.statusCode == 200) {
@@ -436,13 +464,12 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               for (var staticItem in leaveBalanceData) {
                 String staticType = staticItem['type'].toString().toLowerCase();
                 var apiItem = apiList.firstWhere((api) {
-                  String apiType =
-                      (api['leave_type_name'] ??
-                              api['leave_type'] ??
-                              api['type'] ??
-                              "")
-                          .toString()
-                          .toLowerCase();
+                  String apiType = (api['leave_type_name'] ??
+                          api['leave_type'] ??
+                          api['type'] ??
+                          "")
+                      .toString()
+                      .toLowerCase();
                   if (staticType == "earned") {
                     return apiType.contains("privilege") ||
                         apiType.contains("earned");
@@ -456,15 +483,13 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                 }, orElse: () => null);
 
                 if (apiItem != null) {
-                  int taken =
-                      int.tryParse(
+                  int taken = int.tryParse(
                         apiItem['leaves_taken_this_year']?.toString() ??
                             apiItem['leave_taken']?.toString() ??
                             "0",
                       ) ??
                       0;
-                  int total =
-                      int.tryParse(
+                  int total = int.tryParse(
                         apiItem['max_days_per_year']?.toString() ??
                             apiItem['total_allowed']?.toString() ??
                             "12",
@@ -496,9 +521,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "";
 
       final response = await _apiClient.post({
-          "type": "2052",
-          "uid": uid,
-          "id": uid,
+        "type": "2052",
+        "uid": uid,
+        "id": uid,
       });
 
       if (response.statusCode == 200) {
@@ -519,8 +544,11 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           final summary = data['summary'];
           if (mounted) {
             setState(() {
-              leavesTakenThisMonth = double.tryParse(summary['approved']?.toString() ??
-                                       summary['total']?.toString() ?? "0") ?? 0;
+              leavesTakenThisMonth = double.tryParse(
+                      summary['approved']?.toString() ??
+                          summary['total']?.toString() ??
+                          "0") ??
+                  0;
             });
           }
         }
@@ -533,15 +561,15 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               return idB.compareTo(idA);
             });
             leaveHistory = fetchedList;
-            
+
             if (leavesTakenThisMonth == 0) {
               double monthLeaves = 0;
-              String currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+              String currentMonth =
+                  DateFormat('yyyy-MM').format(DateTime.now());
 
               for (var h in fetchedList) {
                 String status = (h['status'] ?? "0").toString().toLowerCase();
-                bool isApproved =
-                    status == "1" ||
+                bool isApproved = status == "1" ||
                     status.contains("approv") ||
                     status.contains("accept") ||
                     status == "approved";
@@ -549,7 +577,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
                 String leaveDate = h['leave_start_date'] ?? h['date'] ?? "";
                 if (leaveDate.startsWith(currentMonth)) {
-                  num d = num.tryParse(h['leave_taken']?.toString() ?? "1") ?? 1;
+                  num d =
+                      num.tryParse(h['leave_taken']?.toString() ?? "1") ?? 1;
                   monthLeaves += d.toDouble();
                 }
               }
@@ -558,26 +587,44 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
             for (var b in leaveBalanceData) b['taken'] = 0;
             for (var h in fetchedList) {
-               String status = (h['status'] ?? "0").toString().toLowerCase();
-               if (!(status == "1" || status.contains("approv") || status == "approved")) continue;
-               
-               String leaveTypeLower = (h['leave_type'] ?? h['reason'] ?? "").toString().toLowerCase();
-               num days = num.tryParse(h['leave_taken']?.toString() ?? h['total_days']?.toString() ?? "1") ?? 1;
+              String status = (h['status'] ?? "0").toString().toLowerCase();
+              if (!(status == "1" ||
+                  status.contains("approv") ||
+                  status == "approved")) continue;
 
-               for (var b in leaveBalanceData) {
-                  String bType = b['type'].toString().toLowerCase();
-                  bool match = false;
-                  if (bType == "earned") match = leaveTypeLower.contains("privilege") || leaveTypeLower.contains("earned") || leaveTypeLower.contains("al");
-                  else if (bType == "casual") match = leaveTypeLower.contains("casual") || leaveTypeLower.contains("cl");
-                  else if (bType == "sick") match = leaveTypeLower.contains("medical") || leaveTypeLower.contains("sick") || leaveTypeLower.contains("ml");
-                  else if (bType == "unpaid") match = leaveTypeLower.contains("unpaid") || leaveTypeLower.contains("lop");
-                  else match = leaveTypeLower.contains(bType);
+              String leaveTypeLower = (h['leave_type'] ?? h['reason'] ?? "")
+                  .toString()
+                  .toLowerCase();
+              num days = num.tryParse(h['leave_taken']?.toString() ??
+                      h['total_days']?.toString() ??
+                      "1") ??
+                  1;
 
-                  if (match) {
-                    b['taken'] = (b['taken'] as num) + days;
-                    break;
-                  }
-               }
+              for (var b in leaveBalanceData) {
+                String bType = b['type'].toString().toLowerCase();
+                bool match = false;
+                if (bType == "earned")
+                  match = leaveTypeLower.contains("privilege") ||
+                      leaveTypeLower.contains("earned") ||
+                      leaveTypeLower.contains("al");
+                else if (bType == "casual")
+                  match = leaveTypeLower.contains("casual") ||
+                      leaveTypeLower.contains("cl");
+                else if (bType == "sick")
+                  match = leaveTypeLower.contains("medical") ||
+                      leaveTypeLower.contains("sick") ||
+                      leaveTypeLower.contains("ml");
+                else if (bType == "unpaid")
+                  match = leaveTypeLower.contains("unpaid") ||
+                      leaveTypeLower.contains("lop");
+                else
+                  match = leaveTypeLower.contains(bType);
+
+                if (match) {
+                  b['taken'] = (b['taken'] as num) + days;
+                  break;
+                }
+              }
             }
 
             double currentBalance = 0;
@@ -586,7 +633,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               num taken = b['taken'];
               b['balance'] = "${total - taken}/$total";
               if (b['type'].toString().toLowerCase() != "unpaid") {
-                 currentBalance += (total - taken);
+                currentBalance += (total - taken);
               }
             }
             totalLeaveBalance = currentBalance;
@@ -602,8 +649,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
   Future<void> _fetchMonthlyPerformance(SharedPreferences prefs) async {
     try {
-      final String uid =
-          prefs.getString('uid') ??
+      final String uid = prefs.getString('uid') ??
           prefs.getString('login_cus_id') ??
           prefs.get('uid')?.toString() ??
           "";
@@ -615,10 +661,10 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       ).format(DateTime(now.year, now.month + 1, 0));
 
       final response = await _apiClient.post({
-          "type": "2075",
-          "uid": uid,
-          "from_date": fromDate,
-          "to_date": toDate,
+        "type": "2075",
+        "uid": uid,
+        "from_date": fromDate,
+        "to_date": toDate,
       });
 
       if (response.statusCode == 200) {
@@ -647,8 +693,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       final String dId = prefs.getString('device_id') ?? "";
 
       final response = await _apiClient.post({
-          "type": "2064",
-          "uid": uid,
+        "type": "2064",
+        "uid": uid,
       });
 
       if (response.statusCode == 200) {
@@ -659,25 +705,32 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
           final todayRecord = records.firstWhere(
-            (e) => (e != null && e is Map && (e["date"]?.toString().contains(today) ?? false)) &&
-                   e["del"]?.toString() != "1" &&
-                   e["is_d"]?.toString() != "1",
+            (e) =>
+                (e != null &&
+                    e is Map &&
+                    (e["date"]?.toString().contains(today) ?? false)) &&
+                e["del"]?.toString() != "1" &&
+                e["is_d"]?.toString() != "1",
             orElse: () => null,
           );
 
           int presentCount = 0;
           if (data['summary'] != null && data['summary'] is Map) {
-            presentCount = int.tryParse(data['summary']['total']?.toString() ?? "0") ?? 
-                           int.tryParse(data['summary']['present']?.toString() ?? "0") ?? 0;
+            presentCount = int.tryParse(
+                    data['summary']['total']?.toString() ?? "0") ??
+                int.tryParse(data['summary']['present']?.toString() ?? "0") ??
+                0;
           }
 
           if (presentCount == 0 && records.isNotEmpty) {
             String currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
             presentCount = records
                 .where(
-                  (rec) => (rec['date']?.toString().startsWith(currentMonth) ?? false) &&
-                           rec["del"]?.toString() != "1" &&
-                           rec["is_d"]?.toString() != "1",
+                  (rec) =>
+                      (rec['date']?.toString().startsWith(currentMonth) ??
+                          false) &&
+                      rec["del"]?.toString() != "1" &&
+                      rec["is_d"]?.toString() != "1",
                 )
                 .length;
           }
@@ -685,7 +738,10 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           bool isTimeValid(dynamic time) {
             if (time == null) return false;
             String t = time.toString().trim().toLowerCase();
-            return t.isNotEmpty && t != "null" && t != "00:00:00" && t != "00:00";
+            return t.isNotEmpty &&
+                t != "null" &&
+                t != "00:00:00" &&
+                t != "00:00";
           }
 
           if (todayRecord != null) {
@@ -715,9 +771,9 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                     prefs.getBool('marketing_attendance_mode') ?? false;
               });
             }
-            
+
             await _syncMarketingStatusFromServer(cid, uid, dId, "");
-            
+
             await prefs.setBool('isCheckedIn', isCheckedInByServer);
             if (hasIn) await prefs.setString('last_checkin_date', today);
             if (hasOut) await prefs.setString('last_checkout_date', today);
@@ -761,8 +817,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
               if (isMkt) {
                 final historyResp = await _apiClient.post({
-                    "type": "2062",
-                    "uid": uid,
+                  "type": "2062",
+                  "uid": uid,
                 });
                 final hData = jsonDecode(historyResp.body);
                 if (hData['error'] == false) {
@@ -832,28 +888,26 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer:const DynamicDrawer(moduleName: "HRM"),
+      drawer: const DynamicDrawer(moduleName: "HRM"),
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         elevation: 0,
         title: Text(
-          "HRM App",
+          "HRM",
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontSize: isTablet ? 26 : (isDesktop ? 28 : 20),
             fontWeight: FontWeight.w500,
           ),
         ),
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(Icons.menu, size: w * 0.07, color: Colors.white),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            );
-          }
-        ),
+        leading: Builder(builder: (context) {
+          return IconButton(
+            icon: Icon(Icons.menu, size: w * 0.07, color: Colors.white),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
+          );
+        }),
         actions: const [],
       ),
       body: RefreshIndicator(
@@ -871,219 +925,217 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            if (!isCheckedIn && !isTodayFinished && !isStatusFetching) ...[
-              _buildCheckInReminderCard(context, w),
-              SizedBox(height: h * 0.02),
-            ],
-            if (isCheckedIn &&
-                !isTodayFinished &&
-                marketingAttendanceMode &&
-                !hasDoneMarketingToday) ...[
-              _buildMarketingCheckInReminderCard(context, w),
-              SizedBox(height: h * 0.02),
-            ],
-            if (isOnBreak) ...[
-              _buildBreakInProgressCard(context, w),
-              SizedBox(height: h * 0.02),
-            ],
-            _buildModernSummaryCards(w, h),
-            SizedBox(height: h * 0.02),
-
-            if (roleId != '3') ...[
-              _buildApprovalsCard(w, h),
-              SizedBox(height: h * 0.02),
-            ],
-
-            SizedBox(height: h * 0.02),
-            Container(
-              padding: EdgeInsets.all(w * 0.03),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1B2C61),
-                borderRadius: BorderRadius.circular(boxRadius),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.campaign,
-                    color: Colors.white,
-                    size: isTablet ? 36 : 30,
-                  ),
-                  SizedBox(width: w * 0.03),
-                  Expanded(
-                    child: Text(
-                      "Company Announcement\nNew HR policy updates available.",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: isTablet ? 18 : 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1B2C61),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AnnouncementScreen(userName: userName),
-                      ),
-                    ),
-
-                    child: Text(
-                      "View",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: isTablet ? 16 : 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: h * 0.02),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Your Task",
-                  style: GoogleFonts.poppins(
-                    fontSize: isTablet ? 20 : 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TasksListScreen(),
-                    ),
-                  ),
-                  icon: const Icon(
-                    Icons.arrow_circle_right_outlined,
-                    color: Color(0xFF26A69A),
-                    size: 28,
-                  ),
-                ),
+              if (!isCheckedIn && !isTodayFinished && !isStatusFetching) ...[
+                _buildCheckInReminderCard(context, w),
+                SizedBox(height: h * 0.02),
               ],
-            ),
-            SizedBox(height: h * 0.01),
-            taskCard(),
-            SizedBox(height: h * 0.02),
-            Text(
-              "Your Target",
-              style: GoogleFonts.poppins(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: h * 0.01),
-            targetBox(),
-            SizedBox(height: h * 0.02),
-            Container(
-              padding: EdgeInsets.all(w * 0.04),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.white, Color(0xFF24D7B3)],
+              if (isCheckedIn &&
+                  !isTodayFinished &&
+                  marketingAttendanceMode &&
+                  !hasDoneMarketingToday) ...[
+                _buildMarketingCheckInReminderCard(context, w),
+                SizedBox(height: h * 0.02),
+              ],
+              if (isOnBreak) ...[
+                _buildBreakInProgressCard(context, w),
+                SizedBox(height: h * 0.02),
+              ],
+              _buildModernSummaryCards(w, h),
+              SizedBox(height: h * 0.02),
+              if (roleId != '3') ...[
+                _buildApprovalsCard(w, h),
+                SizedBox(height: h * 0.02),
+              ],
+              SizedBox(height: h * 0.02),
+              Container(
+                padding: EdgeInsets.all(w * 0.03),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B2C61),
+                  borderRadius: BorderRadius.circular(boxRadius),
                 ),
-                borderRadius: BorderRadius.circular(boxRadius),
-                boxShadow: const [
-                  BoxShadow(
-                    offset: Offset(0, 10),
-                    blurRadius: 5,
-                    color: Colors.black12,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Image.asset(
-                    "assets/frame.png",
-                    height: isTablet ? 90 : 70,
-                    width: isTablet ? 50 : 35,
-                  ),
-                  SizedBox(width: w * 0.04),
-                  Expanded(
-                    child: Text(
-                      "Almost there! Push through the last 25% and claim your success!!",
-                      style: GoogleFonts.poppins(
-                        fontSize: isTablet ? 18 : 14,
-                        color: const Color(0xff1B2C61),
-                        fontWeight: FontWeight.w600,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.campaign,
+                      color: Colors.white,
+                      size: isTablet ? 36 : 30,
+                    ),
+                    SizedBox(width: w * 0.03),
+                    Expanded(
+                      child: Text(
+                        "Company Announcement\nNew HR policy updates available.",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: isTablet ? 18 : 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1B2C61),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              AnnouncementScreen(userName: userName),
+                        ),
+                      ),
+                      child: Text(
+                        "View",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: isTablet ? 16 : 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            SizedBox(height: h * 0.02),
-            Text(
-              "Leave Summary",
-              style: GoogleFonts.poppins(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: h * 0.01),
-            leaveReport(),
-            const SizedBox(height: 24),
-            Text(
-              "Salary & Advance",
-              style: GoogleFonts.poppins(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildSalaryAdvanceCard(),
-            if (leaveHistory.isNotEmpty) ...[
               SizedBox(height: h * 0.02),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Recent Activity",
+                    "Your Task",
                     style: GoogleFonts.poppins(
                       fontSize: isTablet ? 20 : 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  TextButton(
+                  IconButton(
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const LeaveManagementScreen(),
+                        builder: (context) => const TasksListScreen(),
                       ),
-                    ).then((_) => _initializeApp()),
-                    child: Text(
-                      "View All",
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFF26A69A),
-                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.arrow_circle_right_outlined,
+                      color: Color(0xFF26A69A),
+                      size: 28,
                     ),
                   ),
                 ],
               ),
-              isLeaveHistoryLoading
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF26A69A),
+              SizedBox(height: h * 0.01),
+              taskCard(),
+              SizedBox(height: h * 0.02),
+              Text(
+                "Your Target",
+                style: GoogleFonts.poppins(
+                  fontSize: isTablet ? 20 : 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: h * 0.01),
+              targetBox(),
+              SizedBox(height: h * 0.02),
+              Container(
+                padding: EdgeInsets.all(w * 0.04),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Color(0xFF24D7B3)],
+                  ),
+                  borderRadius: BorderRadius.circular(boxRadius),
+                  boxShadow: const [
+                    BoxShadow(
+                      offset: Offset(0, 10),
+                      blurRadius: 5,
+                      color: Colors.black12,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Image.asset(
+                      "assets/frame.png",
+                      height: isTablet ? 90 : 70,
+                      width: isTablet ? 50 : 35,
+                    ),
+                    SizedBox(width: w * 0.04),
+                    Expanded(
+                      child: Text(
+                        "Almost there! Push through the last 25% and claim your success!!",
+                        style: GoogleFonts.poppins(
+                          fontSize: isTablet ? 18 : 14,
+                          color: const Color(0xff1B2C61),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    )
-                  : _buildRecentLeaveHistory(w),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: h * 0.02),
+              Text(
+                "Leave Summary",
+                style: GoogleFonts.poppins(
+                  fontSize: isTablet ? 20 : 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: h * 0.01),
+              leaveReport(),
+              const SizedBox(height: 24),
+              Text(
+                "Salary & Advance",
+                style: GoogleFonts.poppins(
+                  fontSize: isTablet ? 20 : 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildSalaryAdvanceCard(),
+              if (leaveHistory.isNotEmpty) ...[
+                SizedBox(height: h * 0.02),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Recent Activity",
+                      style: GoogleFonts.poppins(
+                        fontSize: isTablet ? 20 : 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LeaveManagementScreen(),
+                        ),
+                      ).then((_) => _initializeApp()),
+                      child: Text(
+                        "View All",
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFF26A69A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                isLeaveHistoryLoading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF26A69A),
+                          ),
+                        ),
+                      )
+                    : _buildRecentLeaveHistory(w),
+              ],
+              SizedBox(height: h * 0.03),
             ],
-            SizedBox(height: h * 0.03),
-          ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -1101,7 +1153,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               w,
               () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const AttendanceScreen()),
               ).then((_) => _initializeApp()),
             ),
             SizedBox(width: w * 0.03),
@@ -1114,7 +1167,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               w,
               () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const LeaveManagementScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const LeaveManagementScreen()),
               ).then((_) => _initializeApp()),
             ),
           ],
@@ -1162,20 +1216,68 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       crossAxisSpacing: 12,
       childAspectRatio: 0.8,
       children: [
-        _moduleItem("Attendance", "assets/icons/attendance.png", const Color(0xFFE3F2FD), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
-        _moduleItem("Leave", "assets/leave.png", const Color(0xFFFFF3E0), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaveManagementScreen()))),
-        _moduleItem("Payroll", "assets/icons/payroll.png", const Color(0xFFE8F5E9), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollScreen()))),
-        _moduleItem("Reports", "assets/reports.png", const Color(0xFFF3E5F5), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen()))),
-        _moduleItem("Marketing", "assets/marketing.png", const Color(0xFFE1F5FE), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingSelectionScreen()))),
-        _moduleItem("Performance", "assets/performance.png", const Color(0xFFE0F2F1), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerformanceScreen()))),
-        _moduleItem("Settings", "assets/settings.png", const Color(0xFFFAFAFA), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+        _moduleItem(
+            "Attendance",
+            "assets/icons/attendance.png",
+            const Color(0xFFE3F2FD),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
+        _moduleItem(
+            "Leave",
+            "assets/leave.png",
+            const Color(0xFFFFF3E0),
+            () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const LeaveManagementScreen()))),
+        _moduleItem(
+            "Payroll",
+            "assets/icons/payroll.png",
+            const Color(0xFFE8F5E9),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PayrollScreen()))),
+        _moduleItem(
+            "Reports",
+            "assets/reports.png",
+            const Color(0xFFF3E5F5),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const ReportsScreen()))),
+        _moduleItem(
+            "Marketing",
+            "assets/marketing.png",
+            const Color(0xFFE1F5FE),
+            () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const MarketingSelectionScreen()))),
+        _moduleItem(
+            "Performance",
+            "assets/performance.png",
+            const Color(0xFFE0F2F1),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PerformanceScreen()))),
+        _moduleItem(
+            "Settings",
+            "assets/settings.png",
+            const Color(0xFFFAFAFA),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()))),
         if (roleId != '3')
-          _moduleItem("Admin Hub", "assets/icons/home.png", const Color(0xFFFFEBEE), () => Navigator.push(context, MaterialPageRoute(builder: (_) => admin.AdminDashboard(onBackToHrm: () => Navigator.pop(context))))),
+          _moduleItem(
+              "Admin Hub",
+              "assets/icons/home.png",
+              const Color(0xFFFFEBEE),
+              () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => admin.AdminDashboard(
+                          onBackToHrm: () => Navigator.pop(context))))),
       ],
     );
   }
 
-  Widget _moduleItem(String label, String asset, Color color, VoidCallback onTap) {
+  Widget _moduleItem(
+      String label, String asset, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -1198,7 +1300,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               asset,
               height: 28,
               width: 28,
-              errorBuilder: (_, __, ___) => Icon(Icons.apps, size: 28, color: Colors.grey[600]),
+              errorBuilder: (_, __, ___) =>
+                  Icon(Icons.apps, size: 28, color: Colors.grey[600]),
             ),
           ),
           const SizedBox(height: 6),
@@ -1329,7 +1432,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(Icons.task_alt_rounded, color: Colors.white, size: w * 0.07),
+                  Icon(Icons.task_alt_rounded,
+                      color: Colors.white, size: w * 0.07),
                   if (_pendingLeaveCount > 0)
                     Positioned(
                       right: 0,
@@ -1377,7 +1481,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 18),
+            const Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white70, size: 18),
           ],
         ),
       ),
@@ -1423,7 +1528,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             child: ElevatedButton(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const AttendanceScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const AttendanceScreen()),
               ).then((_) => _initializeApp()),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF26A69A),
@@ -1553,8 +1659,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             _monthlyRate >= 80
                 ? "Excellent performance! Keep it up!"
                 : (_monthlyRate >= 50
-                      ? "Good progress, keep pushing!"
-                      : "Tasks need more focus this month."),
+                    ? "Good progress, keep pushing!"
+                    : "Tasks need more focus this month."),
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: Colors.black,
@@ -1649,8 +1755,7 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             ),
           ),
           Positioned(
-            left:
-                (width * (progress > 1 ? 1 : (progress < 0 ? 0 : progress))) -
+            left: (width * (progress > 1 ? 1 : (progress < 0 ? 0 : progress))) -
                 (iconSize / 2),
             child: Container(
               width: iconSize,
@@ -1698,50 +1803,49 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       child: Column(
         children: leaveBalanceData
             .where(
-              (item) =>
-                  item['type'] == 'Casual' ||
-                  item['type'] == 'Sick' ||
-                  item['type'] == 'Unpaid',
-            )
+          (item) =>
+              item['type'] == 'Casual' ||
+              item['type'] == 'Sick' ||
+              item['type'] == 'Unpaid',
+        )
             .map((item) {
-              String displayType;
-              String asset = "assets/casual_leave.png";
-              if (item['type'] == "Sick")
-                displayType = "Medical Leave";
-              else if (item['type'] == "Unpaid")
-                displayType = "Unpaid Leave (LOP)";
-              else
-                displayType = "${item['type']} Leave";
-              num taken = item['taken'] as num;
-              String balanceLine = item['type'] == 'Unpaid'
-                  ? "LOP Days: $taken"
-                  : "Balance: ${((item['total'] as num? ?? 12) - taken).clamp(0, 99)} / ${item['total'] ?? 12} Days";
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 20.0),
-                child: Row(
-                  children: [
-                    Image.asset(
-                      asset,
-                      height: 60,
-                      width: 60,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.event_busy,
-                        size: 48,
-                        color: Color(0xFF26A69A),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "$displayType:\nTaken: $taken Day\n$balanceLine",
-                        style: GoogleFonts.poppins(fontSize: 13),
-                      ),
-                    ),
-                  ],
+          String displayType;
+          String asset = "assets/casual_leave.png";
+          if (item['type'] == "Sick")
+            displayType = "Medical Leave";
+          else if (item['type'] == "Unpaid")
+            displayType = "Unpaid Leave (LOP)";
+          else
+            displayType = "${item['type']} Leave";
+          num taken = item['taken'] as num;
+          String balanceLine = item['type'] == 'Unpaid'
+              ? "LOP Days: $taken"
+              : "Balance: ${((item['total'] as num? ?? 12) - taken).clamp(0, 99)} / ${item['total'] ?? 12} Days";
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 20.0),
+            child: Row(
+              children: [
+                Image.asset(
+                  asset,
+                  height: 60,
+                  width: 60,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.event_busy,
+                    size: 48,
+                    color: Color(0xFF26A69A),
+                  ),
                 ),
-              );
-            })
-            .toList(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "$displayType:\nTaken: $taken Day\n$balanceLine",
+                    style: GoogleFonts.poppins(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -1843,13 +1947,11 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
         String status = (item['status'] ?? "0").toString().toLowerCase();
         Color statusColor = Colors.orange;
         String statusText = "Pending";
-        bool isApproved =
-            (status == "1" ||
+        bool isApproved = (status == "1" ||
             status == "accept" ||
             status == "approved" ||
             status.contains("approv"));
-        bool isRejected =
-            (status == "2" ||
+        bool isRejected = (status == "2" ||
             status == "reject" ||
             status == "rejected" ||
             status.contains("reject"));
@@ -1955,7 +2057,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                   color: const Color(0xFFE0F2F1),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(Icons.payments_rounded, color: Color(0xFF26A69A), size: 28),
+                child: const Icon(Icons.payments_rounded,
+                    color: Color(0xFF26A69A), size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1964,18 +2067,31 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
                   children: [
                     Text(
                       "Estimated Net Pay",
-                      style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                      style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500),
                     ),
                     Text(
                       "₹$netPay",
-                      style: GoogleFonts.poppins(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF1B2C61)),
+                      style: GoogleFonts.poppins(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1B2C61)),
                     ),
                   ],
                 ),
               ),
               TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PayrollScreen())).then((_) => _initializeApp()),
-                child: Text("Details", style: GoogleFonts.poppins(color: const Color(0xFF26A69A), fontWeight: FontWeight.w600)),
+                onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PayrollScreen()))
+                    .then((_) => _initializeApp()),
+                child: Text("Details",
+                    style: GoogleFonts.poppins(
+                        color: const Color(0xFF26A69A),
+                        fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -2007,8 +2123,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
 
       final response = await _apiClient.post({
-          "type": "2062",
-          "uid": uid,
+        "type": "2062",
+        "uid": uid,
       });
 
       final data = jsonDecode(response.body);
@@ -2025,7 +2141,8 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
           setState(() {
             hasDoneMarketingToday = todayRecord != null;
           });
-          await prefs.setBool('has_done_marketing_today', hasDoneMarketingToday);
+          await prefs.setBool(
+              'has_done_marketing_today', hasDoneMarketingToday);
         }
       }
     } catch (e) {
