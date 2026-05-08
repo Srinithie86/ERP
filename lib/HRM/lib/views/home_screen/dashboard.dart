@@ -1257,6 +1257,12 @@ class _DashboardState extends State<Dashboard> with WidgetsBindingObserver {
             () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const PerformanceScreen()))),
         _moduleItem(
+            "Permission",
+            "assets/app_permission.png",
+            const Color(0xFFFFF3E0),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PermissionForm()))),
+        _moduleItem(
             "Settings",
             "assets/settings.png",
             const Color(0xFFFAFAFA),

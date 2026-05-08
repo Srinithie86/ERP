@@ -72,6 +72,8 @@ import 'package:hrm_admin_app/Screens/Admin/ExpenseManagement/admin_expense_requ
     as hrm_admin_exp_req;
 import 'package:hrm_admin_app/Screens/Admin/AttendanceManagement/marketing_attendance.dart'
     as hrm_admin_marketing;
+import 'package:hrm_admin_app/Screens/Admin/ticket_management/ticket_status.dart'
+    as hrm_admin_ticket_status;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:hrm/views/home_screen/leave_management.dart' as hrm_leave;
 import 'package:hrm/views/home_screen/employee_detail.dart' as hrm_employee;
@@ -368,6 +370,12 @@ class AppNavigation {
           MaterialPageRoute(
               builder: (_) =>
                   const hrm_emp_advance.AdvanceSalaryRequestScreen()));
+    } else if (n == "TICKET STATUS" || n.contains("TICKET STATUS")) {
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  const hrm_admin_ticket_status.TicketStatusScreen()));
     } else if (n.contains("TICKET") || n.contains("RAISE A TICKET")) {
       Navigator.push(
           context,

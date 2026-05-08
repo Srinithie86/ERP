@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -13,6 +14,8 @@ void callbackDispatcher() {
 }
 
 class BackgroundFetchService {
+  static Timer? _foregroundTimer;
+
   static Future<bool> checkNow() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -163,7 +166,103 @@ class BackgroundFetchService {
                  changed = true;
               }
             }
-           if (changed) await prefs.setString('permission_status_map', jsonEncode(storedMap));
+            if (changed) await prefs.setString('permission_status_map', jsonEncode(storedMap));
+        }
+      }
+
+      // ===================================
+      // Check Admin Approvals (Leave - 2093)
+      // ===================================
+      final adminLeaveBody = {
+        "type": "2093",
+        "cid": cid.toString(),
+        "uid": uid,
+        "reporting_manager": uid,
+        "device_id": deviceId,
+        "lt": lat,
+        "ln": lng,
+      };
+
+      final adminLeaveRes = await http.post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: adminLeaveBody);
+      if (adminLeaveRes.statusCode == 200) {
+        final data = jsonDecode(adminLeaveRes.body);
+        if (data['error'].toString() == "false") {
+          List requests = [];
+          if (data['team_leaves'] != null) {
+            requests = data['team_leaves']['data'] ?? [];
+          } else {
+            requests = data['data'] ?? [];
+          }
+
+          String seenIdsStr = prefs.getString('admin_seen_leave_ids') ?? "[]";
+          List<String> seenIds = List<String>.from(jsonDecode(seenIdsStr));
+          bool newArrival = false;
+
+          for (var req in requests) {
+            String status = (req['status'] ?? "").toString().toLowerCase();
+            if (status == "pending" || status == "0" || status == "") {
+              String reqId = (req['id'] ?? "").toString();
+              if (!seenIds.contains(reqId)) {
+                // NEW REQUEST DETECTED
+                await NotificationService().showInstantNotification(
+                  title: "New Leave Request",
+                  body: "Employee: ${req['employee_name'] ?? 'Unknown'} | Type: ${req['leave_type'] ?? 'General'}",
+                  payload: "admin_approvals"
+                );
+                seenIds.add(reqId);
+                newArrival = true;
+              }
+            }
+          }
+          if (newArrival) await prefs.setString('admin_seen_leave_ids', jsonEncode(seenIds));
+        }
+      }
+
+      // ===================================
+      // Check Admin Approvals (Permission - 2094)
+      // ===================================
+      final adminPermBody = {
+        "type": "2094",
+        "cid": cid.toString(),
+        "uid": uid,
+        "reporting_manager": uid,
+        "device_id": deviceId,
+        "lt": lat,
+        "ln": lng,
+      };
+
+      final adminPermRes = await http.post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: adminPermBody);
+      if (adminPermRes.statusCode == 200) {
+        final data = jsonDecode(adminPermRes.body);
+        if (data['error'].toString() == "false") {
+          List requests = [];
+          if (data['team_permissions'] != null) {
+            requests = data['team_permissions']['data'] ?? [];
+          } else {
+            requests = data['data'] ?? [];
+          }
+
+          String seenIdsStr = prefs.getString('admin_seen_perm_ids') ?? "[]";
+          List<String> seenIds = List<String>.from(jsonDecode(seenIdsStr));
+          bool newArrival = false;
+
+          for (var req in requests) {
+            String status = (req['status'] ?? "").toString().toLowerCase();
+            if (status == "pending" || status == "0" || status == "") {
+              String reqId = (req['id'] ?? "").toString();
+              if (!seenIds.contains(reqId)) {
+                // NEW REQUEST DETECTED
+                await NotificationService().showInstantNotification(
+                  title: "New Permission Request",
+                  body: "Employee: ${req['employee_name'] ?? 'Unknown'} | Reason: ${req['reason'] ?? 'N/A'}",
+                  payload: "admin_approvals"
+                );
+                seenIds.add(reqId);
+                newArrival = true;
+              }
+            }
+          }
+          if (newArrival) await prefs.setString('admin_seen_perm_ids', jsonEncode(seenIds));
         }
       }
 
@@ -189,5 +288,11 @@ class BackgroundFetchService {
         networkType: NetworkType.connected,
       ),
     );
+
+    // Foreground Timer for real-time updates (every 10 seconds)
+    _foregroundTimer?.cancel();
+    _foregroundTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      checkNow();
+    });
   }
 }

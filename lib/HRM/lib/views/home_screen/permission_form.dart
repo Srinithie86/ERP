@@ -173,27 +173,21 @@ class _PermissionFormState extends State<PermissionForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeaderCard(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                child: Column(
-                  children: [
-                    _buildFormCard(),
-                    const SizedBox(height: 32),
-                    _buildSubmitButton(),
-                  ],
-                ),
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildFormCard(),
+                const SizedBox(height: 32),
+                _buildSubmitButton(),
+              ],
+            ),
           ),
         ),
       ),

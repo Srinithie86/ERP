@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hrm/views/home/ticket_raise.dart';
+import 'package:hrm/views/home/ticket_history.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,6 +118,15 @@ class _FeedbackSupportScreenState extends State<FeedbackSupportScreen> {
           pageTitle,
           style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w500),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const TicketHistoryScreen()),
+            ),
+          ),
+        ],
         centerTitle: false,
       ),
       body: _isLoading

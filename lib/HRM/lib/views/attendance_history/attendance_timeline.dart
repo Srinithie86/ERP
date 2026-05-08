@@ -8,167 +8,189 @@ class AttendanceTimelineScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white, size: 24.sp),
+          icon:
+              Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20.sp),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Today Work Progress Report",
+          "Work Progress",
           style: GoogleFonts.poppins(
             fontSize: 18.sp,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Summary Card (Green)
-            Container(
-              margin: EdgeInsets.all(16.w),
-              padding: EdgeInsets.all(20.w),
-              decoration: BoxDecoration(
-                color: const Color(0xFF006D21), // Forest Green
-                borderRadius: BorderRadius.circular(12.r),
-              ),
+            // Top Header Section
+            _buildProfessionalHeader(),
+
+            // Timeline Content
+            Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 24.h, 16.w, 32.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Tuesday 3 March",
-                    style: GoogleFonts.poppins(
-                      fontSize: 16.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    "Today's Work Progress",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18.sp,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: 16.h),
                   Row(
                     children: [
-                      _buildSummaryItem(
-                        "Day Duration",
-                        "8 hr 05 m",
-                        Icons.access_time,
-                      ),
-                      SizedBox(width: 12.w),
-                      _buildSummaryItem(
-                        "Client Visit",
-                        "10 Visit",
-                        Icons.location_on_outlined,
+                      Icon(Icons.history_toggle_off_rounded,
+                          size: 20.sp, color: const Color(0xFF26A69A)),
+                      SizedBox(width: 8.w),
+                      Text(
+                        "Activity Timeline",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1E293B),
+                        ),
                       ),
                     ],
                   ),
+                  SizedBox(height: 20.h),
+                  _buildModernTimeline(),
                 ],
               ),
             ),
-
-            // Timeline Card
-            Container(
-              margin: EdgeInsets.symmetric(horizontal: 16.w),
-              padding: EdgeInsets.all(24.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  _buildTimelineItem(
-                    title: "Office Check out",
-                    time: "2025-12-05 18:00 PM",
-                    icon: Icons.add,
-                    isFirst: true,
-                    titleColor: const Color(0xFF5C5CFF),
-                  ),
-                  _buildTimelineItem(
-                    title: "Poster designs",
-                    time: "14:30 PM - 18:00 PM",
-                    description: "Directory Poster Design",
-                    icon: Icons.access_time_filled,
-                    titleColor: Colors.black87,
-                  ),
-                  _buildTimelineItem(
-                    title: "HRM APP",
-                    time: "10:30 AM - 13:00",
-                    description: "HRM App Marketing Module\nUI Design",
-                    icon: Icons.access_time_filled,
-                    titleColor: Colors.black87,
-                  ),
-                  _buildTimelineItem(
-                    title: "Daily Day Poster",
-                    time: "09:00 AM - 10:00AM",
-                    description: "March 3 Special Day Poster",
-                    icon: Icons.access_time_filled,
-                    titleColor: const Color(0xFF26A69A),
-                  ),
-                  _buildTimelineItem(
-                    title: "Office Checkin",
-                    time: "2025-12-05 08:45 AM",
-                    icon: Icons.access_time_filled,
-                    isLast: true,
-                    titleColor: const Color(0xFF5C5CFF),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20.h),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, IconData icon) {
+  Widget _buildProfessionalHeader() {
     return Container(
-      width: 110.w,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 24.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.r),
+        color: const Color(0xFF26A69A),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32.r),
+          bottomRight: Radius.circular(32.r),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Tuesday, 3 March 2026",
+            style: GoogleFonts.poppins(
+              fontSize: 14.sp,
+              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSummaryBox("Day Duration", "08h 05m", Icons.timer_outlined),
+              _buildSummaryBox(
+                  "Client Visits", "10 Visits", Icons.location_on_outlined),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryBox(String label, String value, IconData icon) {
+    return Container(
+      width: 160.w,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16.sp, color: const Color(0xFF1D264F)),
-              SizedBox(width: 4.w),
+              Icon(icon, size: 16.sp, color: Colors.white70),
+              SizedBox(width: 8.w),
               Text(
                 label,
                 style: GoogleFonts.poppins(
-                  fontSize: 8.sp,
-                  color: Colors.grey.shade600,
+                  fontSize: 11.sp,
+                  color: Colors.white70,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 2.h),
-          Padding(
-            padding: EdgeInsets.only(left: 20.w),
-            child: Text(
-              value,
-              style: GoogleFonts.poppins(
-                fontSize: 11.sp,
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
-              ),
+          SizedBox(height: 8.h),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 20.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernTimeline() {
+    return Container(
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildTimelineItem(
+            title: "Office Checkout",
+            time: "06:00 PM",
+            icon: Icons.logout_rounded,
+            isFirst: true,
+            statusColor: const Color(0xFFEF4444),
+          ),
+          _buildTimelineItem(
+            title: "Poster Designs",
+            time: "02:30 PM - 06:00 PM",
+            description: "Directory Poster Design Finalization",
+            icon: Icons.palette_outlined,
+            statusColor: const Color(0xFF6366F1),
+          ),
+          _buildTimelineItem(
+            title: "HRM APP Development",
+            time: "10:30 AM - 01:00 PM",
+            description: "Marketing Module UI Implementation",
+            icon: Icons.code_rounded,
+            statusColor: const Color(0xFF26A69A),
+          ),
+          _buildTimelineItem(
+            title: "Daily Day Poster",
+            time: "09:00 AM - 10:00 AM",
+            description: "March 3 Special Day Creative",
+            icon: Icons.brush_outlined,
+            statusColor: const Color(0xFFF59E0B),
+          ),
+          _buildTimelineItem(
+            title: "Office Check-in",
+            time: "08:45 AM",
+            icon: Icons.login_rounded,
+            isLast: true,
+            statusColor: const Color(0xFF10B981),
           ),
         ],
       ),
@@ -182,77 +204,70 @@ class AttendanceTimelineScreen extends StatelessWidget {
     required IconData icon,
     bool isFirst = false,
     bool isLast = false,
-    required Color titleColor,
+    required Color statusColor,
   }) {
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline Column
           Column(
             children: [
               Container(
-                width: 32.w,
-                height: 32.w,
+                width: 36.w,
+                height: 36.w,
                 decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(
-                    color: const Color(0xFF26A69A),
-                    width: 2.w,
-                  ),
+                  border: Border.all(color: statusColor, width: 2.w),
                 ),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    size: 18.sp,
-                    color: const Color(0xFF26A69A),
-                  ),
-                ),
+                child: Icon(icon, size: 18.sp, color: statusColor),
               ),
               if (!isLast)
                 Expanded(
                   child: Container(
-                    width: 1.5.w,
-                    color: const Color(0xFF26A69A).withValues(alpha: 0.5),
+                    width: 2.w,
+                    color: Colors.grey.shade200,
                   ),
                 ),
             ],
           ),
           SizedBox(width: 16.w),
-          // Content Column
           Expanded(
             child: Container(
-              padding: EdgeInsets.only(bottom: 24.h, top: 2.h),
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 32.h, top: 4.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      fontSize: 14.sp,
+                      fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
-                      color: titleColor,
+                      color: const Color(0xFF1E293B),
                     ),
                   ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    time,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12.sp,
-                      color: Colors.black.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.w500,
-                    ),
+                  SizedBox(height: 4.h),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 12.sp, color: Colors.grey),
+                      SizedBox(width: 4.w),
+                      Text(
+                        time,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12.sp,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                   if (description != null) ...[
-                    SizedBox(height: 2.h),
+                    SizedBox(height: 8.h),
                     Text(
                       description,
                       style: GoogleFonts.poppins(
                         fontSize: 13.sp,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF64748B),
+                        height: 1.4,
                       ),
                     ),
                   ],

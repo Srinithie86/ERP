@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hrm/views/attendance_history/attendance_timeline.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
@@ -14,7 +15,7 @@ import 'check_in.dart';
 import 'check_out.dart';
 import '../main_root.dart';
 import 'package:hrm/views/widgets/user_avatar.dart';
-import 'marketing_timeline.dart';
+// import 'marketing_timeline.dart';
 import 'package:hrm/utils/notification_service.dart';
 
 class AttendanceScreen extends StatefulWidget {
@@ -173,14 +174,17 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         final data = jsonDecode(response.body);
         if (data["error"] == false || data["error"] == "false") {
           final bool isServerCheck = data['is_checkedin'] == true;
-          final String statusStr = data['status']?.toString().toLowerCase() ?? "";
+          final String statusStr =
+              data['status']?.toString().toLowerCase() ?? "";
           if (mounted) {
             setState(() {
-              if (isServerCheck || statusStr.contains("check in") || statusStr == "checked_in") {
-                 isCheckedIn = true;
-                 isTodayFinished = false;
+              if (isServerCheck ||
+                  statusStr.contains("check in") ||
+                  statusStr == "checked_in") {
+                isCheckedIn = true;
+                isTodayFinished = false;
               } else {
-                 isCheckedIn = false;
+                isCheckedIn = false;
               }
             });
             await prefs.setBool('isCheckedIn', isCheckedIn);
@@ -192,7 +196,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
     }
   }
 
-  Future<void> _fetchBreakHistory({VoidCallback? onUpdate, DateTime? date}) async {
+  Future<void> _fetchBreakHistory(
+      {VoidCallback? onUpdate, DateTime? date}) async {
     if (!mounted) return;
     setState(() {
       isBreakHistoryLoading = true;
@@ -244,12 +249,14 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         final overallSummary = data["overall_summary"];
         final perDaySummaryList = data["per_day_summary"];
 
-        final String filterDateStr = DateFormat('yyyy-MM-dd').format(targetDate);
+        final String filterDateStr =
+            DateFormat('yyyy-MM-dd').format(targetDate);
 
         setState(() {
           // Overall Total
           if (overallSummary != null) {
-            overallTotalBreakTime = overallSummary["total_break_time"]?.toString();
+            overallTotalBreakTime =
+                overallSummary["total_break_time"]?.toString();
           }
 
           // Per Day Total
@@ -258,45 +265,45 @@ class AttendanceScreenState extends State<AttendanceScreen> {
               (e) => e["date"] == filterDateStr,
               orElse: () => null,
             );
-            selectedDayTotalBreakTime = dayData?["total_time"]?.toString() ?? "0s";
+            selectedDayTotalBreakTime =
+                dayData?["total_time"]?.toString() ?? "0s";
           } else {
             selectedDayTotalBreakTime = "0s";
           }
 
-          breakHistory = recordsList
-              .where((item) {
-                if (item == null || item is! Map) return false;
-                // Filter by date locally to ensure only selected date shows
-                String? inTimeStr = item["break_in"];
-                if (inTimeStr == null || inTimeStr.isEmpty) return false;
-                
-                // Filter out deleted records
-                final String delFlag = item["del"]?.toString() ?? "";
-                final String isDFlag = item["is_d"]?.toString() ?? "";
-                if (delFlag == "1" || isDFlag == "1") return false;
+          breakHistory = recordsList.where((item) {
+            if (item == null || item is! Map) return false;
+            // Filter by date locally to ensure only selected date shows
+            String? inTimeStr = item["break_in"];
+            if (inTimeStr == null || inTimeStr.isEmpty) return false;
 
-                return inTimeStr.startsWith(filterDateStr);
-              })
-              .map((item) {
-                DateTime inTime =
-                    DateTime.tryParse(item["break_in"] ?? "") ?? DateTime.now();
-                DateTime? outTime = item["break_out"] != null && item["break_out"] != ""
+            // Filter out deleted records
+            final String delFlag = item["del"]?.toString() ?? "";
+            final String isDFlag = item["is_d"]?.toString() ?? "";
+            if (delFlag == "1" || isDFlag == "1") return false;
+
+            return inTimeStr.startsWith(filterDateStr);
+          }).map((item) {
+            DateTime inTime =
+                DateTime.tryParse(item["break_in"] ?? "") ?? DateTime.now();
+            DateTime? outTime =
+                item["break_out"] != null && item["break_out"] != ""
                     ? DateTime.tryParse(item["break_out"])
                     : null;
 
-                return BreakEntry(
-                  purpose: item["reason"] ?? "Tea",
-                  breakInTime: inTime,
-                  breakOutTime: outTime,
-                  duration: Duration(
-                    seconds: int.tryParse(
+            return BreakEntry(
+              purpose: item["reason"] ?? "Tea",
+              breakInTime: inTime,
+              breakOutTime: outTime,
+              duration: Duration(
+                seconds: int.tryParse(
                       item["duration_seconds"]?.toString() ?? "0",
-                    ) ?? 0,
-                  ),
-                  durationStr: item["duration"]?.toString(),
-                );
-              })
-              .toList();
+                    ) ??
+                    0,
+              ),
+              durationStr: item["duration"]?.toString(),
+            );
+          }).toList();
 
           // Calculate total duration locally from filtered list as fallback
           int totalMins = 0;
@@ -340,10 +347,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       // ✅ Standardized UID priority: login_cus_id (Primary)
-      uid =
-          prefs.getString('uid') ??
-          prefs.getString('login_cus_id') ??
-          "54";
+      uid = prefs.getString('uid') ?? prefs.getString('login_cus_id') ?? "54";
       cid = prefs.getString('cid') ?? "";
       serverUidString = prefs.getString('server_uid') ?? uid;
       userName = prefs.getString('name') ?? "User";
@@ -403,9 +407,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
 
     // 1. Get identifiers from SharedPreferences
     final String storedUid =
-        prefs.getString('login_cus_id') ??
-        prefs.get('uid')?.toString() ??
-        "54";
+        prefs.getString('login_cus_id') ?? prefs.get('uid')?.toString() ?? "54";
     final storedCid = prefs.getString('cid') ?? "";
     final storedCode = prefs.getString('employee_code');
     final storedName = prefs.getString('name');
@@ -450,8 +452,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
 
         // Multi-Identifier Discovery
         String? foundId = data["id"]?.toString(); // Numeric DB ID
-        String? foundUid = data["uid"]
-            ?.toString(); // Potential String UID/Code (e.g. 31)
+        String? foundUid =
+            data["uid"]?.toString(); // Potential String UID/Code (e.g. 31)
 
         final String? serverCid =
             data["cid"]?.toString() ?? data["cus_id"]?.toString();
@@ -634,14 +636,16 @@ class AttendanceScreenState extends State<AttendanceScreen> {
           final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
           final todayRecord = records.firstWhere(
-            (e) => e != null && e is Map && e["date"] == today &&
-                   e["del"]?.toString() != "1" &&
-                   e["is_d"]?.toString() != "1",
+            (e) =>
+                e != null &&
+                e is Map &&
+                e["date"] == today &&
+                e["del"]?.toString() != "1" &&
+                e["is_d"]?.toString() != "1",
             orElse: () => null,
           );
 
-          final bool serverSaysOnBreak =
-              todayRecord != null &&
+          final bool serverSaysOnBreak = todayRecord != null &&
               (todayRecord["status"]?.toString().toLowerCase() ?? "").contains(
                 "break",
               );
@@ -772,21 +776,24 @@ class AttendanceScreenState extends State<AttendanceScreen> {
           double weeklyHoursSum = 0.0;
           for (final r in records) {
             if (r == null || r is! Map) continue;
-            if (!isTimeValid(r["in_time"]))
-              continue;
+            if (!isTimeValid(r["in_time"])) continue;
             if (r["del"]?.toString() == "1" || r["is_d"]?.toString() == "1")
               continue;
-            
+
             workedCount++;
             final String? dateStr = r["date"]?.toString();
             if (dateStr != null) {
               final DateTime? recDate = DateTime.tryParse(dateStr);
               if (recDate != null && !recDate.isBefore(weekStart)) {
                 weeklyCount++;
-                
+
                 // Calculate hours for this weekly record
-                double hrs = double.tryParse(r["duration_decimal"]?.toString() ?? r["overall_hours"]?.toString() ?? "0") ?? 0.0;
-                
+                double hrs = double.tryParse(
+                        r["duration_decimal"]?.toString() ??
+                            r["overall_hours"]?.toString() ??
+                            "0") ??
+                    0.0;
+
                 // Fallback to manual calc if fields missing
                 if (hrs == 0 && isTimeValid(r["out_time"])) {
                   try {
@@ -795,12 +802,12 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                     DateTime outT = format.parse(r["out_time"]);
                     hrs = outT.difference(inT).inMinutes / 60.0;
                   } catch (_) {
-                     try {
-                        DateFormat formatShort = DateFormat("HH:mm");
-                        DateTime inT = formatShort.parse(r["in_time"]);
-                        DateTime outT = formatShort.parse(r["out_time"]);
-                        hrs = outT.difference(inT).inMinutes / 60.0;
-                     } catch (_) {}
+                    try {
+                      DateFormat formatShort = DateFormat("HH:mm");
+                      DateTime inT = formatShort.parse(r["in_time"]);
+                      DateTime outT = formatShort.parse(r["out_time"]);
+                      hrs = outT.difference(inT).inMinutes / 60.0;
+                    } catch (_) {}
                   }
                 }
                 weeklyHoursSum += hrs;
@@ -938,7 +945,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                 .trim();
             double max =
                 double.tryParse(item['max_days_per_year']?.toString() ?? "0") ??
-                0;
+                    0;
             allowanceMap[name] = max;
           }
         }
@@ -950,8 +957,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
           for (var item in historyList) {
             // âœ… Only count APPROVED leaves
             String statusRaw = (item['status'] ?? "0").toString().toLowerCase();
-            bool isApproved =
-                statusRaw == "1" ||
+            bool isApproved = statusRaw == "1" ||
                 statusRaw.contains("approv") ||
                 statusRaw.contains("accept");
             if (!isApproved) continue;
@@ -961,8 +967,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                     .toString()
                     .toLowerCase()
                     .trim();
-            double taken =
-                double.tryParse(
+            double taken = double.tryParse(
                   item['no_of_days']?.toString() ??
                       item['leave_taken']?.toString() ??
                       item['days']?.toString() ??
@@ -978,8 +983,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
             // âœ… Ensure taken is never negative
             if (taken <= 0) return;
 
-            bool isExplicitLop =
-                typeName.contains("loss of pay") ||
+            bool isExplicitLop = typeName.contains("loss of pay") ||
                 typeName.contains("lop") ||
                 typeName.contains("unpaid") ||
                 typeName.contains("without pay");
@@ -1012,19 +1016,17 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                     .toLowerCase()
                     .trim();
 
-            double taken =
-                double.tryParse(
+            double taken = double.tryParse(
                   item['leaves_taken_this_year']?.toString() ?? "0",
                 ) ??
                 0;
             double allowance =
                 double.tryParse(item['max_days_per_year']?.toString() ?? "0") ??
-                0;
+                    0;
 
             if (taken <= 0) continue; // âœ… Skip zero/negative
 
-            bool isExplicitLop =
-                typeName.contains("loss of pay") ||
+            bool isExplicitLop = typeName.contains("loss of pay") ||
                 typeName.contains("lop") ||
                 typeName.contains("unpaid") ||
                 typeName.contains("without pay");
@@ -1119,10 +1121,9 @@ class AttendanceScreenState extends State<AttendanceScreen> {
       final responseData = jsonDecode(response.body);
       final String errorMsg = responseData["error_msg"] ?? "";
       final bool isAlreadyOnBreak = errorMsg.toLowerCase().contains(
-        "already on a break",
-      );
-      final bool isSuccess =
-          responseData["error"] == false ||
+            "already on a break",
+          );
+      final bool isSuccess = responseData["error"] == false ||
           responseData["error"] == "false" ||
           isAlreadyOnBreak;
 
@@ -1142,8 +1143,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         // Recovery: If already on break, parse the start time from server
         if (isAlreadyOnBreak && data["break_in_time"] != null) {
           try {
-            final String timeStr = data["break_in_time"]
-                .toString(); // e.g. "10:08"
+            final String timeStr =
+                data["break_in_time"].toString(); // e.g. "10:08"
             final parts = timeStr.split(':');
             if (parts.length >= 2) {
               final now = DateTime.now();
@@ -1188,7 +1189,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                 isAlreadyOnBreak
                     ? "Recovered existing break status"
                     : (responseData["error_msg"] ??
-                          'Break started successfully'),
+                        'Break started successfully'),
               ),
               backgroundColor: isAlreadyOnBreak ? Colors.orange : Colors.green,
               duration: const Duration(seconds: 2),
@@ -1588,7 +1589,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                 const SizedBox(width: 15),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         "Break Report",
@@ -1599,7 +1601,11 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _selectedBreakDate == null || DateFormat('yyyy-MM-dd').format(_selectedBreakDate!) == DateFormat('yyyy-MM-dd').format(DateTime.now())
+                                        _selectedBreakDate == null ||
+                                                DateFormat('yyyy-MM-dd').format(
+                                                        _selectedBreakDate!) ==
+                                                    DateFormat('yyyy-MM-dd')
+                                                        .format(DateTime.now())
                                             ? "View all your breaks taken today"
                                             : "Breaks for ${DateFormat('dd MMM yyyy').format(_selectedBreakDate!)}",
                                         style: const TextStyle(
@@ -1627,13 +1633,15 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                     onTap: () async {
                                       final picked = await showDatePicker(
                                         context: context,
-                                        initialDate: _selectedBreakDate ?? DateTime.now(),
+                                        initialDate: _selectedBreakDate ??
+                                            DateTime.now(),
                                         firstDate: DateTime(2020),
                                         lastDate: DateTime.now(),
                                         builder: (context, child) {
                                           return Theme(
                                             data: Theme.of(context).copyWith(
-                                              colorScheme: const ColorScheme.light(
+                                              colorScheme:
+                                                  const ColorScheme.light(
                                                 primary: Color(0xFF00A79D),
                                               ),
                                             ),
@@ -1648,27 +1656,37 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                         _fetchBreakHistory(
                                           date: picked,
                                           onUpdate: () {
-                                            if (context.mounted) setDialogState(() {});
+                                            if (context.mounted)
+                                              setDialogState(() {});
                                           },
                                         );
                                       }
                                     },
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 8),
                                       decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey.shade300),
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            _selectedBreakDate == null 
-                                                ? "Select Date" 
-                                                : DateFormat('dd-MM-yyyy').format(_selectedBreakDate!),
-                                            style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w500),
+                                            _selectedBreakDate == null
+                                                ? "Select Date"
+                                                : DateFormat('dd-MM-yyyy')
+                                                    .format(
+                                                        _selectedBreakDate!),
+                                            style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500),
                                           ),
-                                          const Icon(Icons.calendar_today, size: 16, color: Color(0xFF00A79D)),
+                                          const Icon(Icons.calendar_today,
+                                              size: 16,
+                                              color: Color(0xFF00A79D)),
                                         ],
                                       ),
                                     ),
@@ -1684,18 +1702,25 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                     _fetchBreakHistory(
                                       date: today,
                                       onUpdate: () {
-                                        if (context.mounted) setDialogState(() {});
+                                        if (context.mounted)
+                                          setDialogState(() {});
                                       },
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF00A79D).withOpacity(0.1),
+                                    backgroundColor: const Color(0xFF00A79D)
+                                        .withOpacity(0.1),
                                     foregroundColor: const Color(0xFF00A79D),
                                     elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8)),
                                   ),
-                                  child: const Text("Today", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  child: const Text("Today",
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
@@ -1717,7 +1742,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                       color: const Color(0xFFE6F6F4),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFF00A79D).withOpacity(0.3),
+                                        color: const Color(0xFF00A79D)
+                                            .withOpacity(0.3),
                                         width: 1,
                                       ),
                                     ),
@@ -1752,7 +1778,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                       color: const Color(0xFFFFF3E0),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFFFF9800).withOpacity(0.3),
+                                        color: const Color(0xFFFF9800)
+                                            .withOpacity(0.3),
                                         width: 1,
                                       ),
                                     ),
@@ -1789,12 +1816,14 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                                 color: const Color(0xFFE8EAF6),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFF3F51B5).withOpacity(0.3),
+                                  color:
+                                      const Color(0xFF3F51B5).withOpacity(0.3),
                                   width: 1,
                                 ),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     "Overall Total Break Time",
@@ -1845,173 +1874,185 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                               child: CircularProgressIndicator(),
                             )
                           : breakHistory.isEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.all(40),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Image.asset(
-                                    "assets/cup.png",
-                                    width: 60,
-                                    height: 60,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    "No breaks taken yet",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    "Your break history will appear here",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
-                              itemCount: breakHistory.length,
-                              itemBuilder: (context, index) {
-                                final entry = breakHistory[index];
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                              ? Padding(
+                                  padding: const EdgeInsets.all(40),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFE6F6F4),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Image.asset(
-                                          "assets/cup.png",
-                                          width: 20,
-                                          height: 20,
-                                          color: const Color(0xFF00A79D),
+                                      Image.asset(
+                                        "assets/cup.png",
+                                        width: 60,
+                                        height: 60,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        "No breaks taken yet",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              entry.purpose,
-                                              style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.black87,
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        "Your break history will appear here",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  itemCount: breakHistory.length,
+                                  itemBuilder: (context, index) {
+                                    final entry = breakHistory[index];
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE6F6F4),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                8,
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            Wrap(
-                                              spacing: 12,
-                                              runSpacing: 4,
+                                            child: Image.asset(
+                                              "assets/cup.png",
+                                              width: 20,
+                                              height: 20,
+                                              color: const Color(0xFF00A79D),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(
-                                                      Icons.login,
-                                                      size: 14,
-                                                      color: Colors.green,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      _formatTime(
-                                                        entry.breakInTime,
-                                                      ),
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        color: Colors.black54,
-                                                      ),
-                                                    ),
-                                                  ],
+                                                Text(
+                                                  entry.purpose,
+                                                  style: const TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.black87,
+                                                  ),
                                                 ),
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
+                                                const SizedBox(height: 8),
+                                                Wrap(
+                                                  spacing: 12,
+                                                  runSpacing: 4,
                                                   children: [
-                                                    const Icon(
-                                                      Icons.logout,
-                                                      size: 14,
-                                                      color: Colors.red,
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.login,
+                                                          size: 14,
+                                                          color: Colors.green,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          _formatTime(
+                                                            entry.breakInTime,
+                                                          ),
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 13,
+                                                            color:
+                                                                Colors.black54,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      entry.breakOutTime != null
-                                                          ? _formatTime(
-                                                              entry
-                                                                  .breakOutTime!,
-                                                            )
-                                                          : "--:--",
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        color: Colors.black54,
-                                                      ),
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        const Icon(
+                                                          Icons.logout,
+                                                          size: 14,
+                                                          color: Colors.red,
+                                                        ),
+                                                        const SizedBox(
+                                                            width: 4),
+                                                        Text(
+                                                          entry.breakOutTime !=
+                                                                  null
+                                                              ? _formatTime(
+                                                                  entry
+                                                                      .breakOutTime!,
+                                                                )
+                                                              : "--:--",
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 13,
+                                                            color:
+                                                                Colors.black54,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ],
                                                 ),
                                               ],
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      Flexible(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFFFF3E0),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
+                                          Flexible(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 6,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFFF3E0),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  8,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                entry.durationStr ??
+                                                    _formatDurationHoursMinutes(
+                                                        entry.duration),
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFFFF9800),
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ),
                                           ),
-                                          child: Text(
-                                            entry.durationStr ?? _formatDurationHoursMinutes(entry.duration),
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFFFF9800),
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                                    );
+                                  },
+                                ),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -2221,7 +2262,7 @@ class AttendanceScreenState extends State<AttendanceScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const MarketingTimelineScreen(),
+            builder: (context) => const AttendanceTimelineScreen(),
           ),
         );
       },
@@ -2342,7 +2383,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                     isCheckedIn = true;
                   });
                   // Schedule a reminder 10 minutes before 9 hours shift ends
-                  NotificationService().scheduleCheckoutReminder(DateTime.now(), shiftDurationHours: 9, reminderBeforeMinutes: 10);
+                  NotificationService().scheduleCheckoutReminder(DateTime.now(),
+                      shiftDurationHours: 9, reminderBeforeMinutes: 10);
                   // Cancel the check-in reminder since user has checked in
                   NotificationService().cancelCheckInReminder();
                 }
@@ -2392,7 +2434,10 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                   // Cancel the reminder once checked out
                   NotificationService().cancelCheckoutReminder();
                   // Schedule next day's check-in reminder
-                  NotificationService().scheduleCheckInReminder(shiftStartHour: 9, shiftStartMinute: 0, reminderBeforeMinutes: 10);
+                  NotificationService().scheduleCheckInReminder(
+                      shiftStartHour: 9,
+                      shiftStartMinute: 0,
+                      reminderBeforeMinutes: 10);
                 }
               },
             ),
@@ -2536,8 +2581,8 @@ class AttendanceScreenState extends State<AttendanceScreen> {
                       isLoading
                           ? "Processing..."
                           : breakSwitch
-                          ? "Break Out (${formatDuration(breakDuration)})"
-                          : "Break In (${formatDuration(breakDuration)})",
+                              ? "Break Out (${formatDuration(breakDuration)})"
+                              : "Break In (${formatDuration(breakDuration)})",
                       style: const TextStyle(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
