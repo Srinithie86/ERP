@@ -56,6 +56,7 @@ dependencies:
   share_plus: ^12.0.1
   path_provider: ^2.1.5
   printing: ^5.13.2
+  excel: ^4.0.6
   local_auth: ^3.0.0
   flutter_screen_lock: ^9.2.2+2
   firebase_core: ^4.4.0

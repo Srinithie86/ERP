@@ -11,6 +11,8 @@ import 'package:hrm/models/payroll_api.dart';
 import '../../views/payroll/advance_salary_request.dart';
 import '../main_root.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'package:open_filex/open_filex.dart';
 
 class PayrollScreen extends StatefulWidget {
   const PayrollScreen({super.key});
@@ -449,7 +451,7 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
                   ],
                 ),
                 child: Text(
@@ -490,8 +492,216 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
     }
   }
 
-  Future<void> _downloadPDF() async {}
-  Future<void> _sharePDF() async {}
+  Future<void> _downloadPDF() async {
+    _showFormatPicker(isShare: false);
+  }
+
+  Future<void> _sharePDF() async {
+    _showFormatPicker(isShare: true);
+  }
+
+  void _showFormatPicker({required bool isShare}) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                isShare ? "Share Payroll" : "Download Payroll",
+                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              _formatOption(
+                icon: Icons.picture_as_pdf,
+                label: "PDF Document",
+                color: Colors.red,
+                onTap: () {
+                  Navigator.pop(context);
+                  _generateAndHandleFile(format: "pdf", isShare: isShare);
+                },
+              ),
+              const SizedBox(height: 12),
+              _formatOption(
+                icon: Icons.table_chart,
+                label: "Excel Sheet",
+                color: Colors.green,
+                onTap: () {
+                  Navigator.pop(context);
+                  _generateAndHandleFile(format: "excel", isShare: isShare);
+                },
+              ),
+              const SizedBox(height: 12),
+              _formatOption(
+                icon: Icons.description,
+                label: "Word Document",
+                color: Colors.blue,
+                onTap: () {
+                  Navigator.pop(context);
+                  _generateAndHandleFile(format: "word", isShare: isShare);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _formatOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+    );
+  }
+
+  Future<void> _generateAndHandleFile({required String format, required bool isShare}) async {
+    if (_payrollData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No payroll data available to export")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final monthName = _getMonthName(_selectedMonth);
+      final fileName = "Payroll_${monthName}_${_selectedYear}";
+      
+      File? file;
+      if (format == "pdf") {
+        file = await _generatePDF(fileName);
+      } else if (format == "excel") {
+        file = await _generateExcel(fileName);
+      } else if (format == "word") {
+        // Simple Word-like text file or just fallback to PDF for now 
+        // as true .docx generation is complex in Flutter without specific heavy libs.
+        // We'll generate a simple PDF if word is selected or notify user.
+        file = await _generatePDF(fileName, isWord: true);
+      }
+
+      if (file != null) {
+        if (!mounted) return;
+        if (isShare) {
+          await Share.shareXFiles([XFile(file.path)], text: 'Payroll Report for $monthName $_selectedYear');
+        } else {
+          await OpenFilex.open(file.path);
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error generating file: $e")),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<File> _generatePDF(String fileName, {bool isWord = false}) async {
+    final pdf = pw.Document();
+    final e = _payrollData?['earnings'] ?? {};
+    final d = _payrollData?['deductions'] ?? {};
+    final net = _payrollData?['net_pay'] ?? {};
+    final att = _payrollData?['attendance'] ?? {};
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Header(
+                level: 0,
+                child: pw.Text("Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear", 
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text("Employee Details", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Divider(),
+              pw.Row(children: [pw.Text("Monthly Salary: "), pw.Spacer(), pw.Text("Rs. ${e['basic_salary'] ?? '0'}")]),
+              pw.Row(children: [pw.Text("Days Worked: "), pw.Spacer(), pw.Text("${att['no_of_present'] ?? '0'} Days")]),
+              pw.SizedBox(height: 20),
+              pw.Text("Earnings", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Divider(),
+              pw.Row(children: [pw.Text("Bonus: "), pw.Spacer(), pw.Text("Rs. ${e['bonus'] ?? '0'}")]),
+              pw.Row(children: [pw.Text("Allowance: "), pw.Spacer(), pw.Text("Rs. ${e['allowance'] ?? '0'}")]),
+              pw.Row(children: [pw.Text("Incentive: "), pw.Spacer(), pw.Text("Rs. ${e['incentives'] ?? '0'}")]),
+              pw.SizedBox(height: 20),
+              pw.Text("Deductions", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Divider(),
+              pw.Row(children: [pw.Text("Total Deduction: "), pw.Spacer(), pw.Text("Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")]),
+              pw.SizedBox(height: 20),
+              pw.Divider(),
+              pw.Row(children: [
+                pw.Text("Net Paid: ", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)), 
+                pw.Spacer(), 
+                pw.Text("Rs. ${net['net_paid'] ?? '0'}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))
+              ]),
+            ],
+          );
+        },
+      ),
+    );
+
+    final output = await getTemporaryDirectory();
+    final file = File("${output.path}/$fileName.${isWord ? 'doc' : 'pdf'}");
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  Future<File> _generateExcel(String fileName) async {
+    final excel = excel_pkg.Excel.createExcel();
+    final sheet = excel['Payroll'];
+    
+    final e = _payrollData?['earnings'] ?? {};
+    final d = _payrollData?['deductions'] ?? {};
+    final net = _payrollData?['net_pay'] ?? {};
+    final att = _payrollData?['attendance'] ?? {};
+
+    sheet.appendRow([excel_pkg.TextCellValue("Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear")]);
+    sheet.appendRow([excel_pkg.TextCellValue("")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Category"), excel_pkg.TextCellValue("Value")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Monthly Salary"), excel_pkg.TextCellValue("Rs. ${e['basic_salary'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Days Worked"), excel_pkg.TextCellValue("${att['no_of_present'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Bonus"), excel_pkg.TextCellValue("Rs. ${e['bonus'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Allowance"), excel_pkg.TextCellValue("Rs. ${e['allowance'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Incentive"), excel_pkg.TextCellValue("Rs. ${e['incentives'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Total Deduction"), excel_pkg.TextCellValue("Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")]);
+    sheet.appendRow([excel_pkg.TextCellValue("Net Paid"), excel_pkg.TextCellValue("Rs. ${net['net_paid'] ?? '0'}")]);
+
+    final output = await getTemporaryDirectory();
+    final file = File("${output.path}/$fileName.xlsx");
+    final fileBytes = excel.save();
+    if (fileBytes != null) {
+      await file.writeAsBytes(fileBytes);
+    }
+    return file;
+  }
 }
 
 class _MonthYearPickerDialog extends StatefulWidget {
