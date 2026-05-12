@@ -167,7 +167,7 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
       });
 
       // Ensure loading state is cleared even if some fail
-      await Future.wait([
+      await Future.wait<dynamic>([
         leaveFuture.catchError((e) => LeaveRequestResponse(error: true, message: e.toString(), count: 0, data: [])),
         permFuture.catchError((e) => PermissionRequestResponse(error: true, message: e.toString(), count: 0, data: [])),
         expFuture.catchError((e) => {"error": true, "data": []}),

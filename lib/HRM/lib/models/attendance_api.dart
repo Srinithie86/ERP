@@ -186,4 +186,40 @@ class AttendanceApi {
       return {"error": true, "error_msg": e.toString()};
     }
   }
+
+  /// Fetch One Day Attendance Timeline (Type 2097)
+  static Future<Map<String, dynamic>> fetchOneDayTimeline({
+    required String cid,
+    required String uid,
+    required String date,
+    required String deviceId,
+    required String lat,
+    required String lng,
+  }) async {
+    try {
+      final body = {
+        "type": "2097",
+        "cid": cid,
+        "uid": uid,
+        "date": date,
+        "device_id": deviceId,
+        "lt": lat,
+        "ln": lng,
+      };
+
+      final response = await _apiClient.post(body);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          "error": true,
+          "error_msg": "Server Error ${response.statusCode}",
+        };
+      }
+    } catch (e) {
+      debugPrint("Fetch Timeline Error: $e");
+      return {"error": true, "error_msg": e.toString()};
+    }
+  }
 }

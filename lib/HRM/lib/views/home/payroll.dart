@@ -21,9 +21,10 @@ class PayrollScreen extends StatefulWidget {
   State<PayrollScreen> createState() => _PayrollScreenState();
 }
 
-class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProviderStateMixin {
+class _PayrollScreenState extends State<PayrollScreen>
+    with SingleTickerProviderStateMixin {
   static const Color primaryColor = Color(0xFF26A69A);
-  
+
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _payrollData;
@@ -75,8 +76,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String uid = prefs.getString('login_cus_id') ?? 
-                         prefs.getString('uid') ?? "";
+      final String uid =
+          prefs.getString('login_cus_id') ?? prefs.getString('uid') ?? "";
       final String cid = prefs.getString('cid') ?? "";
       final String deviceId = prefs.getString('device_id') ?? "";
 
@@ -151,7 +152,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
         ),
         title: Text(
           "Payroll",
-          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
+          style: GoogleFonts.poppins(
+              color: Colors.white, fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(
@@ -164,24 +166,25 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       body: RefreshIndicator(
         onRefresh: _fetchPayroll,
         color: primaryColor,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildOldHeader(),
-                  const SizedBox(height: 20),
-                  _buildEarningsSection(),
-                  const SizedBox(height: 20),
-                  _buildBreakdownSection(),
-                  const SizedBox(height: 20),
-                  _buildBottomButtons(),
-                  const SizedBox(height: 100),
-                ],
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: primaryColor))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildOldHeader(),
+                    const SizedBox(height: 20),
+                    _buildEarningsSection(),
+                    const SizedBox(height: 20),
+                    _buildBreakdownSection(),
+                    const SizedBox(height: 20),
+                    _buildBottomButtons(),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
-            ),
       ),
     );
   }
@@ -203,7 +206,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
         children: [
           Text(
             "$monthName Month Salary Details",
-            style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+            style: GoogleFonts.poppins(
+                color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 15),
           GridView.count(
@@ -215,9 +219,12 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             childAspectRatio: 1.5,
             children: [
               _headerBox("Monthly", "₹${earnings['basic_salary'] ?? '0'}"),
-              _headerBox("Per Day", "₹${earnings['per_day_salary'] ?? '0'}"),
-              _headerBox("Days Worked", "${attendance['no_of_present'] ?? '0'} Days"),
-              _headerBox("Leave days", "${attendance['absent'] ?? '0'} Days"),
+              _headerBox("Per Day",
+                  "₹${attendance['per_day_salary'] != null ? double.tryParse(attendance['per_day_salary'].toString())?.toStringAsFixed(2) : '0'}"),
+              _headerBox(
+                  "Days Worked", "${attendance['no_of_present'] ?? '0'} Days"),
+              _headerBox(
+                  "Leave days", "${attendance['no_of_absence'] ?? '0'} Days"),
             ],
           ),
         ],
@@ -234,9 +241,17 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: GoogleFonts.poppins(color: primaryColor, fontSize: 13, fontWeight: FontWeight.w500)),
+          Text(label,
+              style: GoogleFonts.poppins(
+                  color: primaryColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(value, style: GoogleFonts.poppins(color: primaryColor, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(value,
+              style: GoogleFonts.poppins(
+                  color: primaryColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -253,7 +268,9 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Earnings", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text("Earnings",
+              style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold, fontSize: 15)),
           const SizedBox(height: 12),
           _earningsField("Bonus", "₹${e['bonus'] ?? '0'}"),
           _earningsField("Allowance", "₹${e['allowance'] ?? '0'}"),
@@ -272,7 +289,10 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                 Expanded(
                   child: Text(
                     "You Got Incentive Because You Achieved You Target",
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                    style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -289,7 +309,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
+          Text(label,
+              style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87)),
           const SizedBox(height: 4),
           Container(
             width: double.infinity,
@@ -299,7 +320,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: Text(value, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+            child: Text(value,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -310,6 +332,7 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
     final e = _payrollData?['earnings'] ?? {};
     final d = _payrollData?['deductions'] ?? {};
     final net = _payrollData?['net_pay'] ?? {};
+    final attendance = _payrollData?['attendance'] ?? {};
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -320,34 +343,59 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Breakdown", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text("Breakdown",
+              style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold, fontSize: 15)),
           const SizedBox(height: 12),
-          _breakdownRow("Monthly salary", "₹${e['basic_salary'] ?? '0'}", valueColor: Colors.green),
-          _breakdownRow("Per Day Salary", "₹${e['per_day_salary'] ?? '0'}", valueColor: Colors.black87),
-          _breakdownRow("Days Worked", "${_payrollData?['attendance']?['no_of_present'] ?? '0'}", valueColor: Colors.black87),
+          _breakdownRow("Monthly salary", "₹${e['basic_salary'] ?? '0'}",
+              valueColor: Colors.green),
+          _breakdownRow("Per Day Salary",
+              "₹${attendance['per_day_salary'] != null ? double.tryParse(attendance['per_day_salary'].toString())?.toStringAsFixed(2) : '0'}",
+              valueColor: Colors.black87),
+          _breakdownRow("Days Worked", "${attendance['no_of_present'] ?? '0'}",
+              valueColor: Colors.black87),
+          _breakdownRow("Leave Days", "${attendance['no_of_absence'] ?? '0'}",
+              valueColor: Colors.black87),
           const Divider(),
-          _breakdownRow("Bonus", e['bonus'] != null ? "₹${e['bonus']}" : "-", valueColor: Colors.black54),
-          _breakdownRow("Allowance", e['allowance'] != null ? "₹${e['allowance']}" : "-", valueColor: Colors.black54),
-          _breakdownRow("Incentive", "₹${e['incentives'] ?? '0'}", valueColor: Colors.orange),
+          _breakdownRow("Bonus", e['bonus'] != null ? "₹${e['bonus']}" : "-",
+              valueColor: Colors.black54),
+          _breakdownRow(
+              "Allowance", e['allowance'] != null ? "₹${e['allowance']}" : "-",
+              valueColor: Colors.black54),
+          _breakdownRow("Incentive", "₹${e['incentives'] ?? '0'}",
+              valueColor: Colors.orange),
           _breakdownRow("Gross", "₹${e['gross_salary'] ?? '0'}", isBold: true),
           const Divider(),
-          _breakdownRow("Per Day leave deduction", d['loss_of_pay'] != null ? "₹${d['loss_of_pay']}" : "-", valueColor: Colors.black54),
-          _breakdownRow("Total Deduction", "₹${d['total_deduction'] ?? net['total_deduction'] ?? '0'}", valueColor: Colors.red),
+          _breakdownRow("Per Day leave deduction",
+              d['loss_of_pay'] != null ? "₹${d['loss_of_pay']}" : "-",
+              valueColor: Colors.black54),
+          _breakdownRow("Total Deduction",
+              "₹${d['total_deduction'] ?? net['total_deduction'] ?? '0'}",
+              valueColor: Colors.red),
           const Divider(),
-          _breakdownRow("Gross Pay", "₹${net['net_paid'] ?? '0'}", isBold: true, valueColor: Colors.green, fontSize: 16),
+          _breakdownRow("Gross Pay", "₹${net['net_paid'] ?? '0'}",
+              isBold: true, valueColor: Colors.green, fontSize: 16),
         ],
       ),
     );
   }
 
-  Widget _breakdownRow(String label, String value, {bool isBold = false, Color? valueColor, double fontSize = 13}) {
+  Widget _breakdownRow(String label, String value,
+      {bool isBold = false, Color? valueColor, double fontSize = 13}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.poppins(fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: GoogleFonts.poppins(fontSize: fontSize, fontWeight: FontWeight.bold, color: valueColor ?? Colors.black)),
+          Text(label,
+              style: GoogleFonts.poppins(
+                  fontSize: fontSize,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Text(value,
+              style: GoogleFonts.poppins(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? Colors.black)),
         ],
       ),
     );
@@ -365,7 +413,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -379,7 +428,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ),
@@ -399,7 +449,9 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             _toggleFab();
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AdvanceSalaryRequestScreen(initialTabIndex: 1)),
+              MaterialPageRoute(
+                  builder: (_) =>
+                      const AdvanceSalaryRequestScreen(initialTabIndex: 1)),
             );
           },
         ),
@@ -411,7 +463,9 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             _toggleFab();
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AdvanceSalaryRequestScreen(initialTabIndex: 0)),
+              MaterialPageRoute(
+                  builder: (_) =>
+                      const AdvanceSalaryRequestScreen(initialTabIndex: 0)),
             );
           },
         ),
@@ -420,7 +474,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
           onPressed: _toggleFab,
           backgroundColor: primaryColor,
           elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: AnimatedIcon(
             icon: AnimatedIcons.menu_close,
             progress: _expandAnimation,
@@ -446,17 +501,24 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2)),
                   ],
                 ),
                 child: Text(
                   label,
-                  style: GoogleFonts.poppins(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
               ),
               const SizedBox(width: 16),
@@ -464,7 +526,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
                 onPressed: onTap,
                 backgroundColor: primaryColor,
                 elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Icon(icon, color: Colors.white, size: 20),
               ),
             ],
@@ -514,7 +577,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             children: [
               Text(
                 isShare ? "Share Payroll" : "Download Payroll",
-                style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                    fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               _formatOption(
@@ -568,7 +632,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
         ),
         child: Icon(icon, color: color),
       ),
-      title: Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+      title:
+          Text(label, style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
       shape: RoundedRectangleBorder(
@@ -578,7 +643,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
     );
   }
 
-  Future<void> _generateAndHandleFile({required String format, required bool isShare}) async {
+  Future<void> _generateAndHandleFile(
+      {required String format, required bool isShare}) async {
     if (_payrollData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No payroll data available to export")),
@@ -591,14 +657,14 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
     try {
       final monthName = _getMonthName(_selectedMonth);
       final fileName = "Payroll_${monthName}_${_selectedYear}";
-      
+
       File? file;
       if (format == "pdf") {
         file = await _generatePDF(fileName);
       } else if (format == "excel") {
         file = await _generateExcel(fileName);
       } else if (format == "word") {
-        // Simple Word-like text file or just fallback to PDF for now 
+        // Simple Word-like text file or just fallback to PDF for now
         // as true .docx generation is complex in Flutter without specific heavy libs.
         // We'll generate a simple PDF if word is selected or notify user.
         file = await _generatePDF(fileName, isWord: true);
@@ -607,7 +673,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
       if (file != null) {
         if (!mounted) return;
         if (isShare) {
-          await Share.shareXFiles([XFile(file.path)], text: 'Payroll Report for $monthName $_selectedYear');
+          await Share.shareXFiles([XFile(file.path)],
+              text: 'Payroll Report for $monthName $_selectedYear');
         } else {
           await OpenFilex.open(file.path);
         }
@@ -637,30 +704,78 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
             children: [
               pw.Header(
                 level: 0,
-                child: pw.Text("Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear", 
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text(
+                    "Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear",
+                    style: pw.TextStyle(
+                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
               ),
               pw.SizedBox(height: 20),
-              pw.Text("Employee Details", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text("Employee Details",
+                  style: pw.TextStyle(
+                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
-              pw.Row(children: [pw.Text("Monthly Salary: "), pw.Spacer(), pw.Text("Rs. ${e['basic_salary'] ?? '0'}")]),
-              pw.Row(children: [pw.Text("Days Worked: "), pw.Spacer(), pw.Text("${att['no_of_present'] ?? '0'} Days")]),
+              pw.Row(children: [
+                pw.Text("Monthly Salary: "),
+                pw.Spacer(),
+                pw.Text("Rs. ${e['basic_salary'] ?? '0'}")
+              ]),
+              pw.Row(children: [
+                pw.Text("Per Day Salary: "),
+                pw.Spacer(),
+                pw.Text(
+                    "Rs. ${att['per_day_salary'] != null ? double.tryParse(att['per_day_salary'].toString())?.toStringAsFixed(2) : '0'}")
+              ]),
+              pw.Row(children: [
+                pw.Text("Days Worked: "),
+                pw.Spacer(),
+                pw.Text("${att['no_of_present'] ?? '0'} Days")
+              ]),
+              pw.Row(children: [
+                pw.Text("Leave Days: "),
+                pw.Spacer(),
+                pw.Text("${att['no_of_absence'] ?? '0'} Days")
+              ]),
               pw.SizedBox(height: 20),
-              pw.Text("Earnings", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text("Earnings",
+                  style: pw.TextStyle(
+                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
-              pw.Row(children: [pw.Text("Bonus: "), pw.Spacer(), pw.Text("Rs. ${e['bonus'] ?? '0'}")]),
-              pw.Row(children: [pw.Text("Allowance: "), pw.Spacer(), pw.Text("Rs. ${e['allowance'] ?? '0'}")]),
-              pw.Row(children: [pw.Text("Incentive: "), pw.Spacer(), pw.Text("Rs. ${e['incentives'] ?? '0'}")]),
+              pw.Row(children: [
+                pw.Text("Bonus: "),
+                pw.Spacer(),
+                pw.Text("Rs. ${e['bonus'] ?? '0'}")
+              ]),
+              pw.Row(children: [
+                pw.Text("Allowance: "),
+                pw.Spacer(),
+                pw.Text("Rs. ${e['allowance'] ?? '0'}")
+              ]),
+              pw.Row(children: [
+                pw.Text("Incentive: "),
+                pw.Spacer(),
+                pw.Text("Rs. ${e['incentives'] ?? '0'}")
+              ]),
               pw.SizedBox(height: 20),
-              pw.Text("Deductions", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text("Deductions",
+                  style: pw.TextStyle(
+                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.Divider(),
-              pw.Row(children: [pw.Text("Total Deduction: "), pw.Spacer(), pw.Text("Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")]),
+              pw.Row(children: [
+                pw.Text("Total Deduction: "),
+                pw.Spacer(),
+                pw.Text(
+                    "Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")
+              ]),
               pw.SizedBox(height: 20),
               pw.Divider(),
               pw.Row(children: [
-                pw.Text("Net Paid: ", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)), 
-                pw.Spacer(), 
-                pw.Text("Rs. ${net['net_paid'] ?? '0'}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))
+                pw.Text("Net Paid: ",
+                    style: pw.TextStyle(
+                        fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.Spacer(),
+                pw.Text("Rs. ${net['net_paid'] ?? '0'}",
+                    style: pw.TextStyle(
+                        fontSize: 18, fontWeight: pw.FontWeight.bold))
               ]),
             ],
           );
@@ -677,22 +792,59 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
   Future<File> _generateExcel(String fileName) async {
     final excel = excel_pkg.Excel.createExcel();
     final sheet = excel['Payroll'];
-    
+
     final e = _payrollData?['earnings'] ?? {};
     final d = _payrollData?['deductions'] ?? {};
     final net = _payrollData?['net_pay'] ?? {};
     final att = _payrollData?['attendance'] ?? {};
 
-    sheet.appendRow([excel_pkg.TextCellValue("Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear")]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue(
+          "Payroll Report - ${_getMonthName(_selectedMonth)} $_selectedYear")
+    ]);
     sheet.appendRow([excel_pkg.TextCellValue("")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Category"), excel_pkg.TextCellValue("Value")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Monthly Salary"), excel_pkg.TextCellValue("Rs. ${e['basic_salary'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Days Worked"), excel_pkg.TextCellValue("${att['no_of_present'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Bonus"), excel_pkg.TextCellValue("Rs. ${e['bonus'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Allowance"), excel_pkg.TextCellValue("Rs. ${e['allowance'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Incentive"), excel_pkg.TextCellValue("Rs. ${e['incentives'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Total Deduction"), excel_pkg.TextCellValue("Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")]);
-    sheet.appendRow([excel_pkg.TextCellValue("Net Paid"), excel_pkg.TextCellValue("Rs. ${net['net_paid'] ?? '0'}")]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Category"),
+      excel_pkg.TextCellValue("Value")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Monthly Salary"),
+      excel_pkg.TextCellValue("Rs. ${e['basic_salary'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Per Day Salary"),
+      excel_pkg.TextCellValue(
+          "Rs. ${att['per_day_salary'] != null ? double.tryParse(att['per_day_salary'].toString())?.toStringAsFixed(2) : '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Days Worked"),
+      excel_pkg.TextCellValue("${att['no_of_present'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Leave Days"),
+      excel_pkg.TextCellValue("${att['no_of_absence'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Bonus"),
+      excel_pkg.TextCellValue("Rs. ${e['bonus'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Allowance"),
+      excel_pkg.TextCellValue("Rs. ${e['allowance'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Incentive"),
+      excel_pkg.TextCellValue("Rs. ${e['incentives'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Total Deduction"),
+      excel_pkg.TextCellValue(
+          "Rs. ${d['total_deduction'] ?? net['total_deduction'] ?? '0'}")
+    ]);
+    sheet.appendRow([
+      excel_pkg.TextCellValue("Net Paid"),
+      excel_pkg.TextCellValue("Rs. ${net['net_paid'] ?? '0'}")
+    ]);
 
     final output = await getTemporaryDirectory();
     final file = File("${output.path}/$fileName.xlsx");
@@ -707,7 +859,8 @@ class _PayrollScreenState extends State<PayrollScreen> with SingleTickerProvider
 class _MonthYearPickerDialog extends StatefulWidget {
   final int initialMonth;
   final int initialYear;
-  const _MonthYearPickerDialog({required this.initialMonth, required this.initialYear});
+  const _MonthYearPickerDialog(
+      {required this.initialMonth, required this.initialYear});
 
   @override
   State<_MonthYearPickerDialog> createState() => _MonthYearPickerDialogState();
@@ -735,7 +888,9 @@ class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
             value: selectedMonth,
             isExpanded: true,
             items: List.generate(12, (index) => index + 1).map((m) {
-              return DropdownMenuItem(value: m, child: Text(DateFormat('MMMM').format(DateTime(0, m))));
+              return DropdownMenuItem(
+                  value: m,
+                  child: Text(DateFormat('MMMM').format(DateTime(0, m))));
             }).toList(),
             onChanged: (v) => setState(() => selectedMonth = v!),
           ),
@@ -743,7 +898,8 @@ class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
           DropdownButton<int>(
             value: selectedYear,
             isExpanded: true,
-            items: List.generate(5, (index) => DateTime.now().year - index).map((y) {
+            items: List.generate(5, (index) => DateTime.now().year - index)
+                .map((y) {
               return DropdownMenuItem(value: y, child: Text(y.toString()));
             }).toList(),
             onChanged: (v) => setState(() => selectedYear = v!),
@@ -751,9 +907,12 @@ class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel")),
         ElevatedButton(
-          onPressed: () => Navigator.pop(context, {'month': selectedMonth, 'year': selectedYear}),
+          onPressed: () => Navigator.pop(
+              context, {'month': selectedMonth, 'year': selectedYear}),
           child: const Text("Select"),
         ),
       ],

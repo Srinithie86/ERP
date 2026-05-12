@@ -209,15 +209,15 @@ class LeaveApi {
       final params = await SharedPrefsUtil.getCommonParams();
 
       final Map<String, String> body = {
-        'type': '2093',
+        'type': '2083',
         'cid': params['cid']!,
         'lt': params['lt']!,
         'ln': params['ln']!,
         'device_id': params['device_id']!,
         'token': params['token']!,
         'uid': params['uid']!,
-        if (reportingManager != null && reportingManager.isNotEmpty)
-          'reporting_manager': reportingManager,
+        'form': 'sm_main_form_16112',
+        if (reportingManager != null) 'reporting_manager': reportingManager,
       };
 
       final response = await http.post(Uri.parse(_baseUrl), body: body);

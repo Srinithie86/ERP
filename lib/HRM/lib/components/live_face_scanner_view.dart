@@ -127,7 +127,9 @@ class _LiveFaceScannerViewState extends State<LiveFaceScannerView>
     final sensorOrientation = _camera!.sensorOrientation;
     InputImageRotation? rotation;
     if (Platform.isIOS) {
-      rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
+      // iOS sensor orientation for front camera is typically 270, 
+      // but ML Kit expects rotation90deg for upright portrait images on iOS.
+      rotation = InputImageRotation.rotation90deg;
     } else if (Platform.isAndroid) {
       var rotationValue = sensorOrientation;
       if (_camera!.lensDirection == CameraLensDirection.front) {
@@ -142,25 +144,28 @@ class _LiveFaceScannerViewState extends State<LiveFaceScannerView>
 
     if (image.planes.isEmpty) return null;
 
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in image.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
+    // For iOS bgra8888, we only need the first plane
+    final bytes = Platform.isIOS 
+        ? image.planes[0].bytes 
+        : _concatenatePlanes(image.planes);
 
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
-        format:
-            format ??
-            (Platform.isAndroid
-                ? InputImageFormat.nv21
-                : InputImageFormat.bgra8888),
+        format: format ?? (Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888),
         bytesPerRow: image.planes[0].bytesPerRow,
       ),
     );
+  }
+
+  Uint8List _concatenatePlanes(List<Plane> planes) {
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final Plane plane in planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    return allBytes.done().buffer.asUint8List();
   }
 
   @override
