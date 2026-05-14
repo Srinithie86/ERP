@@ -528,6 +528,30 @@ class _CheckInVerificationScreenState extends State<CheckInVerificationScreen> {
   }
 
   Future<void> _takeSelfie() async {
+    // On iOS, skip face detection and use simple camera capture
+    if (Platform.isIOS) {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 50,
+        maxWidth: 800,
+        maxHeight: 800,
+        preferredCameraDevice: CameraDevice.front,
+      );
+      if (photo != null && mounted) {
+        setState(() {
+          _image = File(photo.path);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo captured successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      return;
+    }
+
+    // On Android, use full face scanner with detection
     await Navigator.push(
       context,
       MaterialPageRoute(
