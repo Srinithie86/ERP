@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Services/lead_service.dart';
-import '../../Widgets/call_confirmation_popup.dart';
+import '../../widgets/call_confirmation_popup.dart';
 import '../../widgets/lead_row_card.dart';
+import '../../widgets/meeting_details_popup.dart';
 import 'add_lead_screen.dart';
 import 'call_outcome_screen.dart';
 import '../../Models/schedule_api.dart';
@@ -28,50 +29,16 @@ class _ScheduleLeadScreenState extends State<ScheduleLeadScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final schedules = await ScheduleApi.fetchSchedules();
-      debugPrint("Fetched ${schedules.length} schedules");
-
+      final data = await ScheduleApi.fetchSchedules(enquiryType: 'Lead');
       if (mounted) {
         setState(() {
-          _leads = schedules.map((m) {
-            final map = m.toMap();
-            return {
-              // Use schedule fields directly — cus_name and mobile_1 are stored in schedule
-              'id': map['id'],
-              'uid': map['uid'],
-              'cid': map['cid'],
-              'aid': map['aid'],
-              'cus_name': map['cus_name'] ?? '',
-              'le_name': map['cus_name'] ?? '',
-              'mobile_1': map['mobile_1'] ?? '',
-              'mobile_2': map['mobile_2'] ?? '',
-              'meet_date': map['meet_date'] ?? '',
-              'time': map['time'] ?? '',
-              'loc': map['loc'] ?? '',
-              'address': map['address'] ?? '',
-              'mode_of_meet': map['mode_of_meet'] ?? '',
-              'attended_by': map['attended_by'] ?? '',
-              'dtime': map['dtime'] ?? '',
-              'status': 'Schedule',
-              'lead_status': 'Schedule',
-            };
-          }).toList();
-
-          // Sort by schedule id descending (newest first)
-          _leads.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-
-          debugPrint("Schedule screen showing ${_leads.length} records");
+          _leads = List<Map<String, dynamic>>.from(data);
+          _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Error fetching schedules: $e");
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -195,6 +162,7 @@ class _ScheduleLeadScreenState extends State<ScheduleLeadScreen> {
                           context,
                           scheduleData,
                         ),
+                        onCreateMeeting: () => _createMeeting(context, scheduleData, 'Lead'),
                       );
                     },
                   ),
@@ -271,16 +239,29 @@ class _ScheduleLeadScreenState extends State<ScheduleLeadScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _fetch());
         },
       ),
     );
+  }
+
+  void _createMeeting(BuildContext context, Map<String, dynamic> lead, String type) {
+    showDialog(
+      context: context,
+      builder: (c) => MeetingDetailsPopup(lead: lead, enquiryType: type),
+    ).then((val) {
+      if (val == true) _fetch();
+    });
   }
 }

@@ -221,12 +221,16 @@ class EnquiryOverviewDetailView extends StatelessWidget {
       builder: (c) => CallConfirmationPopup(
         lead: lead!,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead!, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead!,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           );
         },

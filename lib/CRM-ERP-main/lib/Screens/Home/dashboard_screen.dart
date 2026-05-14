@@ -5,8 +5,7 @@ import 'package:erp_smart/CRM-ERP-main/lib/Screens/Leads/leads_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Home/notification_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Deals/deals_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Follows/follow_up_screen.dart';
-import 'package:erp_smart/CRM-ERP-main/lib/Screens/Deals/deal_won.dart';
-import 'package:erp_smart/CRM-ERP-main/lib/Screens/Deals/deal_lost.dart';
+
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Meeting/add_meeting_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Meeting/meeting_screen.dart';
 export '../Deals/deals_screen.dart';
@@ -619,190 +618,7 @@ class _DashboardContentState extends State<_DashboardContent> {
 
                 const SizedBox(height: 24),
 
-                // Deals count Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Text(
-                    'Deals count',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 1,
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const DealWonScreen())),
-                          child: Container(
-                            height: 160.h,
-                            padding: EdgeInsets.all(16.r),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFE0F2F1), Color(0xFF26A69A)],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                              borderRadius: BorderRadius.circular(16.r),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4))
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.auto_graph,
-                                    size: 40.sp,
-                                    color: const Color(0xFF00897B)),
-                                SizedBox(height: 12.h),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w, vertical: 4.h),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF80CBC4)
-                                        .withOpacity(0.5),
-                                    borderRadius: BorderRadius.circular(15.r),
-                                  ),
-                                  child: Text('10',
-                                      style: GoogleFonts.outfit(
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87)),
-                                ),
-                                SizedBox(height: 8.h),
-                                Text('Won',
-                                    style: GoogleFonts.outfit(
-                                        color: Colors.white,
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.bold)),
-                                Text('Deal',
-                                    style: GoogleFonts.outfit(
-                                        color: Colors.white70,
-                                        fontSize: 13.sp)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        flex: 1,
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const DealLostScreen(
-                                          isPending: true))),
-                              child: Container(
-                                height: 75.h,
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [
-                                    Color(0xFFEDE7F6),
-                                    Color(0xFF673AB7)
-                                  ]),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.pending_actions,
-                                        size: 30.sp, color: Colors.white),
-                                    const Spacer(),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text('Lost',
-                                            style: GoogleFonts.outfit(
-                                                color: Colors.white,
-                                                fontSize: 12.sp)),
-                                        Text('Pending',
-                                            style: GoogleFonts.outfit(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14.sp)),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8.w, vertical: 2.h),
-                                          decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius:
-                                                  BorderRadius.circular(10.r)),
-                                          child: Text('10',
-                                              style: GoogleFonts.outfit(
-                                                  color: Colors.black87,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12.sp)),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const DealLostScreen(
-                                          isPending: false))),
-                              child: Container(
-                                height: 75.h,
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(colors: [
-                                    Color(0xFFFCE4EC),
-                                    Color(0xFFFF8A80)
-                                  ]),
-                                  borderRadius: BorderRadius.circular(16.r),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.handshake,
-                                        size: 30.sp, color: Colors.white),
-                                    const Spacer(),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 12.w, vertical: 4.h),
-                                      decoration: BoxDecoration(
-                                          color: Colors.amber.shade200,
-                                          borderRadius:
-                                              BorderRadius.circular(10.r)),
-                                      child: Text('10',
-                                          style: GoogleFonts.outfit(
-                                              color: Colors.black87,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12.sp)),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                ),
 
-                const SizedBox(height: 24),
 
                 // Lead Pipeline Status Section
                 Padding(
@@ -863,51 +679,6 @@ class _DashboardContentState extends State<_DashboardContent> {
 
                 const SizedBox(height: 24),
 
-                // Dynamic/Other Menu Items
-                if (widget.crmMenus.isNotEmpty) ...[
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Text(
-                      'More Actions',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
-                    child: Wrap(
-                      spacing: 12.w,
-                      runSpacing: 12.h,
-                      children: widget.crmMenus.where((m) {
-                        final n = m['name'].toString().toUpperCase();
-                        return !n.contains("LEAD") &&
-                            !n.contains("ENQUIRY") &&
-                            !n.contains("REFERRAL") &&
-                            !n.contains("DEAL WON") &&
-                            !n.contains("DEAL LOST");
-                      }).map((item) {
-                        final name = (item['name'] ?? '').toString();
-                        return SizedBox(
-                          width: (MediaQuery.of(context).size.width - 56.w) / 3,
-                          child: _buildManagementCard(
-                            context: context,
-                            label: name,
-                            assetIcon: _getIconPath(name),
-                            gradient: _getGradient(name),
-                            onTap: () => AppNavigation.handleNavigation(
-                                context, name,
-                                moduleContext: "CRM"),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-
                 const SizedBox(height: 100),
               ],
             ),
@@ -956,56 +727,6 @@ class _DashboardContentState extends State<_DashboardContent> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildManagementCard({
-    required BuildContext context,
-    required String label,
-    IconData? icon,
-    String? assetIcon,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 115.h,
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null)
-              Icon(icon, size: 35.sp, color: Colors.white)
-            else if (assetIcon != null)
-              Image.asset(assetIcon,
-                  height: 35.h, width: 35.w, color: Colors.white),
-            SizedBox(height: 12.h),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13.sp,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -1130,33 +851,5 @@ class _DashboardContentState extends State<_DashboardContent> {
         ),
       ],
     );
-  }
-
-  String _getIconPath(String name) {
-    final n = name.toUpperCase();
-    if (n.contains("LEAD")) return 'assets/icons/leads.png';
-    if (n.contains("ENQUIRY")) return 'assets/icons/enquiry.png';
-    if (n.contains("REFERRAL")) return 'assets/icons/re.png';
-    if (n.contains("DEAL")) return 'assets/icons/deals.png';
-    if (n.contains("MEETING")) return 'assets/icons/meetings.png';
-    if (n.contains("FOLLOW")) return 'assets/icons/follows.png';
-    return 'assets/icons/home.png';
-  }
-
-  Gradient _getGradient(String name) {
-    final n = name.toUpperCase();
-    if (n.contains("LEAD"))
-      return const LinearGradient(
-          colors: [Color(0xFFFF5263), Color(0xFFFF8A95)]);
-    if (n.contains("ENQUIRY"))
-      return const LinearGradient(
-          colors: [Color(0xFF6200EA), Color(0xFF9575CD)]);
-    if (n.contains("REFERRAL"))
-      return const LinearGradient(
-          colors: [Color(0xFF00BFA5), Color(0xFF64FFDA)]);
-    if (n.contains("DEAL"))
-      return const LinearGradient(
-          colors: [Color(0xFFFBC02D), Color(0xFFFFF176)]);
-    return const LinearGradient(colors: [Color(0xFF26A69A), Color(0xFF80CBC4)]);
   }
 }

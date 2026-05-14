@@ -1,219 +1,60 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:erp_smart/CRM-ERP-main/lib/Services/preference_service.dart';
-
-class ScheduleModel {
-  final int? id;
-  final int? uid;   // user who created
-  final int? cid;   // company id
-  final int? aid;   // linked lead id (enquiry_type=1)
-  final int? bid;   // linked enquiry id (enquiry_type=2)
-  final int? did;   // linked referral id (enquiry_type=3)
-  final String? dtime;
-  final String? meetDate;
-  final String? type;
-  final String? enquiryType;
-  final String? cusName;
-  final String? mobile1;
-  final String? mobile2;
-  final String? modeOfMeet;
-  final String? loc;
-  final String? address;
-  final String? time;
-  final String? attendedBy;
-  final String? feedback;
-  final String? leCode;
-
-
-  ScheduleModel({
-    this.id,
-    this.uid,
-    this.cid,
-    this.aid,
-    this.bid,
-    this.did,
-    this.dtime,
-    this.meetDate,
-    this.type,
-    this.enquiryType,
-    this.cusName,
-    this.mobile1,
-    this.mobile2,
-    this.modeOfMeet,
-    this.loc,
-    this.address,
-    this.time,
-    this.attendedBy,
-    this.feedback,
-    this.leCode,
-  });
-
-  factory ScheduleModel.fromJson(Map<String, dynamic> json) {
-    return ScheduleModel(
-      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
-      uid: json['uid'] is int ? json['uid'] : int.tryParse(json['uid']?.toString() ?? ''),
-      cid: json['cid'] is int ? json['cid'] : int.tryParse(json['cid']?.toString() ?? ''),
-      aid: json['aid'] is int ? json['aid'] : int.tryParse(json['aid']?.toString() ?? ''),
-      bid: json['bid'] is int ? json['bid'] : int.tryParse(json['bid']?.toString() ?? ''),
-      did: json['did'] is int ? json['did'] : int.tryParse(json['did']?.toString() ?? ''),
-      dtime: json['dtime']?.toString(),
-      meetDate: json['meet_date']?.toString(),
-      type: json['type']?.toString(),
-      enquiryType: json['enquiry_type']?.toString(),
-      cusName: json['cus_name']?.toString(),
-      mobile1: json['mobile_1']?.toString(),
-      mobile2: json['mobile_2']?.toString(),
-      modeOfMeet: json['mode_of_meet']?.toString(),
-      loc: json['loc']?.toString(),
-      address: json['address']?.toString(),
-      time: json['time']?.toString(),
-      attendedBy: json['attended_by']?.toString(),
-      feedback: json['feedback']?.toString(),
-      leCode: json['le_code']?.toString(),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'uid': uid,
-      'cid': cid,
-      'aid': aid,
-      'bid': bid,
-      'did': did,
-      'dtime': dtime,
-      'meet_date': meetDate,
-      'type': type,
-      'enquiry_type': enquiryType,
-      'cus_name': cusName,
-      'mobile_1': mobile1,
-      'mobile_2': mobile2,
-      'mode_of_meet': modeOfMeet,
-      'loc': loc,
-      'address': address,
-      'time': time,
-      'attended_by': attendedBy,
-      'feedback': feedback,
-      'le_code': leCode,
-    };
-  }
-
-  /// Returns the lead/enquiry/referral ID that this schedule is linked to
-  String? get linkedLeadId {
-    if (aid != null && aid != 0) return aid.toString();
-    if (bid != null && bid != 0) return bid.toString();
-    if (did != null && did != 0) return did.toString();
-    return null;
-  }
-}
+import '../Services/preference_service.dart';
 
 class ScheduleApi {
   static const String _apiUrl = 'https://erpsmart.in/total/api/m_api/';
 
-  static Future<List<ScheduleModel>> fetchSchedules({String? enquiryType}) async {
+  /// Fetches schedule data for a specific enquiry type (Lead, Enquiry, Referral).
+  static Future<List<dynamic>> fetchSchedules({required String enquiryType}) async {
     try {
-      final deviceId = await PreferenceService.getDeviceId();
-      final ln = await PreferenceService.getLn();
-      final lt = await PreferenceService.getLt();
-      final currentCid = await PreferenceService.getCid();
-      final uid = await PreferenceService.getUid();
-      final token = await PreferenceService.getToken();
+      String deviceId = await PreferenceService.getDeviceId();
+      String ln = await PreferenceService.getLn();
+      String lt = await PreferenceService.getLt();
+      String currentCid = await PreferenceService.getCid();
+      String? token = await PreferenceService.getToken();
+      String? uid = await PreferenceService.getUid();
 
       final Map<String, String> body = {
         'type': '2083',
         'cid': currentCid,
-        'uid': uid ?? '',
         'lt': lt,
         'ln': ln,
         'device_id': deviceId,
-        'form': 'sm_main_form_21003',
+        'form': 'sm_main_form_20209',
         'select': '*',
-        'where': 'uid=${uid ?? ''}', // filter schedules for this user
-        if (token != null) 'token': token,
+        'where': 'Uid=${uid ?? ""},cus_status=Schedule,enquiry_type=$enquiryType',
       };
+      
+      if (token != null) body['token'] = token;
 
-      debugPrint("------------ FETCH SCHEDULES API REQUEST ------------");
-      debugPrint("URL: $_apiUrl");
-      debugPrint("BODY: $body");
-
+      debugPrint('>>> Fetch Schedule API REQUEST ($enquiryType): $body');
       final response = await http.post(Uri.parse(_apiUrl), body: body);
 
-      debugPrint("------------ FETCH SCHEDULES API RESPONSE ------------");
-      debugPrint("STATUS: ${response.statusCode}");
-      debugPrint("BODY: ${response.body}");
-
       if (response.statusCode == 200) {
-        String bodyText = response.body;
-        int startIndex = bodyText.indexOf('{');
-        int endIndex = bodyText.lastIndexOf('}');
-        if (startIndex != -1 && endIndex != -1) {
-          bodyText = bodyText.substring(startIndex, endIndex + 1);
+        debugPrint('>>> Fetch Schedule API RESPONSE ($enquiryType): ${response.body}');
+        final data = _decodeJson(response.body);
+        if (data['error'] == false && data['data'] != null) {
+          return List<dynamic>.from(data['data']);
         }
-        final Map<String, dynamic> data = json.decode(bodyText);
-
-        // Handle both boolean false and string 'false' for error field
-        final bool isSuccess = data['error'] == false || data['error'].toString() == 'false';
-        // Handle both 'data' and 'details' response keys
-        final dynamic listData = data['data'] ?? data['details'];
-
-        if (isSuccess && listData is List) {
-          debugPrint("Schedules returned: ${listData.length}");
-          return listData.map((item) => ScheduleModel.fromJson(item)).toList();
-        }
-        debugPrint("Schedules API error/empty: error=${data['error']}, data=${data['data']}, details=${data['details']}, message=${data['message']}");
       }
     } catch (e) {
-      debugPrint("Error fetching schedules: $e");
+      debugPrint('Error in fetchSchedules ($enquiryType): $e');
     }
     return [];
   }
 
-  static Future<Map<String, dynamic>> submitScheduleDetails(Map<String, String> formData) async {
+  static Map<String, dynamic> _decodeJson(String body) {
     try {
-      final deviceId = await PreferenceService.getDeviceId();
-      final ln = await PreferenceService.getLn();
-      final lt = await PreferenceService.getLt();
-      final currentCid = await PreferenceService.getCid();
-      final token = await PreferenceService.getToken();
-      final uid = await PreferenceService.getUid();
-
-      // Build as Map<String, String> so http.post encodes correctly as form data
-      final Map<String, String> body = {
-        'type': '2082',
-        'cid': currentCid,
-        'uid': uid ?? '',
-        'lt': lt,
-        'ln': ln,
-        'device_id': deviceId,
-        'form': 'sm_main_form_21003',
-        // NOTE: role_id is NOT included — sm_main_form_21003 table has no role_id column
-        if (token != null) 'token': token,
-        ...formData,
-      };
-
-      debugPrint("------------ SUBMIT SCHEDULE API REQUEST ------------");
-      debugPrint("URL: $_apiUrl");
-      debugPrint("BODY: $body");
-
-      final response = await http.post(Uri.parse(_apiUrl), body: body);
-      debugPrint("------------ SUBMIT SCHEDULE API RESPONSE ------------");
-      debugPrint("STATUS: ${response.statusCode}");
-      debugPrint("BODY: ${response.body}");
-
-      if (response.statusCode == 200) {
-        String bodyText = response.body;
-        int startIndex = bodyText.indexOf('{');
-        int endIndex = bodyText.lastIndexOf('}');
-        if (startIndex != -1 && endIndex != -1) {
-          bodyText = bodyText.substring(startIndex, endIndex + 1);
-        }
-        return json.decode(bodyText);
+      int startIndex = body.indexOf('{');
+      int endIndex = body.lastIndexOf('}');
+      if (startIndex != -1 && endIndex != -1 && endIndex >= startIndex) {
+        return json.decode(body.substring(startIndex, endIndex + 1));
       }
-      return {'error': true, 'message': 'HTTP error ${response.statusCode}'};
+      return {'error': true, 'error_msg': 'Invalid JSON'};
     } catch (e) {
-      debugPrint("Error submitting schedule: $e");
-      return {'error': true, 'message': 'Exception: $e'};
+      return {'error': true, 'error_msg': 'Decode error'};
     }
   }
 }

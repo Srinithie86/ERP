@@ -20,25 +20,8 @@ class _EnquiryMeetingTabState extends State<EnquiryMeetingTab> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final uid = (widget.lead?['id'] ?? widget.lead?['uid'] ?? '').toString();
-      if (uid.isNotEmpty) {
-        final res = await MeetingApi.fetchMeetings();
-        if (mounted) {
-          setState(() {
-            _meetings = res
-                .where((m) => m.uid.toString() == uid)
-                .map((m) => m.toMap())
-                .toList();
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("Error fetching meetings in tab: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override

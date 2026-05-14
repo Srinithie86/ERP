@@ -347,6 +347,29 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
       progress = (daysPresent / totalWorkingDays).clamp(0.0, 1.0);
     }
 
+    // Calculate Local Total Hours for Fallback
+    double localTotalHours = 0.0;
+    for (var record in attendanceList) {
+      double hrs = double.tryParse(record["duration_decimal"]?.toString() ?? record["overall_hours"]?.toString() ?? "") ?? 0.0;
+      if (hrs == 0 && isTimeValid(record["in_time"]) && isTimeValid(record["out_time"])) {
+        try {
+          DateFormat format = DateFormat("HH:mm:ss");
+          DateTime inT = format.parse(record["in_time"]);
+          DateTime outT = format.parse(record["out_time"]);
+          hrs = outT.difference(inT).inMinutes / 60.0;
+        } catch (_) {
+          try {
+            DateFormat formatShort = DateFormat("HH:mm");
+            DateTime inT = formatShort.parse(record["in_time"]);
+            DateTime outT = formatShort.parse(record["out_time"]);
+            hrs = outT.difference(inT).inMinutes / 60.0;
+          } catch (_) {}
+        }
+      }
+      localTotalHours += hrs;
+    }
+    String formattedLocalTotal = "${localTotalHours.floor()}h ${((localTotalHours - localTotalHours.floor()) * 60).round()}m";
+
     return Scaffold(
       backgroundColor: const Color(0xffF5F7F8),
       appBar: AppBar(
@@ -436,7 +459,7 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
                           "Total Hours",
                           stats != null && (stats!["total_hours"] != null || stats!["total_hours_worked"] != null)
                               ? "${stats!["total_hours"] ?? stats!["total_hours_worked"]}h"
-                              : "0h",
+                              : formattedLocalTotal,
                         ),
                       ),
                       SizedBox(width: w * 0.03),
@@ -913,9 +936,23 @@ class _AttendanceMonthlyHistoryState extends State<AttendanceMonthlyHistory> {
           orElse: () => null,
         );
         if (record != null) {
-          totalHours +=
-              (double.tryParse(record["duration_decimal"]?.toString() ?? "0") ??
-              0.0);
+          double hrs = double.tryParse(record["duration_decimal"]?.toString() ?? record["overall_hours"]?.toString() ?? "") ?? 0.0;
+          if (hrs == 0 && isTimeValid(record["in_time"]) && isTimeValid(record["out_time"])) {
+            try {
+              DateFormat format = DateFormat("HH:mm:ss");
+              DateTime inT = format.parse(record["in_time"]);
+              DateTime outT = format.parse(record["out_time"]);
+              hrs = outT.difference(inT).inMinutes / 60.0;
+            } catch (_) {
+              try {
+                DateFormat formatShort = DateFormat("HH:mm");
+                DateTime inT = formatShort.parse(record["in_time"]);
+                DateTime outT = formatShort.parse(record["out_time"]);
+                hrs = outT.difference(inT).inMinutes / 60.0;
+              } catch (_) {}
+            }
+          }
+          totalHours += hrs;
           if (isTimeValid(record["in_time"])) {
             daysPresent++;
           }

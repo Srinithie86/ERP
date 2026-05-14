@@ -8,7 +8,13 @@ import '../../Models/meeting_api.dart';
 class CallOutcomeScreen extends StatefulWidget {
   final Map<String, dynamic> lead;
   final bool autoCall; // Trigger dialer on open?
-  const CallOutcomeScreen({super.key, required this.lead, this.autoCall = false});
+  final String? selectedPhone; // Specific number to call
+  const CallOutcomeScreen({
+    super.key,
+    required this.lead,
+    this.autoCall = false,
+    this.selectedPhone,
+  });
 
   @override
   State<CallOutcomeScreen> createState() => _CallOutcomeScreenState();
@@ -17,9 +23,11 @@ class CallOutcomeScreen extends StatefulWidget {
 class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
   final _nameCtrl = TextEditingController();
   final _budgetCtrl = TextEditingController();
-  final _projectCtrl = TextEditingController();
-  final _otherCtrl = TextEditingController();
-  final _summaryCtrl = TextEditingController();
+  final TextEditingController _projectCtrl = TextEditingController();
+  final TextEditingController _otherCtrl = TextEditingController();
+  final TextEditingController _summaryCtrl = TextEditingController();
+  List<dynamic> _locations = [];
+  String? _selectedLocation;
   final _locationCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _attendedByCtrl = TextEditingController();
@@ -39,13 +47,14 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
     _nameCtrl.text =
         (widget.lead['le_name'] ?? widget.lead['cus_name'])?.toString() ?? '';
     // Auto-fill Required Project from lead data
-    _projectCtrl.text = (
-      widget.lead['required_project'] ??
-      widget.lead['required_project_name'] ??
-      widget.lead['product_service'] ??
-      widget.lead['project'] ?? ''
-    ).toString();
+    _projectCtrl.text = (widget.lead['required_project'] ??
+            widget.lead['required_project_name'] ??
+            widget.lead['product_service'] ??
+            widget.lead['project'] ??
+            '')
+        .toString();
     _fetchDropdowns();
+    _fetchLocations();
 
     if (widget.autoCall) {
       _launchDialer();
@@ -53,15 +62,29 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
   }
 
   Future<void> _launchDialer() async {
-    final String phone = (widget.lead['mobile_1'] ?? widget.lead['mobile_2'] ?? '').toString();
-    if (phone.isNotEmpty) {
-      final Uri launchUri = Uri.parse('tel:${phone.replaceAll(' ', '')}');
+    final String phone = widget.selectedPhone ??
+        (widget.lead['mobile_1'] ??
+                widget.lead['mobile_2'] ??
+                widget.lead['mobile'] ??
+                widget.lead['phone'] ??
+                widget.lead['mobile_no'] ??
+                widget.lead['cus_mobile'] ??
+                widget.lead['contact_no'] ??
+                '')
+            .toString();
+    if (phone.isNotEmpty && phone != 'null') {
+      final Uri launchUri =
+          Uri.parse('tel:${phone.replaceAll(RegExp(r'[^0-9+]'), '')}');
       try {
-        if (await canLaunchUrl(launchUri)) {
-          await launchUrl(launchUri);
-        }
+        // Direct launch is often more reliable for system dialers than canLaunchUrl
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
       } catch (e) {
         debugPrint("Error launching dialer: $e");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open dialer for $phone')),
+          );
+        }
       }
     }
   }
@@ -69,13 +92,22 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
   Future<void> _fetchDropdowns() async {
     try {
       final outcomesApi = await FollowUpApi.fetchCallOutcomes();
-      List<dynamic> dynamicOutcomes = outcomesApi.map((e) => {'name': e['label'].toString(), 'value': e['value'].toString()}).toList();
+      List<dynamic> dynamicOutcomes = outcomesApi
+          .map((e) =>
+              {'name': e['label'].toString(), 'value': e['value'].toString()})
+          .toList();
 
       final statusesApi = await FollowUpApi.fetchLeadStatuses();
-      List<dynamic> dynamicStatuses = statusesApi.map((e) => {'name': e['label'].toString(), 'value': e['value'].toString()}).toList();
+      List<dynamic> dynamicStatuses = statusesApi
+          .map((e) =>
+              {'name': e['label'].toString(), 'value': e['value'].toString()})
+          .toList();
 
       final modesApi = await FollowUpApi.fetchFollowUpModes();
-      List<dynamic> dynamicModes = modesApi.map((e) => {'name': e['label'].toString(), 'value': e['value'].toString()}).toList();
+      List<dynamic> dynamicModes = modesApi
+          .map((e) =>
+              {'name': e['label'].toString(), 'value': e['value'].toString()})
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -86,6 +118,29 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
       }
     } catch (e) {
       debugPrint("Error fetching dropdowns: $e");
+    }
+  }
+
+  Future<void> _fetchLocations() async {
+    try {
+      final data = await LeadService.fetchDropdownData(
+        type: '2083',
+        form: 'sm_main_form_18021',
+        select: 'id,name',
+      );
+      if (mounted) {
+        setState(() {
+          _locations = data
+              .map((e) => {
+                    'name': e['name'].toString(),
+                    'value': e['id'].toString(), // Use ID as the value
+                    'id': e['id'].toString(),
+                  })
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching locations: $e");
     }
   }
 
@@ -201,7 +256,16 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                   ],
                 ),
                 _label('Location'),
-                _field(_locationCtrl),
+                _dropdown(
+                  'Select Location',
+                  _locations,
+                  _selectedLocation,
+                  (v) {
+                    setPopupState(() => _selectedLocation = v);
+                    setState(() => _selectedLocation = v);
+                    _locationCtrl.text = v ?? '';
+                  },
+                ),
                 _label('Address'),
                 Container(
                   decoration: BoxDecoration(
@@ -221,7 +285,8 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_date == null || _time == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Date and time are required')));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Date and time are required')));
                       return;
                     }
                     // Capture context-dependent values BEFORE any await
@@ -231,12 +296,20 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                     final uid = await PreferenceService.getUid();
                     final cid = await PreferenceService.getCid();
                     final token = await PreferenceService.getToken();
-                    final String leadId = widget.lead['id']?.toString() ?? widget.lead['uid']?.toString() ?? '';
-                    final String enquiryType = (widget.lead['enquiry_type'] ?? '1').toString();
+                    final String leadId = widget.lead['id']?.toString() ??
+                        widget.lead['uid']?.toString() ??
+                        '';
+                    final String eTypeId =
+                        (widget.lead['enquiry_type'] ?? '1').toString();
+                    final String enquiryType = eTypeId == '1'
+                        ? 'Lead'
+                        : (eTypeId == '2' ? 'Enquiry' : 'Referral');
 
                     // DEBUG: verify values before sending
-                    debugPrint('>>> DIRECT MEETING leadId=$leadId, enquiryType=$enquiryType');
-                    debugPrint('>>> widget.lead[id]=${widget.lead['id']}, widget.lead[enquiry_type]=${widget.lead['enquiry_type']}');
+                    debugPrint(
+                        '>>> DIRECT MEETING leadId=$leadId, enquiryType=$enquiryType');
+                    debugPrint(
+                        '>>> widget.lead[id]=${widget.lead['id']}, widget.lead[enquiry_type]=${widget.lead['enquiry_type']}');
 
                     final Map<String, String> meetFormData = {
                       'uid': uid ?? '',
@@ -245,26 +318,43 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                       // NOTE: enquiry_type NOT sent — sm_main_form_21003 has no such column
                       'cus_name': _nameCtrl.text,
                       'mobile_1': (widget.lead['mobile_1'] ?? '').toString(),
-                      'meet_date': '${_date!.day.toString().padLeft(2, '0')}-${_date!.month.toString().padLeft(2, '0')}-${_date!.year}',
+                      'meet_date':
+                          '${_date!.year}-${_date!.month.toString().padLeft(2, '0')}-${_date!.day.toString().padLeft(2, '0')}',
                       'time': timeStr,
-                      'loc': _locationCtrl.text,
+                      'loc': _selectedLocation ?? '',
                       'address': _addressCtrl.text,
+                      'enquiry_type': enquiryType,
+
+                      'le_code': (widget.lead['le_code'] ??
+                              widget.lead['lead_code'] ??
+                              widget.lead['le_no'] ??
+                              widget.lead['le_no_'] ??
+                              widget.lead['led_no'] ??
+                              widget.lead['enquiry_no'] ??
+                              widget.lead['id'] ??
+                              '')
+                          .toString(),
                       'mode_of_meet': 'Direct Meeting',
                       if (token != null) 'token': token,
                     };
                     debugPrint('>>> meetFormData: $meetFormData');
 
-                    final meetRes = await MeetingApi.submitMeetingDetails(meetFormData);
+                    final meetRes =
+                        await MeetingApi.submitMeetingDetails(meetFormData);
                     debugPrint('Meeting save result: $meetRes');
 
                     if (!mounted) return;
                     if (meetRes['error'].toString() == 'false') {
                       Navigator.pop(popupCtx);
-                      ScaffoldMessenger.of(popupCtx).showSnackBar(
-                        const SnackBar(content: Text('Meeting saved successfully ✅')),
+                      if (mounted) Navigator.pop(context, true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Meeting saved successfully ✅')),
                       );
                     } else {
-                      final errMsg = meetRes['message'] ?? meetRes['error_msg'] ?? 'Failed to save meeting';
+                      final errMsg = meetRes['message'] ??
+                          meetRes['error_msg'] ??
+                          'Failed to save meeting';
                       ScaffoldMessenger.of(popupCtx).showSnackBar(
                         SnackBar(content: Text('❌ $errMsg')),
                       );
@@ -398,8 +488,6 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                     ),
                   ],
                 ),
-                _label('Attended by'),
-                _field(_attendedByCtrl),
                 _label('Description'),
                 Container(
                   decoration: BoxDecoration(
@@ -419,8 +507,11 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: () async {
-                    if (_date == null || _time == null || _virtualMode == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All fields are required')));
+                    if (_date == null ||
+                        _time == null ||
+                        _virtualMode == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('All fields are required')));
                       return;
                     }
                     // Capture context-dependent values BEFORE any await
@@ -431,12 +522,20 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                     final uid = await PreferenceService.getUid();
                     final cid = await PreferenceService.getCid();
                     final token = await PreferenceService.getToken();
-                    final String leadId = widget.lead['id']?.toString() ?? widget.lead['uid']?.toString() ?? '';
-                    final String enquiryType = (widget.lead['enquiry_type'] ?? '1').toString();
+                    final String leadId = widget.lead['id']?.toString() ??
+                        widget.lead['uid']?.toString() ??
+                        '';
+                    final String eTypeId =
+                        (widget.lead['enquiry_type'] ?? '1').toString();
+                    final String enquiryType = eTypeId == '1'
+                        ? 'Lead'
+                        : (eTypeId == '2' ? 'Enquiry' : 'Referral');
 
                     // DEBUG: verify values before sending
-                    debugPrint('>>> VIRTUAL MEETING leadId=$leadId, enquiryType=$enquiryType');
-                    debugPrint('>>> widget.lead[id]=${widget.lead['id']}, widget.lead[enquiry_type]=${widget.lead['enquiry_type']}');
+                    debugPrint(
+                        '>>> VIRTUAL MEETING leadId=$leadId, enquiryType=$enquiryType');
+                    debugPrint(
+                        '>>> widget.lead[id]=${widget.lead['id']}, widget.lead[enquiry_type]=${widget.lead['enquiry_type']}');
 
                     final Map<String, String> meetFormData = {
                       'uid': uid ?? '',
@@ -445,25 +544,42 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                       // NOTE: enquiry_type NOT sent — sm_main_form_21003 has no such column
                       'cus_name': _nameCtrl.text,
                       'mobile_1': (widget.lead['mobile_1'] ?? '').toString(),
-                      'meet_date': '${_date!.day.toString().padLeft(2, '0')}-${_date!.month.toString().padLeft(2, '0')}-${_date!.year}',
+                      'meet_date':
+                          '${_date!.year}-${_date!.month.toString().padLeft(2, '0')}-${_date!.day.toString().padLeft(2, '0')}',
                       'time': timeStr,
-                      'attended_by': _attendedByCtrl.text,
+                      'attended_by': uid ?? '',
+                      'enquiry_type': enquiryType,
+                      'le_code': (widget.lead['le_code'] ??
+                              widget.lead['lead_code'] ??
+                              widget.lead['le_no'] ??
+                              widget.lead['le_no_'] ??
+                              widget.lead['led_no'] ??
+                              widget.lead['enquiry_no'] ??
+                              widget.lead['id'] ??
+                              '')
+                          .toString(),
                       'mode_of_meet': modeStr,
                       if (token != null) 'token': token,
                     };
                     debugPrint('>>> meetFormData: $meetFormData');
 
-                    final meetRes = await MeetingApi.submitMeetingDetails(meetFormData);
+                    final meetRes =
+                        await MeetingApi.submitMeetingDetails(meetFormData);
                     debugPrint('Virtual meeting save result: $meetRes');
 
                     if (!mounted) return;
                     if (meetRes['error'].toString() == 'false') {
                       Navigator.pop(popupCtx);
-                      ScaffoldMessenger.of(popupCtx).showSnackBar(
-                        const SnackBar(content: Text('Virtual meeting saved successfully ✅')),
+                      if (mounted) Navigator.pop(context, true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('Virtual meeting saved successfully ✅')),
                       );
                     } else {
-                      final errMsg = meetRes['message'] ?? meetRes['error_msg'] ?? 'Failed to save meeting';
+                      final errMsg = meetRes['message'] ??
+                          meetRes['error_msg'] ??
+                          'Failed to save meeting';
                       ScaffoldMessenger.of(popupCtx).showSnackBar(
                         SnackBar(content: Text('❌ $errMsg')),
                       );
@@ -496,6 +612,12 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String selectedOutcomeName = _outcomes
+        .firstWhere((e) => e['value'].toString() == _outcome,
+            orElse: () => {'name': ''})['name']
+        .toString();
+    final bool isConnected = selectedOutcomeName == 'Connected';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -533,23 +655,29 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
             ),
             _label('Follow-Up Mode *', isRequired: true),
             IgnorePointer(
-              ignoring: _outcome != 'Connected',
+              ignoring: !isConnected,
               child: Opacity(
-                opacity: _outcome == 'Connected' ? 1.0 : 0.5,
+                opacity: isConnected ? 1.0 : 0.5,
                 child: _dropdown('Select Follow-up Mode', _modes, _mode, (v) {
                   setState(() => _mode = v);
-                  if (v == 'Direct Meeting') {
+                  final selectedMode = _modes
+                      .firstWhere((e) => e['value'].toString() == v,
+                          orElse: () => {'name': ''})['name']
+                      .toString();
+                  if (selectedMode == 'Direct Meeting') {
                     _showMeetingDetailsPopup();
-                  } else if (v == 'Virtual Meeting') {
+                  } else if (selectedMode == 'Virtual Meeting') {
                     _showVirtualMeetingDetailsPopup();
                   }
                 }),
               ),
             ),
+            _label('Call Summary'),
+            _field(_summaryCtrl),
             IgnorePointer(
-              ignoring: _outcome != 'Connected',
+              ignoring: !isConnected,
               child: Opacity(
-                opacity: _outcome == 'Connected' ? 1.0 : 0.5,
+                opacity: isConnected ? 1.0 : 0.5,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -593,11 +721,10 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
                     _label('Budget'),
                     _field(_budgetCtrl),
                     _label('Required Project'),
-                    _field(_projectCtrl, readOnly: _projectCtrl.text.isNotEmpty),
+                    _field(_projectCtrl,
+                        readOnly: _projectCtrl.text.isNotEmpty),
                     _label('Other Required'),
                     _field(_otherCtrl),
-                    _label('Call Summary'),
-                    _field(_summaryCtrl),
                     _label('Select lead status'),
                     _dropdown(
                       'Select lead status',
@@ -638,180 +765,198 @@ class _CallOutcomeScreenState extends State<CallOutcomeScreen> {
   }
 
   Widget _label(String t, {bool isRequired = false}) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, top: 16),
-    child: RichText(
-      text: TextSpan(
-        text: t,
-        style: const TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
+        padding: const EdgeInsets.only(bottom: 8, top: 16),
+        child: RichText(
+          text: TextSpan(
+            text: t,
+            style: const TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            children: isRequired
+                ? [
+                    const TextSpan(
+                      text: ' *',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ]
+                : [],
+          ),
         ),
-        children: isRequired
-            ? [
-                const TextSpan(
-                  text: ' *',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ]
-            : [],
-      ),
-    ),
-  );
+      );
 
   Widget _field(TextEditingController c, {bool readOnly = false}) => Container(
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey.shade200),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextField(
-      controller: c,
-      readOnly: readOnly,
-      decoration: const InputDecoration(
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      ),
-    ),
-  );
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: TextField(
+          controller: c,
+          readOnly: readOnly,
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+        ),
+      );
 
   Widget _iconField(String t, IconData i) => Container(
-    height: 50,
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey.shade200),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      children: [
-        Icon(i, size: 20, color: Colors.grey.shade400),
-        const SizedBox(width: 8),
-        Text(t, style: const TextStyle(fontSize: 14)),
-      ],
-    ),
-  );
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(i, size: 20, color: Colors.grey.shade400),
+            const SizedBox(width: 8),
+            Text(t, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      );
 
   Widget _dropdown(
     String hint,
     List<dynamic> its,
     String? val,
     ValueChanged<String?> oC,
-  ) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey.shade200),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: val,
-        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF26A69A)),
-        hint: Text(
-          hint,
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-        ),
-        isExpanded: true,
-        items: its
-            .map(
-              (e) => DropdownMenuItem(
-                value: e['name'].toString(),
-                child: Text(e['name'].toString()),
-              ),
-            )
-            .toList(),
-        onChanged: oC,
+  ) {
+    // Robust validation: Ensure the current value exists in the list to prevent crashes
+    String? effectiveValue = val;
+    if (effectiveValue != null) {
+      bool exists = its
+          .any((e) => (e['value'] ?? e['name']).toString() == effectiveValue);
+      if (!exists) effectiveValue = null;
+    }
+
+    // Deduplicate items to prevent "duplicate value" crash
+    final seen = <String>{};
+    final uniqueItems = its.where((e) {
+      final val = (e['value'] ?? e['name']).toString();
+      if (seen.contains(val)) return false;
+      seen.add(val);
+      return true;
+    }).toList();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(8),
       ),
-    ),
-  );
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: effectiveValue,
+          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF26A69A)),
+          hint: Text(
+            hint,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+          ),
+          isExpanded: true,
+          items: uniqueItems
+              .map(
+                (e) => DropdownMenuItem(
+                  value: (e['value'] ?? e['name']).toString(),
+                  child: Text(e['name'].toString()),
+                ),
+              )
+              .toList(),
+          onChanged: oC,
+        ),
+      ),
+    );
+  }
 
   Future<void> _save() async {
-    // For non-meeting modes, require date/time
-    final bool isMeetingMode = _mode == 'Direct Meeting' || _mode == 'Virtual Meeting';
-    if (_outcome == 'Connected' &&
-        (_mode == null || (!isMeetingMode && (_date == null || _time == null)))) {
+    if (_outcome == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(content: Text('Please select a call outcome')),
       );
       return;
     }
+
+    final selectedOutcomeName = _outcomes
+        .firstWhere((e) => e['value'].toString() == _outcome,
+            orElse: () => {'name': ''})['name']
+        .toString();
+
+    // If Connected, require Follow-up details
+    if (selectedOutcomeName == 'Connected') {
+      if (_mode == null || _date == null || _time == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please fill all follow-up details')),
+        );
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
+
     try {
-      String getDropdownValue(List<dynamic> list, String? selectedName) {
-        if (selectedName == null || selectedName.isEmpty) return '';
-        try {
-          return list.firstWhere((e) => e['name'] == selectedName, orElse: () => {'value': ''})['value'].toString();
-        } catch (_) {
-          return '';
+      final String uid = await PreferenceService.getUid() ?? '';
+      final String leCode = (widget.lead['le_code'] ??
+              widget.lead['lead_code'] ??
+              widget.lead['le_no'] ??
+              widget.lead['le_no_'] ??
+              widget.lead['led_no'] ??
+              widget.lead['enquiry_no'] ??
+              widget.lead['id'] ??
+              '')
+          .toString();
+
+      final Map<String, String> data = {
+        'uid': uid,
+        'cus_name': _nameCtrl.text,
+        'call_outcome': _outcome!,
+        'le_code': leCode,
+        'call_summary': _summaryCtrl.text,
+        'enquiry_type': (widget.lead['enquiry_type'] ?? '1').toString(),
+        'call_by': uid,
+        'cus_status': 'follow_up',
+        'aid': (widget.lead['id'] ?? widget.lead['aid'] ?? '').toString(),
+        'mobile_1': (widget.lead['mobile_1'] ?? '').toString(),
+        'moble_2': (widget.lead['moble_2'] ?? '').toString(),
+      };
+
+      if (selectedOutcomeName == 'Connected') {
+        data['follow_up_mode'] = _mode!;
+        data['next_follow_up_date'] =
+            '${_date!.year}-${_date!.month.toString().padLeft(2, '0')}-${_date!.day.toString().padLeft(2, '0')}';
+        data['next_follow_up_time'] = _time!.format(context);
+        data['customer_budget'] = _budgetCtrl.text;
+        data['required_project'] = _projectCtrl.text;
+        data['other_required'] = _otherCtrl.text;
+        data['lead_status'] = _status ?? '';
+      }
+
+      final response = await FollowUpApi.followupInsert(data);
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (response['error'] == false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Call outcome saved successfully ✅')),
+          );
+          Navigator.pop(context, true);
+        } else {
+          final msg = response['message'] ??
+              response['error_msg'] ??
+              'Error saving details';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ $msg')),
+          );
         }
       }
-
-      final String leadId = widget.lead['id']?.toString() ?? widget.lead['uid']?.toString() ?? '';
-
-      final String? currentUserId = await PreferenceService.getUid();
-      final String? token = await PreferenceService.getToken();
-
-      final String rawType = (widget.lead['enquiry_type'] ?? '1').toString().toLowerCase();
-      final String enquiryType = rawType == 'lead' || rawType == '1' 
-          ? '1' 
-          : (rawType == 'enquiry' || rawType == '2' ? '2' : '3');
-      
-      final now = DateTime.now();
-      final String callDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-      final String callTime = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-
-      final res = await FollowUpApi.submitCallOutcome({
-        'uid': currentUserId ?? '',
-        if (enquiryType == '1') 'aid': leadId,
-        if (enquiryType == '2') 'bid': leadId,
-        if (enquiryType == '3') 'did': leadId,
-        'cus_name': _nameCtrl.text,
-        'call_outcome': getDropdownValue(_outcomes, _outcome),
-        'follow_up_mode': getDropdownValue(_modes, _mode),
-        'required_project': _projectCtrl.text,
-        'other_required': _otherCtrl.text,
-        'call_summary': _summaryCtrl.text,
-        'customer_budget': _budgetCtrl.text,
-        'next_follow_up_date': _date != null ? _date!.toString().split(' ')[0] : '',
-        'next_follow_up_time': _time != null ? _time!.format(context) : '',
-        'lead_status': getDropdownValue(_statuses, _status),
-        'enquiry_type': enquiryType,
-        'call_date': callDate,
-        'call_time': callTime,
-        'call_by': currentUserId ?? '', // Map call_by to current user
-        if (token != null) 'token': token,
-        'le_code': (widget.lead['le_code'] ??
-                widget.lead['lead_code'] ??
-                widget.lead['le_no'] ??
-                widget.lead['led_no'] ??
-                widget.lead['enquiry_no'] ??
-                '')
-            .toString(),
-      });
-
-      debugPrint("------------ SUBMIT CALL OUTCOME RESPONSE ------------");
-      debugPrint("RESPONSE: $res");
-
-      if (mounted && res['error'].toString() == 'false') {
-        // Also update the main Lead/Enquiry record to ensure it moves from "New" to "Follow up"
-        await LeadService.addLead({
-          'id': leadId,
-          'call_outcome': getDropdownValue(_outcomes, _outcome),
-          'lead_status': getDropdownValue(_statuses, _status),
-          'enquiry_type': enquiryType,
-          'form': 'sm_main_form_21004',
-        }, apiType: '2082');
-
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Saved successfully')));
-      } else if (mounted) {
-        String msg = res['message'] ?? 'Failed to save';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      }
     } catch (e) {
-      debugPrint("Error saving follow-up: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint('Error saving call outcome: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Connection error')),
+        );
+      }
     }
   }
 }

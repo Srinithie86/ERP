@@ -31,47 +31,8 @@ class _ReferralMeetingScreenState extends State<ReferralMeetingScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Referral');
-      final meetings = await MeetingApi.fetchMeetings(enquiryType: '3');
-      
-      if (mounted) {
-        setState(() {
-          _referrals = meetings
-              .where((m) => res.any((l) => l['id'].toString() == m.uid.toString()))
-              .map((m) {
-            final meetingMap = m.toMap();
-            final id = meetingMap['uid'].toString();
-            
-            final baseLead = res.firstWhere(
-              (l) => l['id'].toString() == id,
-              orElse: () => null,
-            );
-            
-            if (baseLead == null) return null;
-            
-            return {
-              ...Map<String, dynamic>.from(baseLead as Map),
-              ...meetingMap,
-              'status': 'Meeting',
-              'lead_status': 'Meeting',
-            }.cast<String, dynamic>();
-          }).whereType<Map<String, dynamic>>().toList();
-
-          // Sort by UID descending (newest first)
-          _referrals.sort((a, b) {
-            int idA = int.tryParse(a['uid']?.toString() ?? a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['uid']?.toString() ?? b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<dynamic> get _filteredReferrals {
@@ -272,11 +233,17 @@ class _ReferralMeetingScreenState extends State<ReferralMeetingScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true)),
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
           ).then((_) => _fetch());
         },
       ),

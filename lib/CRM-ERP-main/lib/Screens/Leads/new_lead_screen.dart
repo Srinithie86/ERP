@@ -46,85 +46,8 @@ class _NewLeadScreenState extends State<NewLeadScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Lead');
-      final List<FollowUpModel> followUpLeads =
-          await FollowUpApi.fetchFollowUpLeads(enquiryType: '1');
-      final List<MeetingModel> meetings = await MeetingApi.fetchMeetings();
-
-      final followUpAids = followUpLeads
-          .where((f) => f.aid != null)
-          .map((f) => f.aid.toString())
-          .toSet();
-
-      final followUpLeCodes = followUpLeads
-          .where((f) => f.leCode != null && f.leCode!.isNotEmpty)
-          .map((f) => f.leCode!)
-          .toSet();
-
-      // Use meeting.aid (linked lead id) — NOT meeting.uid (user id)
-      final meetingAids = meetings
-          .where((m) => m.aid != null && m.aid != 0)
-          .map((m) => m.aid.toString())
-          .toSet();
-
-      final meetingLeCodes = meetings
-          .where((m) => m.leCode != null && m.leCode!.isNotEmpty)
-          .map((m) => m.leCode!)
-          .toSet();
-
-      if (mounted) {
-        setState(() {
-          _leads = res.where((l) {
-            final id = l['id'].toString();
-            final leCode = (l['le_code'] ?? '').toString();
-            final status = (l['lead_status'] ?? l['status'] ?? '')
-                .toString()
-                .toLowerCase();
-            final outcome = (l['call_outcome'] ?? '').toString();
-            final name = (l['le_name'] ?? l['cus_name'] ?? '')
-                .toString()
-                .toLowerCase()
-                .trim();
-
-            // 1. Check if this lead has a follow-up record (by aid, le_code or by name match)
-            bool alreadyInFollowUp = followUpAids.contains(id) ||
-                (leCode.isNotEmpty && followUpLeCodes.contains(leCode)) ||
-                followUpLeads.any((f) {
-                  final fName = f.cusName?.toLowerCase().trim() ?? '';
-                  return fName == name && name.isNotEmpty;
-                });
-
-            // 2. Check if this lead has a meeting (by aid or le_code)
-            bool alreadyInMeeting = meetingAids.contains(id) ||
-                (leCode.isNotEmpty && meetingLeCodes.contains(leCode));
-
-            // 3. Check internal status flags
-            bool hasOutcome =
-                outcome.isNotEmpty && outcome != '0' && outcome != 'null';
-            bool hasFollowUpStatus = (status.contains('follow') && !status.contains('missed')) || status == '1' || status == 'interest';
-
-            // A lead is NEW only if none of the above are true
-            return !alreadyInFollowUp &&
-                !alreadyInMeeting &&
-                !hasOutcome &&
-                !hasFollowUpStatus;
-          }).toList();
-
-          // Sort by ID descending (newest first)
-          _leads.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -327,12 +250,16 @@ class _NewLeadScreenState extends State<NewLeadScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _fetch());
         },

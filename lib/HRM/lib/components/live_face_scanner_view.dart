@@ -6,7 +6,7 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LiveFaceScannerView extends StatefulWidget {
-  final Function(Face face, InputImage inputImage) onFaceDetected;
+  final Function(Face face, File imageFile) onFaceDetected;
   final String title;
   final String description;
 
@@ -107,10 +107,17 @@ class _LiveFaceScannerViewState extends State<LiveFaceScannerView>
 
         // Give it a small delay so the user sees the "Scanning" state
         // and has time to align properly before the result is returned.
-        await Future.delayed(const Duration(milliseconds: 1500));
+        await Future.delayed(const Duration(milliseconds: 1000));
 
-        if (mounted) {
-          widget.onFaceDetected(faces.first, inputImage);
+        if (mounted && _controller != null) {
+          // Stop stream before taking picture
+          await _controller?.stopImageStream();
+          
+          final XFile file = await _controller!.takePicture();
+          
+          if (mounted) {
+            widget.onFaceDetected(faces.first, File(file.path));
+          }
         }
       }
     } catch (e) {
@@ -127,9 +134,7 @@ class _LiveFaceScannerViewState extends State<LiveFaceScannerView>
     final sensorOrientation = _camera!.sensorOrientation;
     InputImageRotation? rotation;
     if (Platform.isIOS) {
-      // iOS sensor orientation for front camera is typically 270, 
-      // but ML Kit expects rotation90deg for upright portrait images on iOS.
-      rotation = InputImageRotation.rotation90deg;
+      rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
     } else if (Platform.isAndroid) {
       var rotationValue = sensorOrientation;
       if (_camera!.lensDirection == CameraLensDirection.front) {
@@ -144,28 +149,25 @@ class _LiveFaceScannerViewState extends State<LiveFaceScannerView>
 
     if (image.planes.isEmpty) return null;
 
-    // For iOS bgra8888, we only need the first plane
-    final bytes = Platform.isIOS 
-        ? image.planes[0].bytes 
-        : _concatenatePlanes(image.planes);
+    final WriteBuffer allBytes = WriteBuffer();
+    for (final Plane plane in image.planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    final bytes = allBytes.done().buffer.asUint8List();
 
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
-        format: format ?? (Platform.isAndroid ? InputImageFormat.nv21 : InputImageFormat.bgra8888),
+        format:
+            format ??
+            (Platform.isAndroid
+                ? InputImageFormat.nv21
+                : InputImageFormat.bgra8888),
         bytesPerRow: image.planes[0].bytesPerRow,
       ),
     );
-  }
-
-  Uint8List _concatenatePlanes(List<Plane> planes) {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    return allBytes.done().buffer.asUint8List();
   }
 
   @override

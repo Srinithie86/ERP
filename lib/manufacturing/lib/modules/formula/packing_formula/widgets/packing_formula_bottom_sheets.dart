@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../core/app_theme.dart';
 import '../packing_formula_model.dart';
 import '../packing_formula_api_service.dart';
@@ -198,7 +198,7 @@ class _EditComponentsBottomSheetState
 }
 
 class CreatePackingFormulaBottomSheet extends StatefulWidget {
-  final Function(String, String, String) onCreatePackingFormula;
+  final Function(String, String, String, String) onCreatePackingFormula;
 
   const CreatePackingFormulaBottomSheet({super.key, required this.onCreatePackingFormula});
 
@@ -209,8 +209,10 @@ class CreatePackingFormulaBottomSheet extends StatefulWidget {
 class _CreatePackingFormulaBottomSheetState extends State<CreatePackingFormulaBottomSheet> {
   final _nameCtrl = TextEditingController();
   final _verCtrl = TextEditingController(text: '');
+  final _noOfCaseCtrl = TextEditingController();
   final _nameFocus = FocusNode();
   final _verFocus = FocusNode();
+  final _noOfCaseFocus = FocusNode();
   final String _category = 'PV Module';
   List<PackingFormulaProductSuggestion> _allSuggestions = [];
 
@@ -224,6 +226,8 @@ class _CreatePackingFormulaBottomSheetState extends State<CreatePackingFormulaBo
   void dispose() {
     _nameFocus.dispose();
     _verFocus.dispose();
+    _noOfCaseFocus.dispose();
+    _noOfCaseCtrl.dispose();
     super.dispose();
   }
 
@@ -390,12 +394,22 @@ class _CreatePackingFormulaBottomSheetState extends State<CreatePackingFormulaBo
                 );
               },
             ),
+            SizedBox(height: sw * 0.03),
+            TextField(
+              controller: _noOfCaseCtrl,
+              focusNode: _noOfCaseFocus,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'No. of Case',
+                hintText: 'Enter number of cases...',
+              ),
+            ),
             const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => widget.onCreatePackingFormula(
-                    _nameCtrl.text, _category, _verCtrl.text),
+                    _nameCtrl.text, _category, _verCtrl.text, _noOfCaseCtrl.text),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: packingFormulaTeal,
                   foregroundColor: Colors.white,
@@ -414,7 +428,7 @@ class _CreatePackingFormulaBottomSheetState extends State<CreatePackingFormulaBo
 }
 
 class AddMaterialsBottomSheet extends StatefulWidget {
-  final String productName, category, version;
+  final String productName, category, version, noOfCase;
   final Function(PackingFormulaItem) onPackingFormulaCreated;
 
   const AddMaterialsBottomSheet({
@@ -422,6 +436,7 @@ class AddMaterialsBottomSheet extends StatefulWidget {
     required this.productName,
     required this.category,
     required this.version,
+    required this.noOfCase,
     required this.onPackingFormulaCreated,
   });
 
@@ -462,6 +477,7 @@ class _AddMaterialsBottomSheetState extends State<AddMaterialsBottomSheet> {
       category: widget.category,
       version: widget.version,
       uom: 'Nos',
+      noOfCase: widget.noOfCase,
       rows: _rows,
     );
 
@@ -474,6 +490,12 @@ class _AddMaterialsBottomSheetState extends State<AddMaterialsBottomSheet> {
         version: widget.version,
         status: 'active',
         materialCount: _rows.length,
+        noOfCase: int.tryParse(widget.noOfCase) ?? 0,
+        components: _rows.map((r) => PackingFormulaMaterial(
+          name: r.nameCtrl.text, 
+          uom: r.uom, 
+          quantity: double.tryParse(r.qtyCtrl.text) ?? 0
+        )).toList(),
         updatedAt: DateTime.now(),
       );
       widget.onPackingFormulaCreated(newPackingFormula);

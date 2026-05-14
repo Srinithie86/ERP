@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Services/lead_service.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Services/preference_service.dart';
-import 'package:erp_smart/CRM-ERP-main/lib/Models/lead_api.dart';
-import 'package:erp_smart/CRM-ERP-main/lib/Models/enquiry_api.dart';
-import 'package:erp_smart/CRM-ERP-main/lib/Models/referral_api.dart';
+
+import 'package:erp_smart/CRM-ERP-main/lib/Services/add_lead_service.dart';
 
 class AddLeadScreen extends StatefulWidget {
   final bool isEnquiry;
@@ -41,31 +40,37 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
   List<dynamic> _dynamicRequirements = [];
   List<dynamic> _dynamicOccupations = [];
   List<dynamic> _dynamicStates = [];
+  List<dynamic> _dynamicEnquiryTypes = [];
 
   @override
   void initState() {
     super.initState();
-    _typeController.text = widget.isReferral ? 'Referral' : (widget.isEnquiry ? 'Enquiry' : 'Lead');
+    _typeController.text =
+        widget.isReferral ? 'Referral' : (widget.isEnquiry ? 'Enquiry' : 'Lead');
     _fetchDropdownData();
   }
 
   Future<void> _fetchDropdownData() async {
     try {
-      final sources = await LeadService.fetchDropdownData(type: '3020');
-      final requirements = await LeadService.fetchDropdownData(type: '3021');
-      final occupations = await LeadService.fetchDropdownData(
+      final sourcesData = await LeadService.fetchDropdownData(type: '3020');
+      final requirementsData = await LeadService.fetchDropdownData(type: '3021');
+      final occupationsData = await LeadService.fetchDropdownData(
         type: '2083',
         form: 'sm_main_form_22442',
         select: 'id,name',
       );
-      final states = await LeadService.fetchDropdownData(type: '2084', listId: '1510');
+      final statesData =
+          await LeadService.fetchDropdownData(type: '2084', listId: '1510');
+      final enquiryTypesData =
+          await LeadService.fetchDropdownData(type: '2084', listId: '210');
 
       if (mounted) {
         setState(() {
-          _dynamicLeadSources = sources;
-          _dynamicRequirements = requirements;
-          _dynamicOccupations = occupations;
-          _dynamicStates = states;
+          _dynamicLeadSources = sourcesData;
+          _dynamicRequirements = requirementsData;
+          _dynamicOccupations = occupationsData;
+          _dynamicStates = statesData;
+          _dynamicEnquiryTypes = enquiryTypesData;
         });
       }
     } catch (e) {
@@ -90,120 +95,63 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     super.dispose();
   }
 
+  /// Extracts value or id from dropdown items based on selected display name.
+  String _getDropdownValue(List<dynamic> items, String selectedName, {String? defaultName}) {
+    if (selectedName == (defaultName ?? 'Select')) return '';
+    try {
+      final item = items.firstWhere(
+        (e) => (e['name'] ?? e['le_source'] ?? e['source_name'] ?? e['label'] ?? e['occupation_name'] ?? e.values.first).toString() == selectedName,
+        orElse: () => null,
+      );
+      if (item != null) {
+        return (item['value'] ?? item['id'] ?? item['name'] ?? '').toString();
+      }
+    } catch (e) {
+      debugPrint('Error finding value for $selectedName: $e');
+    }
+    return '';
+  }
+
   Future<void> _saveLead() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
 
     try {
-      final String? ledId = await PreferenceService.getUid();
-      debugPrint("------------ UID RETRIEVED IN UI: $ledId ------------");
-
-      if (ledId == null || ledId.isEmpty) {
-        final prefs = await SharedPreferences.getInstance();
-        debugPrint("CRITICAL: UID NOT FOUND. ALL KEYS: ${prefs.getKeys()}");
-        
-        if (mounted) {
-          setState(() => _isSaving = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Error: User ID not found. Please login again.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Find IDs for selected items
-      final selectedSourceItem = _dynamicLeadSources.firstWhere(
-        (e) =>
-            (e['name'] ?? e['le_source'] ?? e['source_name'] ?? '')
-                .toString() ==
-            _selectedLeadSource,
-        orElse: () => null,
-      );
-      final selectedReqItem = _dynamicRequirements.firstWhere(
-        (e) =>
-            (e['name'] ?? e['required_project'] ?? e['product_service'] ?? '')
-                .toString() ==
-            _selectedRequirement,
-        orElse: () => null,
-      );
-      final selectedOccItem = _dynamicOccupations.firstWhere(
-        (e) =>
-            (e['name'] ?? e['occupation_name'] ?? e.values.first).toString() ==
-            _selectedOccupation,
-        orElse: () => null,
-      );
-
-      final String todayDate = DateTime.now().toString().split(' ')[0]; // YYYY-MM-DD
-
       final Map<String, String> leadData = {
-        'enquiry_date': todayDate,
-        'cus_name': _nameController.text.trim(),
-        'comany_name': _companyController.text.trim(),
-        'contact_person': _nameController.text.trim(), // Mapping name to contact person
-        'mobile_1': _phone1Controller.text.trim(),
-        'moble_2': _phone2Controller.text.trim(),
-        'email': _emailController.text.trim(),
-        'address': _addressController.text.trim(),
-        'city': _cityController.text.trim(),
-        'state': _dynamicStates.firstWhere(
-              (e) => (e['label'] ?? e['name'] ?? '').toString() == _selectedState,
-              orElse: () => {'id': ''},
-            )['id'].toString(),
-        'pincode': _pinCodeController.text.trim(),
-        'lead_source': selectedSourceItem != null
-            ? selectedSourceItem['id'].toString()
-            : '',
-        'product_service': selectedReqItem != null
-            ? selectedReqItem['id'].toString()
-            : '',
-        'budget': _budgetController.text.trim(),
-        'requirement_notes': _selectedRequirement == 'Select Requirement'
-            ? ''
-            : _selectedRequirement,
-        'enquiry_type': widget.isReferral ? '3' : (widget.isEnquiry ? '2' : '1'),
-        'attended_by': ledId,
-        'assigned_to': ledId, 
-        'remarks': _descriptionController.text.trim(),
-        'occupation': selectedOccItem != null
-            ? selectedOccItem['id'].toString()
-            : '',
+       
+        'cus_name': _nameController.text,
+        'comany_name': _companyController.text,
+        'mobile_1': _phone1Controller.text,
+        'moble_2': _phone2Controller.text,
+        'email': _emailController.text,
+        'address': _addressController.text,
+        'pincode': _pinCodeController.text,
+        'city': _cityController.text,
+        'budget': _budgetController.text,
+        'requirement_notes': _descriptionController.text,
+        'enquiry_type': _getDropdownValue(_dynamicEnquiryTypes, widget.isReferral ? 'Referral' : (widget.isEnquiry ? 'Enquiry' : 'Lead')),
+        'lead_source': _getDropdownValue(_dynamicLeadSources, _selectedLeadSource, defaultName: 'Select Source'),
+        'product_service': _getDropdownValue(_dynamicRequirements, _selectedRequirement, defaultName: 'Select Requirement'),
+        'occupation': _getDropdownValue(_dynamicOccupations, _selectedOccupation, defaultName: 'Select Occupation'),
+        'state': _getDropdownValue(_dynamicStates, _selectedState, defaultName: 'Select State'),
+        'cus_status':'NEW',
       };
 
-      Map<String, dynamic> response;
-      if (widget.isReferral) {
-        response = await ReferralApi.addReferral(leadData);
-      } else if (widget.isEnquiry) {
-        response = await EnquiryApi.addEnquiry(leadData);
-      } else {
-        response = await LeadApi.addLead(leadData);
-      }
-
-      debugPrint("------------ ADD RECORD RESPONSE IN UI ------------");
-      debugPrint("RESPONSE: $response");
+      final response = await AddLeadService.submitLead(leadData);
 
       if (mounted) {
         setState(() => _isSaving = false);
 
-        if (response['error'] == false) {
-          String typeDisp = widget.isReferral ? 'Referral' : (widget.isEnquiry ? 'Enquiry' : 'Lead');
+        if (response['error'].toString() == 'false') {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response['message'] ?? '$typeDisp saved successfully'),
-              backgroundColor: Colors.green,
-            ),
+            const SnackBar(content: Text('Lead saved successfully ✅')),
           );
           Navigator.pop(context, true);
         } else {
-          String typeDisp = widget.isReferral ? 'Referral' : (widget.isEnquiry ? 'Enquiry' : 'Lead');
+          final errorMsg = response['message'] ?? response['error_msg'] ?? 'Failed to save lead';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response['error_msg'] ?? 'Failed to save $typeDisp'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('❌ $errorMsg')),
           );
         }
       }
@@ -211,7 +159,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       if (mounted) {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -345,9 +293,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 value: _selectedState,
                 items: [
                   'Select State',
-                  ..._dynamicStates.map(
-                    (e) => (e['label'] ?? e['name'] ?? e.values.first).toString(),
-                  ),
+                  ..._dynamicStates.map((e) => (e['label'] ?? e['name'] ?? e.values.first).toString()).toSet(),
                 ],
                 labelText: 'State',
                 onChanged: (val) {
@@ -380,16 +326,11 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 value: _selectedLeadSource,
                 items: [
                   'Select Source',
-                  ..._dynamicLeadSources.map(
-                    (e) =>
-                        (e['name'] ??
-                                e['le_source'] ??
-                                e['source_name'] ??
-                                e.values.first)
-                            .toString(),
-                  ),
+                  ..._dynamicLeadSources.map((e) => (e['label'] ?? e['name'] ?? e['le_source'] ?? e['source_name'] ?? e.values.first).toString()).toSet(),
                 ],
-                labelText: widget.isReferral ? 'Referral Source' : (widget.isEnquiry ? 'Enquiry Source' : 'Lead Source'),
+                labelText: widget.isReferral
+                    ? 'Referral Source'
+                    : (widget.isEnquiry ? 'Enquiry Source' : 'Lead Source'),
                 onChanged: (val) {
                   setState(() {
                     _selectedLeadSource = val ?? 'Select Source';
@@ -402,14 +343,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 value: _selectedRequirement,
                 items: [
                   'Select Requirement',
-                  ..._dynamicRequirements.map(
-                    (e) =>
-                        (e['name'] ??
-                                e['required_project'] ??
-                                e['product_service'] ??
-                                e.values.first)
-                            .toString(),
-                  ),
+                  ..._dynamicRequirements.map((e) => (e['label'] ?? e['name'] ?? e['required_project'] ?? e['product_service'] ?? e.values.first).toString()).toSet(),
                 ],
                 labelText: 'Product Service requirements',
                 onChanged: (val) {
@@ -440,11 +374,7 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
                 value: _selectedOccupation,
                 items: [
                   'Select Occupation',
-                  ..._dynamicOccupations.map(
-                    (e) =>
-                        (e['name'] ?? e['occupation_name'] ?? e.values.first)
-                            .toString(),
-                  ),
+                  ..._dynamicOccupations.map((e) => (e['label'] ?? e['name'] ?? e['occupation_name'] ?? e.values.first).toString()).toSet(),
                 ],
                 labelText: 'Occupation',
                 onChanged: (val) {
@@ -564,6 +494,12 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
     required String labelText,
     required ValueChanged<String?> onChanged,
   }) {
+    // Robustness: ensure value exists in items
+    String effectiveValue = value;
+    if (!items.contains(effectiveValue)) {
+      effectiveValue = items.isNotEmpty ? items.first : value;
+    }
+
     return InputDecorator(
       decoration: InputDecoration(
         labelText: labelText,
@@ -593,11 +529,11 @@ class _AddLeadScreenState extends State<AddLeadScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: effectiveValue,
           isExpanded: true,
           icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF26A69A)),
           dropdownColor: Colors.white,
-          items: items.map((String item) {
+          items: items.toSet().toList().map((String item) {
             return DropdownMenuItem<String>(
               value: item,
               child: Text(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Services/lead_service.dart';
 import '../../Widgets/lead_row_card.dart';
-import '../../Widgets/call_confirmation_popup.dart';
+import '../../widgets/call_confirmation_popup.dart';
 import 'call_outcome_screen.dart';
 
 class NegotiationLeadScreen extends StatefulWidget {
@@ -22,31 +22,8 @@ class _NegotiationLeadScreenState extends State<NegotiationLeadScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Lead');
-      if (mounted) {
-        setState(() {
-          _leads = res
-              .where(
-                (l) => (l['lead_status'] ?? l['status'] ?? '')
-                    .toString()
-                    .toLowerCase()
-                    .contains('negotiation'),
-              )
-              .toList();
-
-          // Sort by ID descending (newest first)
-          _leads.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -123,12 +100,16 @@ class _NegotiationLeadScreenState extends State<NegotiationLeadScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _fetch());
         },

@@ -27,19 +27,24 @@ class _PackingFormulaDetailPageState extends State<PackingFormulaDetailPage> {
   @override
   void initState() {
     super.initState();
-    _fetchComponents();
-  }
-
-  Future<void> _fetchComponents() async {
-    setState(() => _isLoading = true);
-    final list = await PackingFormulaApiService.fetchPackingFormulaComponents(widget.packingFormula.id);
-    if (mounted) {
-      setState(() {
-        _materials = list;
-        _isLoading = false;
-      });
+    if (widget.packingFormula.components.isNotEmpty) {
+      _materials = widget.packingFormula.components;
+      _isLoading = false;
+    } else {
+     // _fetchComponents();
     }
   }
+
+  // Future<void> _fetchComponents() async {
+  //   setState(() => _isLoading = true);
+  //   final list = await PackingFormulaApiService.fetchPackingFormulaComponents(widget.packingFormula.id);
+  //   if (mounted) {
+  //     setState(() {
+  //       _materials = list;
+  //       _isLoading = false;
+  //     });
+  //   }
+  // }
 
   void _openEditComponents() {
     showModalBottomSheet(
@@ -59,6 +64,8 @@ class _PackingFormulaDetailPageState extends State<PackingFormulaDetailPage> {
             version: widget.packingFormula.version,
             status: widget.packingFormula.status,
             materialCount: updatedMaterials.length,
+            noOfCase: widget.packingFormula.noOfCase,
+            components: updatedMaterials,
             updatedAt: DateTime.now(),
           );
           widget.onPackingFormulaUpdated(updatedPackingFormula);

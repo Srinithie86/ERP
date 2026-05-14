@@ -1,8 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class PackingFormulaItem {
   final String id, productName, category, version, status;
   final int materialCount;
+  final int noOfCase;
+  final List<PackingFormulaMaterial> components;
   final DateTime updatedAt;
 
   String get dtime => "${updatedAt.year}-${updatedAt.month.toString().padLeft(2, '0')}-${updatedAt.day.toString().padLeft(2, '0')}";
@@ -20,17 +22,26 @@ class PackingFormulaItem {
     required this.version,
     required this.status,
     required this.materialCount,
+    this.noOfCase = 0,
+    this.components = const [],
     required this.updatedAt,
   });
 
   factory PackingFormulaItem.fromJson(Map<String, dynamic> json) {
+    final componentsJson = json['components'] as List?;
+    final componentsList = componentsJson
+            ?.map((c) => PackingFormulaMaterial.fromJson(c))
+            .toList() ??
+        [];
     return PackingFormulaItem(
-      id: (json['packing_formula_id'] ?? json['id'] ?? '').toString(),
-      productName: json['prd_name'] ?? json['product_name'] ?? '',
-      category: json['catry'] ?? json['category'] ?? '',
+      id: (json['main_id'] ?? json['packing_formula_id'] ?? json['id'] ?? '').toString(),
+      productName: (json['finished_goods'] ?? json['prd_name'] ?? json['product_name'] ?? '').toString(),
+      category: json['catry'] ?? json['category'] ?? 'General',
       version: (json['version'] ?? '').toString(),
       status: json['status'] ?? 'active',
-      materialCount: 0, // Will be updated when components are loaded
+      noOfCase: int.tryParse((json['no_of_case'] ?? '0').toString()) ?? 0,
+      materialCount: componentsList.length,
+      components: componentsList,
       updatedAt: DateTime.tryParse(json['dtime'] ?? '') ?? DateTime.now(),
     );
   }
@@ -48,8 +59,8 @@ class PackingFormulaMaterial {
 
   factory PackingFormulaMaterial.fromJson(Map<String, dynamic> json) {
     return PackingFormulaMaterial(
-      name: json['components'] ?? json['name'] ?? '',
-      uom: json['um'] ?? json['uom'] ?? '',
+      name: (json['raw_material'] ?? json['components'] ?? json['name'] ?? '').toString(),
+      uom: (json['um'] ?? json['uom'] ?? 'Nos').toString(),
       quantity: double.tryParse((json['qty'] ?? '0').toString()) ?? 0,
     );
   }

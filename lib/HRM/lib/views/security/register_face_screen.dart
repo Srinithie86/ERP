@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,7 +31,7 @@ class _RegisterAppFaceScreenState extends State<RegisterAppFaceScreen> {
         builder: (context) => LiveFaceScannerView(
           title: "Setup Face Lock",
           description: "Hold your phone steady and look at the camera",
-          onFaceDetected: (Face face, InputImage inputImage) async {
+          onFaceDetected: (Face face, File imageFile) async {
             _onFaceDetected(face);
           },
         ),

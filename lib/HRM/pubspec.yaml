@@ -46,7 +46,7 @@ dependencies:
   geolocator: ^14.0.2
   shared_preferences: ^2.5.5
   flutter_screenutil: ^5.9.3
-  device_info_plus: ^12.3.0
+  device_info_plus: ^12.4.0
   image_picker: ^1.2.1
   image_cropper: ^9.0.2
   geocoding: ^4.0.0

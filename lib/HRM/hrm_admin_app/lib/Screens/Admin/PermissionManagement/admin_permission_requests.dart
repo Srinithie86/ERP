@@ -10,18 +10,22 @@ class AdminPermissionRequestsScreen extends StatefulWidget {
   final bool showAppBar;
   final bool isEmbedded;
   final PermissionRequestData? specificRequest;
+  final VoidCallback? onActionDone;
   const AdminPermissionRequestsScreen({
     super.key,
     this.showAppBar = true,
     this.isEmbedded = false,
     this.specificRequest,
+    this.onActionDone,
   });
 
   @override
-  State<AdminPermissionRequestsScreen> createState() => _AdminPermissionRequestsScreenState();
+  State<AdminPermissionRequestsScreen> createState() =>
+      _AdminPermissionRequestsScreenState();
 }
 
-class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsScreen> {
+class _AdminPermissionRequestsScreenState
+    extends State<AdminPermissionRequestsScreen> {
   List<PermissionRequestData>? _allRequests;
   bool _isLoading = false;
 
@@ -40,8 +44,9 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
 
     try {
       final String uid = await SharedPrefsUtil.getUid();
-      final response = await PermissionApi.fetchPermissionRequests(reportingManager: uid);
-      
+      final response =
+          await PermissionApi.fetchPermissionRequests(reportingManager: uid);
+
       setState(() {
         _allRequests = response.data.where((doc) {
           final s = doc.status?.toLowerCase() ?? "";
@@ -50,12 +55,12 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
         }).toList();
 
         _allRequests?.sort((a, b) => b.id.compareTo(a.id));
-        
+
         _isLoading = false;
       });
     } catch (e) {
       debugPrint("Error fetching permission requests: $e");
-      if(mounted){
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
@@ -81,15 +86,18 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FD),
-      appBar: widget.showAppBar ? AppBar(
-        backgroundColor: const Color(0xFF26A69A),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          "Permission Requests",
-          style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w600),
-        ),
-      ) : null,
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: const Color(0xFF26A69A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              title: Text(
+                "Permission Requests",
+                style: GoogleFonts.poppins(
+                    fontSize: 18.sp, fontWeight: FontWeight.w600),
+              ),
+            )
+          : null,
       body: _buildBodyContent(),
     );
   }
@@ -105,7 +113,7 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
     if (_isLoading && _allRequests == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (_allRequests == null || _allRequests!.isEmpty) {
       return Center(
         child: Padding(
@@ -151,8 +159,10 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryItem("Pending", "${_allRequests?.length ?? 0}", Colors.orange),
-          _summaryItem("Recent", "${(_allRequests?.isEmpty ?? true) ? 0 : 1}", Colors.green),
+          _summaryItem(
+              "Pending", "${_allRequests?.length ?? 0}", Colors.orange),
+          _summaryItem("Recent", "${(_allRequests?.isEmpty ?? true) ? 0 : 1}",
+              Colors.green),
         ],
       ),
     );
@@ -161,15 +171,19 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
   Widget _summaryItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
+        Text(value,
+            style: GoogleFonts.poppins(
+                fontSize: 16.sp, fontWeight: FontWeight.bold, color: color)),
+        Text(label,
+            style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
       ],
     );
   }
 
   Widget _buildRequestCard(PermissionRequestData request) {
-    final TextEditingController rejectReasonController = TextEditingController();
-    
+    final TextEditingController rejectReasonController =
+        TextEditingController();
+
     // Formatting the displayed time slightly
     String timeStr = "N/A";
     if (request.startTime != null && request.endDate != null) {
@@ -185,7 +199,10 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
         color: Colors.white,
         borderRadius: BorderRadius.circular(15.r),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -196,8 +213,11 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
               CircleAvatar(
                 backgroundColor: const Color(0xFFE0F7FA),
                 child: Text(
-                  request.employeeName.isNotEmpty ? request.employeeName[0].toUpperCase() : "?",
-                  style: const TextStyle(color: Color(0xFF00ACC1), fontWeight: FontWeight.bold),
+                  request.employeeName.isNotEmpty
+                      ? request.employeeName[0].toUpperCase()
+                      : "?",
+                  style: const TextStyle(
+                      color: Color(0xFF00ACC1), fontWeight: FontWeight.bold),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -205,15 +225,20 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.employeeName, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.bold)),
-                    Text(
-                      request.permissionType ?? "Permission Request",
-                      style: GoogleFonts.poppins(fontSize: 12.sp, color: const Color(0xFF00ACC1), fontWeight: FontWeight.w600)
-                    ),
+                    Text(request.employeeName,
+                        style: GoogleFonts.poppins(
+                            fontSize: 15.sp, fontWeight: FontWeight.bold)),
+                    Text(request.permissionType ?? "Permission Request",
+                        style: GoogleFonts.poppins(
+                            fontSize: 12.sp,
+                            color: const Color(0xFF00ACC1),
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
-              Text(_formatDate(request.appDate), style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
+              Text(_formatDate(request.appDate),
+                  style:
+                      GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey)),
             ],
           ),
           const Divider(height: 24),
@@ -225,12 +250,16 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => _showRejectDialog(context, request, rejectReasonController),
+                  onPressed: () => _showRejectDialog(
+                      context, request, rejectReasonController),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.r)),
                   ),
-                  child: Text("Reject", style: GoogleFonts.poppins(color: Colors.red, fontWeight: FontWeight.w600)),
+                  child: Text("Reject",
+                      style: GoogleFonts.poppins(
+                          color: Colors.red, fontWeight: FontWeight.w600)),
                 ),
               ),
               SizedBox(width: 12.w),
@@ -240,9 +269,12 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.r)),
                   ),
-                  child: Text("Approve", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+                  child: Text("Approve",
+                      style: GoogleFonts.poppins(
+                          color: Colors.white, fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -252,7 +284,8 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
     );
   }
 
-  void _approveRequest(BuildContext context, PermissionRequestData request) async {
+  void _approveRequest(
+      BuildContext context, PermissionRequestData request) async {
     final response = await PermissionApi.updatePermissionStatus(
       permissionId: request.id.toString(),
       status: "approved",
@@ -269,11 +302,16 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
             backgroundColor: Colors.green,
           ),
         );
+        if (widget.onActionDone != null) {
+          widget.onActionDone!();
+        }
       }
     } else {
       if (mounted) {
-        final errorMsg =
-            response['error_msg'] ?? response['debug'] ?? response['message'] ?? "Update failed";
+        final errorMsg = response['error_msg'] ??
+            response['debug'] ??
+            response['message'] ??
+            "Update failed";
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Failed to approve: $errorMsg"),
@@ -333,7 +371,7 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
                 status: "rejected",
                 rejectReason: controller.text.trim(),
               );
-              
+
               if (mounted) {
                 Navigator.pop(context);
                 if (response['error'] == false) {
@@ -346,9 +384,11 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
                       backgroundColor: Colors.red,
                     ),
                   );
+                  if (widget.onActionDone != null) {
+                    widget.onActionDone!();
+                  }
                 } else {
-                  final errorMsg =
-                      response['error_msg'] ??
+                  final errorMsg = response['error_msg'] ??
                       response['debug'] ??
                       response['message'] ??
                       "Update failed";
@@ -375,7 +415,10 @@ class _AdminPermissionRequestsScreenState extends State<AdminPermissionRequestsS
       children: [
         Icon(icon, size: 16.sp, color: Colors.grey),
         SizedBox(width: 8.w),
-        Expanded(child: Text(text, style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey.shade700))),
+        Expanded(
+            child: Text(text,
+                style: GoogleFonts.poppins(
+                    fontSize: 12.sp, color: Colors.grey.shade700))),
       ],
     );
   }

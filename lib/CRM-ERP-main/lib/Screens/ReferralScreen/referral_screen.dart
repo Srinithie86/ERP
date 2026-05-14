@@ -1,3 +1,5 @@
+import 'package:erp_smart/CRM-ERP-main/lib/Models/schedule_api.dart';
+import 'package:erp_smart/CRM-ERP-main/lib/Services/follow_up_api_service.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Services/lead_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,6 +12,7 @@ import '../../Models/follow_up_api.dart';
 import '../../Models/meeting_api.dart';
 import '../Lead_Information/enquiry_tabs_view.dart';
 import '../../widgets/lead_row_card.dart';
+import '../../widgets/meeting_details_popup.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -22,6 +25,9 @@ class _ReferralScreenState extends State<ReferralScreen> {
   String _selectedFilter = 'All';
   bool _isLoading = false;
   List<dynamic> _referrals = [];
+  List<dynamic> _followUps = [];
+  List<dynamic> _schedules = [];
+  List<dynamic> _meetings = [];
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -32,97 +38,72 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   Future<void> _refreshData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
+
     try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Referral');
-      final List<FollowUpModel> followUpLeads = await FollowUpApi.fetchFollowUpLeads(enquiryType: '3');
-      final List<MeetingModel> meetings = await MeetingApi.fetchMeetings();
-      
-      final followUpDids = followUpLeads
-          .where((f) => f.did != null)
-          .map((f) => f.did.toString())
-          .toSet();
+      final results = await Future.wait([
+        LeadService.fetchLeads(enquiryType: '3'),
+        FollowUpApiService.fetchFollowUps(),
+        ScheduleApi.fetchSchedules(enquiryType: 'Referral'),
+        MeetingApi.fetchMeetings(enquiryType: 'Referral'),
+      ]);
 
-      if (mounted) {
-        setState(() {
-          _referrals = res.map((l) {
-            final leadMap = Map<String, dynamic>.from(l as Map);
-            final id = leadMap['id'].toString();
-            final outcome = (leadMap['call_outcome'] ?? '').toString();
-            final leadStatus = (leadMap['lead_status'] ?? leadMap['status'] ?? '').toString().toLowerCase();
-            
-            // Find follow-up for this referral (type 3 use did)
-            final fInfo = followUpLeads.firstWhere(
-              (f) => f.did.toString() == id,
-              orElse: () => FollowUpModel(),
-            );
+      if (!mounted) return;
 
-            bool isMissed = leadStatus.contains('missed');
-            bool hasFollowUp = fInfo.id != null || outcome.isNotEmpty || (leadStatus.contains('follow') && !isMissed) || leadStatus == 'interest';
-            
-            // Correctly match meeting for referrals using 'did'
-            final meetingEntry = meetings.firstWhere(
-              (m) => m.did.toString() == id,
-              orElse: () => MeetingModel(),
-            );
-            
-            bool isMeeting = meetingEntry.id != null;
-            bool isNegotiation = leadStatus.contains('negotiation') || leadStatus == '2';
-            bool isSchedule = leadStatus.contains('schedule') || leadStatus == '3';
-            
-            String currentStatus = 'New';
-            if (isMissed) {
-              currentStatus = 'New';
-            } else if (isMeeting) {
-              currentStatus = 'Meeting';
-            } else if (isNegotiation) {
-              currentStatus = 'Negotiation';
-            } else if (isSchedule) {
-              currentStatus = 'Schedule';
-            } else if (hasFollowUp) {
-              currentStatus = 'Follow up';
-            }
-            
-            final finalMap = <String, dynamic>{
-              ...leadMap,
-              if (fInfo.id != null) ...fInfo.toMap(),
-              if (isMeeting) ...meetingEntry.toMap(),
-              'hasFollowUp': hasFollowUp,
-              'isMeeting': isMeeting,
-              'isNegotiation': isNegotiation,
-              'isSchedule': isSchedule,
-              'status': currentStatus,
-            };
-            return finalMap;
-          }).toList();
+      final List<dynamic> rawReferrals = results[0] is List ? results[0] : [];
+      final List<dynamic> rawFollowUps = results[1] is List ? results[1] : [];
+      final List<dynamic> rawSchedules = results[2] is List ? results[2] : [];
+      final List<dynamic> rawMeetings = results[3] is List ? results[3] : [];
 
-          // Sort by ID descending (newest first)
-          _referrals.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
+      // Filter follow-ups for Referral (enquiry_type '3')
+      final List<Map<String, dynamic>> processedFollowUps = rawFollowUps
+          .where((f) => f != null && f is Map)
+          .where((f) => f['enquiry_type']?.toString() == '3')
+          .map((f) => Map<String, dynamic>.from(f as Map)..['status'] = 'Follow up')
+          .toList();
+
+      setState(() {
+        _referrals = rawReferrals;
+        _followUps = processedFollowUps;
+        _schedules = rawSchedules.map((s) => Map<String, dynamic>.from(s as Map)..['status'] = 'Schedule').toList();
+        _meetings = rawMeetings.map((m) => Map<String, dynamic>.from(m as Map)..['status'] = 'Meeting').toList();
+        _isLoading = false;
+      });
     } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
+      debugPrint("Error refreshing referrals: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   List<dynamic> get _filteredReferrals {
-    List<dynamic> base = _referrals;
+    List<dynamic> base = [];
+
+    final List<Map<String, dynamic>> safeReferrals = _referrals
+        .where((r) => r != null && r is Map)
+        .map((r) => Map<String, dynamic>.from(r as Map))
+        .toList();
     
-    if (_selectedFilter != 'All') {
-      base = base.where((l) {
-        final s = l['status'].toString().toLowerCase();
+    if (_selectedFilter == 'All') {
+      final nonFollowups = safeReferrals.where((l) {
+        final cusStatus = (l['cus_status'] ?? '').toString().toUpperCase();
+        return cusStatus != 'FOLLOW_UP' && cusStatus != 'SCHEDULE' && cusStatus != 'MEETING';
+      }).toList();
+      base = [...nonFollowups, ..._followUps, ..._schedules, ..._meetings];
+    } else if (_selectedFilter == 'Follow up') {
+      base = _followUps;
+    } else if (_selectedFilter == 'Schedule') {
+      base = _schedules;
+    } else if (_selectedFilter == 'Meeting') {
+      base = _meetings;
+    } else {
+      base = safeReferrals.where((l) {
+        final cusStatus = (l['cus_status'] ?? '').toString().toUpperCase();
+        final s = (l['status'] ?? '').toString().toLowerCase();
         final sClean = s.replaceAll('_', ' ').trim();
+
         if (_selectedFilter == 'New') {
-          return sClean == 'new' || sClean == '' || sClean == 'missed followup';
-        }
-        if (_selectedFilter == 'Follow up') {
-          return sClean == 'follow up';
+          return cusStatus == 'NEW';
         }
         return sClean == _selectedFilter.toLowerCase();
       }).toList();
@@ -244,6 +225,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                               showStatus: true,
                               showCall: _selectedFilter != 'All',
                               onCall: () => _confirmCall(context, lead),
+                              currentTab: _selectedFilter,
+                              enableTap: _selectedFilter != 'All' && _selectedFilter != 'New',
+                              onCreateMeeting: _selectedFilter == 'Schedule'
+                                  ? () => _createMeeting(context, lead, 'Referral')
+                                  : null,
                             );
                           },
                         ),
@@ -264,11 +250,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true)),
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
           ).then((_) => _refreshData());
         },
       ),
@@ -320,5 +312,14 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
   void _handleFilterTap(String filter) {
     setState(() => _selectedFilter = filter);
+  }
+
+  void _createMeeting(BuildContext context, Map<String, dynamic> lead, String type) {
+    showDialog(
+      context: context,
+      builder: (c) => MeetingDetailsPopup(lead: lead, enquiryType: type),
+    ).then((val) {
+      if (val == true) _refreshData();
+    });
   }
 }

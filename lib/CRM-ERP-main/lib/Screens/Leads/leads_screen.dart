@@ -1,3 +1,4 @@
+import 'package:erp_smart/CRM-ERP-main/lib/Services/follow_up_api_service.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Services/lead_service.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/EnquiryScreen/enquiry_screen.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ import 'meeting_lead_screen.dart';
 import 'negotiation_lead_screen.dart';
 import '../Lead_Information/enquiry_tabs_view.dart';
 import '../../widgets/lead_row_card.dart';
+import '../../widgets/meeting_details_popup.dart';
 
 class LeadsScreen extends StatefulWidget {
   const LeadsScreen({super.key});
@@ -28,9 +30,12 @@ class _LeadsScreenState extends State<LeadsScreen> {
   String _selectedFilter = 'All';
   bool _isLoading = false;
   List<dynamic> _allLeads = [];
-  List<dynamic> _displayLeads = []; // Cached list for UI
+  List<dynamic> _displayLeads = [];
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  List<dynamic> _followUps = [];
+  List<dynamic> _schedules = [];
+  List<dynamic> _meetings = [];
 
   @override
   void initState() {
@@ -41,169 +46,76 @@ class _LeadsScreenState extends State<LeadsScreen> {
   Future<void> _refreshData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
+
     try {
       final results = await Future.wait([
-        LeadService.fetchLeads(enquiryType: 'Lead'),
-        FollowUpApi.fetchFollowUpLeads(enquiryType: '1'),
-        MeetingApi.fetchMeetings(),
-        ScheduleApi.fetchSchedules(),
+        LeadService.fetchLeads(enquiryType: '1'),
+        FollowUpApiService.fetchFollowUps(),
+        ScheduleApi.fetchSchedules(enquiryType: 'Lead'),
+        MeetingApi.fetchMeetings(enquiryType: 'Lead'),
       ]);
+      
+      if (!mounted) return;
 
-      final List leads = results[0] as List;
-      final List<FollowUpModel> followUpLeads = results[1] as List<FollowUpModel>;
-      final List<MeetingModel> meetings = results[2] as List<MeetingModel>;
-      final List<ScheduleModel> schedules = results[3] as List<ScheduleModel>;
+      final List<dynamic> rawLeads = results[0] is List ? results[0] : [];
+      final List<dynamic> rawFollowUps = results[1] is List ? results[1] : [];
+      final List<dynamic> rawSchedules = results[2] is List ? results[2] : [];
+      final List<dynamic> rawMeetings = results[3] is List ? results[3] : [];
 
-      if (mounted) {
-        // Create maps for O(1) lookup
-        final Map<String, MeetingModel> meetingMap = {};
-        for (var m in meetings) {
-          if (m.aid != null) meetingMap[m.aid.toString()] = m;
-          if (m.leCode != null && m.leCode!.isNotEmpty) meetingMap[m.leCode!] = m;
-        }
+      // Safely process follow-ups
+      final List<Map<String, dynamic>> processedFollowUps = rawFollowUps
+          .where((f) => f != null && f is Map)
+          .where((f) {
+            final eType = f['enquiry_type']?.toString();
+            return eType == '1' || eType == null || eType == '';
+          })
+          .map((f) => Map<String, dynamic>.from(f as Map)..['status'] = 'Follow up')
+          .toList();
 
-        final Map<String, ScheduleModel> scheduleMap = {};
-        for (var s in schedules) {
-          if (s.aid != null) scheduleMap[s.aid.toString()] = s;
-          if (s.leCode != null && s.leCode!.isNotEmpty) scheduleMap[s.leCode!] = s;
-        }
-
-        final Map<String, FollowUpModel> followUpMap = {};
-        for (var f in followUpLeads) {
-          if (f.aid != null) followUpMap[f.aid.toString()] = f;
-          if (f.leCode != null && f.leCode!.isNotEmpty) followUpMap[f.leCode!] = f;
-        }
-
-        final matchedFollowUpIds = <int>{};
-        final matchedMeetingIds = <int>{};
-        final matchedScheduleIds = <int>{};
-
-        final List<Map<String, dynamic>> processedLeads = leads.map((l) {
-          final id = l['id'].toString();
-          final leCode = (l['le_code'] ?? '').toString();
-          final lStatus = (l['lead_status'] ?? l['status'] ?? '').toString().toLowerCase();
-
-          // 1. Check Meetings
-          MeetingModel? mInfo = meetingMap[id] ?? (leCode.isNotEmpty ? meetingMap[leCode] : null);
-          
-          // 2. Check Schedules
-          ScheduleModel? sInfo = scheduleMap[id] ?? (leCode.isNotEmpty ? scheduleMap[leCode] : null);
-
-          bool isMeeting = mInfo != null && mInfo.id != null;
-          bool isSchedule = (sInfo != null && sInfo.id != null) || lStatus.contains('schedule') || lStatus == '3';
-          bool isNegotiation = lStatus.contains('negotiation') || lStatus == '2';
-
-          // 3. Check Follow-ups
-          FollowUpModel? fInfo = followUpMap[id] ?? (leCode.isNotEmpty ? followUpMap[leCode] : null);
-          
-          bool hasInternalFollowUp = (lStatus.contains('follow') && !lStatus.contains('missed')) || lStatus == '1' || lStatus == 'interest';
-
-          String currentStatus = 'New';
-          if (isMeeting) {
-            currentStatus = 'Meeting';
-          } else if (isSchedule) {
-            currentStatus = 'Schedule';
-          } else if ((fInfo != null && fInfo.id != null) || hasInternalFollowUp) {
-            currentStatus = 'Follow up';
-          } else if (isNegotiation) {
-            currentStatus = 'Negotiation';
-          }
-
-          final Map<String, dynamic> merged = Map<String, dynamic>.from(l as Map);
-
-          if (fInfo != null && fInfo.id != null) {
-            matchedFollowUpIds.add(fInfo.id!);
-            fInfo.toMap().forEach((key, value) {
-              if (value != null && value.toString().isNotEmpty && value.toString() != 'null') {
-                merged[key] = value;
-              }
-            });
-          }
-
-          if (isMeeting) {
-            matchedMeetingIds.add(mInfo!.id!);
-            mInfo.toMap().forEach((key, value) {
-              if (value != null && value.toString().isNotEmpty && value.toString() != 'null') {
-                merged[key] = value;
-              }
-            });
-          }
-
-          if (sInfo != null && sInfo.id != null) {
-            matchedScheduleIds.add(sInfo.id!);
-            sInfo.toMap().forEach((key, value) {
-              if (value != null && value.toString().isNotEmpty && value.toString() != 'null') {
-                merged[key] = value;
-              }
-            });
-          }
-
-          merged['status'] = currentStatus;
-          merged['lead_status'] = currentStatus;
-          merged['isMeeting'] = isMeeting;
-          merged['isNegotiation'] = isNegotiation;
-          merged['isSchedule'] = isSchedule;
-
-          return merged;
-        }).toList();
-
-        // Add unmatched records
-        for (var f in followUpLeads) {
-          if (f.id != null && !matchedFollowUpIds.contains(f.id)) {
-            final Map<String, dynamic> fMap = f.toMap();
-            fMap['status'] = 'Follow up';
-            fMap['lead_status'] = 'Follow up';
-            processedLeads.add(fMap);
-          }
-        }
-
-        for (var m in meetings) {
-          if (m.id != null && !matchedMeetingIds.contains(m.id)) {
-            final Map<String, dynamic> mMap = m.toMap();
-            mMap['status'] = 'Meeting';
-            mMap['lead_status'] = 'Meeting';
-            processedLeads.add(mMap);
-          }
-        }
-
-        for (var s in schedules) {
-          if (s.id != null && !matchedScheduleIds.contains(s.id)) {
-            final Map<String, dynamic> sMap = s.toMap();
-            sMap['status'] = 'Schedule';
-            sMap['lead_status'] = 'Schedule';
-            processedLeads.add(sMap);
-          }
-        }
-
-        _allLeads = processedLeads;
-        _allLeads.sort((a, b) {
-          int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-          int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-          return idB.compareTo(idA);
-        });
-
-        _applyFilters();
-      }
+      setState(() {
+        _allLeads = rawLeads;
+        _followUps = processedFollowUps;
+        _schedules = rawSchedules.map((s) => Map<String, dynamic>.from(s as Map)..['status'] = 'Schedule').toList();
+        _meetings = rawMeetings.map((m) => Map<String, dynamic>.from(m as Map)..['status'] = 'Meeting').toList();
+        _isLoading = false;
+      });
+      
+      _applyFilters();
     } catch (e) {
-      debugPrint("Leads fetch error: $e");
-    } finally {
+      debugPrint("Error refreshing leads: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _applyFilters() {
-    List<dynamic> base = _allLeads;
+    if (!mounted) return;
+    List<dynamic> base = [];
 
-    if (_selectedFilter != 'All') {
-      base = base.where((l) {
+    final List<Map<String, dynamic>> safeLeads = _allLeads
+        .where((l) => l != null && l is Map)
+        .map((l) => Map<String, dynamic>.from(l as Map))
+        .toList();
+
+    if (_selectedFilter == 'All') {
+      final nonFollowups = safeLeads.where((l) {
+        final cusStatus = (l['cus_status'] ?? '').toString().toUpperCase();
+        return cusStatus != 'FOLLOW_UP' && cusStatus != 'SCHEDULE' && cusStatus != 'MEETING';
+      }).toList();
+      base = [...nonFollowups, ..._followUps, ..._schedules, ..._meetings];
+    } else if (_selectedFilter == 'Follow up') {
+      base = _followUps;
+    } else if (_selectedFilter == 'Schedule') {
+      base = _schedules;
+    } else if (_selectedFilter == 'Meeting') {
+      base = _meetings;
+    } else {
+      base = safeLeads.where((l) {
+        final cusStatus = (l['cus_status'] ?? '').toString().toUpperCase();
         final s = (l['lead_status'] ?? l['status'] ?? '').toString().toLowerCase();
         final sClean = s.replaceAll('_', ' ').trim();
 
         if (_selectedFilter == 'New') {
-          return sClean == 'new' || sClean == '' || sClean == 'missed followup';
-        }
-        if (_selectedFilter == 'Follow up') {
-          return sClean == 'follow up';
+          return cusStatus == 'NEW';
         }
         return sClean == _selectedFilter.toLowerCase();
       }).toList();
@@ -220,11 +132,9 @@ class _LeadsScreenState extends State<LeadsScreen> {
       }).toList();
     }
 
-    if (mounted) {
-      setState(() {
-        _displayLeads = base;
-      });
-    }
+    setState(() {
+      _displayLeads = base;
+    });
   }
 
   @override
@@ -335,7 +245,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
                         itemCount: _displayLeads.length,
                         itemBuilder: (ctx, i) {
                           final lead =
-                              _displayLeads[i] as Map<String, dynamic>;
+                              Map<String, dynamic>.from(_displayLeads[i] as Map);
                           final status = (lead['lead_status'] ?? lead['status'] ?? 'New').toString();
                           
                           return LeadRowCard(
@@ -343,7 +253,11 @@ class _LeadsScreenState extends State<LeadsScreen> {
                             showCall: _selectedFilter != 'All',
                             showStatus: _selectedFilter == 'All',
                             onCall: () => _confirmCall(context, lead),
-                            isAllTab: _selectedFilter == 'All',
+                            currentTab: _selectedFilter,
+                            enableTap: _selectedFilter != 'All' && _selectedFilter != 'New',
+                            onCreateMeeting: _selectedFilter == 'Schedule'
+                                ? () => _createMeeting(context, lead, 'Lead')
+                                : null,
                           );
                         },
                       ),
@@ -413,16 +327,29 @@ class _LeadsScreenState extends State<LeadsScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _refreshData());
         },
       ),
     );
+  }
+
+  void _createMeeting(BuildContext context, Map<String, dynamic> lead, String type) {
+    showDialog(
+      context: context,
+      builder: (c) => MeetingDetailsPopup(lead: lead, enquiryType: type),
+    ).then((val) {
+      if (val == true) _refreshData();
+    });
   }
 }

@@ -9,12 +9,14 @@ class AdminExpenseRequestsScreen extends StatefulWidget {
   final bool showAppBar;
   final bool isEmbedded;
   final dynamic specificRequest;
+  final VoidCallback? onActionDone;
 
   const AdminExpenseRequestsScreen({
     super.key,
     this.showAppBar = true,
     this.isEmbedded = false,
     this.specificRequest,
+    this.onActionDone,
   });
 
   @override
@@ -51,13 +53,14 @@ class _AdminExpenseRequestsScreenState
     setState(() => _isLoading = true);
     try {
       final String currentUid = await SharedPrefsUtil.getUid();
-      final res = await ExpenseApi.fetchExpenseRequests(reportingManager: currentUid);
+      final res =
+          await ExpenseApi.fetchExpenseRequests(reportingManager: currentUid);
 
       if (mounted) {
         if (res['error'] == false || res['error'] == "false") {
           setState(() {
             _expenseRequests = res['data'] ?? [];
-            
+
             // Sort by ID descending (Newest first)
             _expenseRequests.sort((a, b) {
               int idA = int.tryParse(a['id']?.toString() ?? "0") ?? 0;
@@ -154,7 +157,8 @@ class _AdminExpenseRequestsScreenState
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryItem("Total Exp", "₹ ${totalAmt.toStringAsFixed(0)}", Colors.blue),
+          _summaryItem(
+              "Total Exp", "₹ ${totalAmt.toStringAsFixed(0)}", Colors.blue),
           _summaryItem("Pending", "$pendingCount", Colors.orange),
           _summaryItem("List Size", "${_expenseRequests.length}", Colors.green),
         ],
@@ -184,8 +188,9 @@ class _AdminExpenseRequestsScreenState
   Widget _buildRequestCard(dynamic request) {
     final String name = request['employee_name'] ?? "Unknown";
     final String amount = request['amount']?.toString() ?? "0";
-    final String status = (request['status'] ?? "pending").toString().toLowerCase();
-    
+    final String status =
+        (request['status'] ?? "pending").toString().toLowerCase();
+
     final TextEditingController approveAmountController = TextEditingController(
       text: amount.replaceAll(',', ''),
     );
@@ -269,11 +274,14 @@ class _AdminExpenseRequestsScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _rowInfo(Icons.history_edu_outlined, request['purpose'] ?? "No purpose provided"),
+              _rowInfo(Icons.history_edu_outlined,
+                  request['purpose'] ?? "No purpose provided"),
               _buildStatusBadge(status),
             ],
           ),
-          if (request['attachements'] != null && request['attachements'].toString() != "[]" && request['attachements'].toString() != "null") ...[
+          if (request['attachements'] != null &&
+              request['attachements'].toString() != "[]" &&
+              request['attachements'].toString() != "null") ...[
             SizedBox(height: 12.h),
             _buildAttachmentPreview(request['attachements']),
           ],
@@ -409,12 +417,17 @@ class _AdminExpenseRequestsScreenState
                   );
                   if (res['error'] == false || res['error'] == "false") {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Expense Approved successfully!")),
+                      const SnackBar(
+                          content: Text("Expense Approved successfully!")),
                     );
+                    if (widget.onActionDone != null) {
+                      widget.onActionDone!();
+                    }
                     _fetchExpenseRequests();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(res['message'] ?? "Failed to approve")),
+                      SnackBar(
+                          content: Text(res['message'] ?? "Failed to approve")),
                     );
                     setState(() => _isLoading = false);
                   }
@@ -502,12 +515,17 @@ class _AdminExpenseRequestsScreenState
                   );
                   if (res['error'] == false || res['error'] == "false") {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Expense Rejected successfully!")),
+                      const SnackBar(
+                          content: Text("Expense Rejected successfully!")),
                     );
+                    if (widget.onActionDone != null) {
+                      widget.onActionDone!();
+                    }
                     _fetchExpenseRequests();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(res['message'] ?? "Failed to reject")),
+                      SnackBar(
+                          content: Text(res['message'] ?? "Failed to reject")),
                     );
                     setState(() => _isLoading = false);
                   }
@@ -615,7 +633,7 @@ class _AdminExpenseRequestsScreenState
               String url = urls[index];
               // Handle escaped slashes if any
               url = url.replaceAll("\\/", "/");
-              
+
               return GestureDetector(
                 onTap: () => _showImageDialog(context, url),
                 child: Container(
@@ -628,7 +646,8 @@ class _AdminExpenseRequestsScreenState
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey.shade100,
-                        child: Icon(Icons.broken_image, color: Colors.grey, size: 24.sp),
+                        child: Icon(Icons.broken_image,
+                            color: Colors.grey, size: 24.sp),
                       ),
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
@@ -662,7 +681,8 @@ class _AdminExpenseRequestsScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.7),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12.r),
                 child: Image.network(url, fit: BoxFit.contain),

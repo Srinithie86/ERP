@@ -262,92 +262,94 @@ class DealDetailsScreen extends StatelessWidget {
     bool isFirst = false,
     bool isLast = false,
   }) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Dot and Line
-          Column(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF26A69A), width: 2),
-                ),
-                child: const Icon(
-                  Icons.access_time_filled,
-                  color: Color(0xFF26A69A),
-                  size: 24,
-                ),
-              ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: const Color(0xFF26A69A).withOpacity(0.5),
-                  ),
-                ),
-            ],
+    return Stack(
+      children: [
+        // Vertical line
+        if (!isLast)
+          Positioned(
+            left: 19, // Half of dot width (40) - 1 (half of line width 2)
+            top: 40,
+            bottom: 0,
+            child: Container(
+              width: 2,
+              color: const Color(0xFF26A69A).withOpacity(0.5),
+            ),
           ),
-          const SizedBox(width: 16),
-          // Content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 32.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (highlightWord != null && highlightColor != null)
-                    _buildRichTitle(
-                      context,
-                      title,
-                      highlightWord,
-                      highlightColor,
-                    )
-                  else
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Dot
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF26A69A), width: 2),
+              ),
+              child: const Icon(
+                Icons.access_time_filled,
+                color: Color(0xFF26A69A),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (highlightWord != null && highlightColor != null)
+                      _buildRichTitle(
+                        context,
+                        title,
+                        highlightWord,
+                        highlightColor,
+                      )
+                    else
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: titleColor,
+                        ),
                       ),
-                    ),
-                  const SizedBox(height: 4),
-                  Text(
-                    dateTime,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    actor,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  ),
-                  if (comment != null) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      comment,
+                      dateTime,
                       style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
+                    const SizedBox(height: 2),
+                    Text(
+                      actor,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
+                    if (comment != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        comment,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 

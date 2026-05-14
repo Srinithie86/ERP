@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../printing/test_print_screen.dart';
 
 // â”€â”€â”€ Colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _DashboardColors {
@@ -57,7 +58,7 @@ class DashboardScreen extends StatelessWidget {
           children: [
             _buildStatsGrid(sw, sh),
             SizedBox(height: sh * 0.025),
-            _buildQuickActions(sw, sh),
+            _buildQuickActions(context, sw, sh),
             SizedBox(height: sh * 0.025),
             _buildReportsBanner(sw, sh),
             SizedBox(height: sh * 0.025),
@@ -223,7 +224,7 @@ class DashboardScreen extends StatelessWidget {
       );
 
   // â”€â”€ Quick Actions with Container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildQuickActions(double sw, double sh) => Container(
+  Widget _buildQuickActions(BuildContext context, double sw, double sh) => Container(
     padding: EdgeInsets.all(sw * 0.045),
     decoration: BoxDecoration(
       color: Colors.white,
@@ -274,6 +275,26 @@ class DashboardScreen extends StatelessWidget {
               label: 'Invoice\n',
               colors: _DashboardColors.card4,
               sw: sw,
+            ),
+          ],
+        ),
+        SizedBox(height: sh * 0.02),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TestPrintScreen()),
+                );
+              },
+              child: _qaButton(
+                icon: Icons.print_outlined,
+                label: 'Test\nPrint',
+                colors: _DashboardColors.card5,
+                sw: sw,
+              ),
             ),
           ],
         ),

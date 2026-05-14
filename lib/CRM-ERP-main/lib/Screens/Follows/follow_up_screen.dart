@@ -2,10 +2,11 @@ import '../Lead_Information/enquiry_tabs_view.dart';
 import 'package:flutter/material.dart';
 import '../../Models/follow_up_api.dart';
 import '../../widgets/lead_row_card.dart';
-import 'package:intl/intl.dart';
+
 import '../Leads/call_outcome_screen.dart';
 import '../../widgets/call_confirmation_popup.dart';
 import '../../Services/preference_service.dart';
+import '../../Services/follow_up_api_service.dart';
 
 class FollowUpScreen extends StatefulWidget {
   final int initialIndex;
@@ -40,62 +41,52 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
   Future<void> _fetchData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
+    
     try {
-      String? currentUid = await PreferenceService.getUid();
-      final List<FollowUpModel> models = await FollowUpApi.fetchFollowUpLeads(uid: currentUid);
+      final data = await FollowUpApiService.fetchFollowUps();
       if (mounted) {
-        _allFollowUps = models
-            .whereType<FollowUpModel>()
-            .map((m) => m.toMap())
-            .toList();
-        _applyFilters();
+        setState(() {
+          _allFollowUps = data;
+          _applyFilters();
+        });
       }
     } catch (e) {
-      debugPrint("Error in FollowUpScreen: $e");
+      debugPrint("Error fetching follow-ups: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _applyFilters() {
-    final now = DateTime.now();
-    final todayStr = DateFormat('yyyy-MM-dd').format(now);
-    
+
     final List<Map<String, dynamic>> safeList = _allFollowUps
         .where((item) => item != null && item is Map)
         .cast<Map<String, dynamic>>()
         .toList();
 
-    final filtered = safeList.where((item) {
-      // Filter by type
-      final eType = item['enquiry_type']?.toString();
-      bool typeMatch = false;
-      if (_selectedIndex == 0) {
-        typeMatch = (eType == '1' || eType == null || eType == '');
-      } else if (_selectedIndex == 1) {
-        typeMatch = (eType == '2');
-      } else if (_selectedIndex == 2) {
-        typeMatch = (eType == '3');
-      }
+    final filtered = safeList
+        .where((item) {
+          // Filter by type
+          final eType = item['enquiry_type']?.toString();
+          bool typeMatch = false;
+          if (_selectedIndex == 0) {
+            typeMatch = (eType == '1' || eType == null || eType == '');
+          } else if (_selectedIndex == 1) {
+            typeMatch = (eType == '2');
+          } else if (_selectedIndex == 2) {
+            typeMatch = (eType == '3');
+          }
 
-      if (!typeMatch) return false;
+          if (!typeMatch) return false;
 
-      // Exclude missed followup status
-      final status = (item['lead_status'] ?? '').toString().toLowerCase();
-      final statusClean = status.replaceAll('_', ' ').trim();
-      if (statusClean == 'missed followup') return false;
+          // Exclude missed followup status
+          final status = (item['lead_status'] ?? '').toString().toLowerCase();
+          final statusClean = status.replaceAll('_', ' ').trim();
+          if (statusClean == 'missed followup') return false;
 
-      // Filter by date
-      final date = item['next_follow_up_date']?.toString() ?? '';
-      if (date == '0000-00-00' || date.isEmpty) {
-        return !widget.isMissed;
-      }
-
-      if (widget.isMissed) {
-        return date.compareTo(todayStr) < 0;
-      } else {
-        return date == todayStr;
-      }
-    }).map((item) => {...item, 'status': 'Follow up'}).toList();
+          return true; // Show all follow-ups for the selected type
+        })
+        .map((item) => {...item, 'status': 'Follow up'})
+        .toList();
 
     if (mounted) {
       setState(() {
@@ -194,240 +185,251 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
         ],
         elevation: 0,
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)))
-        : RefreshIndicator(
-            onRefresh: _fetchData,
-            color: const Color(0xFF26A69A),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: _displayList.length + 1, // +1 for the header section
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Top Action Buttons Row
-                      Container(
-                        padding: EdgeInsets.all(screenWidth * 0.04),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color ?? Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildCircleAction(
-                                  'assets/icons/leads.png', // Fixed
-                                  0,
-                                  screenWidth,
-                                ),
-                                _buildCircleAction(
-                                  'assets/icons/enquiry.png', // Fixed
-                                  1,
-                                  screenWidth,
-                                ),
-                                _buildCircleAction(
-                                  'assets/icons/re.png', // Fixed
-                                  2,
-                                  screenWidth,
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: screenHeight * 0.02),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildFilterChip('Lead', 0, screenWidth),
-                                _buildFilterChip('Enquiry', 1, screenWidth),
-                                _buildFilterChip('Referral', 2, screenWidth),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Summary Card
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(screenWidth * 0.04),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color ?? Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  _assetIcon,
-                                  width: screenWidth * 0.1,
-                                  height: screenWidth * 0.1,
-                                  errorBuilder: (c, e, s) {
-                                    if (_selectedIndex == 0) {
-                                      return Image.asset(
-                                        'assets/icons/today_followup.png',
-                                        width: screenWidth * 0.1,
-                                        height: screenWidth * 0.1,
-                                        errorBuilder: (c, e, s) => Icon(
-                                          Icons.calendar_today,
-                                          size: screenWidth * 0.1,
-                                          color: Colors.redAccent,
-                                        ),
-                                      );
-                                    }
-                                    if (_selectedIndex == 1) {
-                                      return Icon(
-                                        Icons.group_add_rounded,
-                                        size: screenWidth * 0.1,
-                                        color: Colors.orange,
-                                      );
-                                    }
-                                    if (_selectedIndex == 2) {
-                                      return Icon(
-                                        Icons.calendar_month_outlined,
-                                        size: screenWidth * 0.1,
-                                        color: Colors.cyan,
-                                      );
-                                    }
-                                    return Icon(
-                                      Icons.ads_click_rounded,
-                                      size: screenWidth * 0.1,
-                                      color: Colors.redAccent,
-                                    );
-                                  },
-                                ),
-                                SizedBox(width: screenWidth * 0.03),
-                                Text(
-                                  _summaryTitle,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.04,
-                                    color: Theme.of(context).primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: screenHeight * 0.015),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.06,
-                                vertical: screenHeight * 0.01,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _summaryCount,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: screenWidth * 0.045,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (_displayList.isEmpty)
-                        Center(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF26A69A)))
+          : RefreshIndicator(
+              onRefresh: _fetchData,
+              color: const Color(0xFF26A69A),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16.0),
+                itemCount: _displayList.length + 1, // +1 for the header section
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Action Buttons Row
+                        Container(
+                          padding: EdgeInsets.all(screenWidth * 0.04),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color ??
+                                Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: Colors.grey.withOpacity(0.2)),
+                          ),
                           child: Column(
                             children: [
-                              const SizedBox(height: 40),
-                              Icon(Icons.assignment_turned_in_outlined, size: 60, color: Colors.grey.shade300),
-                              const SizedBox(height: 12),
-                              Text('No follow-ups found', style: TextStyle(color: Colors.grey.shade500)),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildCircleAction(
+                                    'assets/icons/leads.png', // Fixed
+                                    0,
+                                    screenWidth,
+                                  ),
+                                  _buildCircleAction(
+                                    'assets/icons/enquiry.png', // Fixed
+                                    1,
+                                    screenWidth,
+                                  ),
+                                  _buildCircleAction(
+                                    'assets/icons/re.png', // Fixed
+                                    2,
+                                    screenWidth,
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildFilterChip('Lead', 0, screenWidth),
+                                  _buildFilterChip('Enquiry', 1, screenWidth),
+                                  _buildFilterChip('Referral', 2, screenWidth),
+                                ],
+                              ),
                             ],
                           ),
                         ),
-                    ],
-                  );
-                }
-
-                // Lead cards
-                final itemIndex = index - 1;
-                if (itemIndex < 0 || itemIndex >= _displayList.length) return const SizedBox.shrink();
-                
-                return LeadRowCard(
-                  lead: _displayList[itemIndex],
-                  onCall: () => _confirmCall(_displayList[itemIndex]),
-                );
-              },
-            ),
-          ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (_isQuickMenuExpanded) ...[
-            _buildQuickActionItem(
-              'assets/icons/what.png',
-              () {},
-            ), // WhatsApp asset
-            const SizedBox(height: 12),
-            _buildQuickActionItem(Icons.email_outlined, () {}),
-            const SizedBox(height: 12),
-            _buildQuickActionItem(Icons.phone_outlined, () {
-              if (_displayList.isNotEmpty) {
-                _confirmCall(_displayList.first);
-              }
-            }),
-            const SizedBox(height: 12),
-            _buildQuickActionItem(Icons.message_outlined, () {}),
-            const SizedBox(height: 12),
-          ],
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isQuickMenuExpanded = !_isQuickMenuExpanded;
-              });
-            },
-            child: Container(
-              width: 70,
-              height: 70,
-              decoration: const BoxDecoration(shape: BoxShape.circle),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _isQuickMenuExpanded
-                          ? const Color(0xFFD9D9D9)
-                          : null,
-                      gradient: _isQuickMenuExpanded
-                          ? null
-                          : const LinearGradient(
-                              colors: [Color(0xFF1B7BBC), Color(0xFF26A69A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        const SizedBox(height: 20),
+                        // Summary Card
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(screenWidth * 0.04),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color ??
+                                Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: Colors.grey.withOpacity(0.2)),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    _assetIcon,
+                                    width: screenWidth * 0.1,
+                                    height: screenWidth * 0.1,
+                                    errorBuilder: (c, e, s) {
+                                      if (_selectedIndex == 0) {
+                                        return Image.asset(
+                                          'assets/icons/today_followup.png',
+                                          width: screenWidth * 0.1,
+                                          height: screenWidth * 0.1,
+                                          errorBuilder: (c, e, s) => Icon(
+                                            Icons.calendar_today,
+                                            size: screenWidth * 0.1,
+                                            color: Colors.redAccent,
+                                          ),
+                                        );
+                                      }
+                                      if (_selectedIndex == 1) {
+                                        return Icon(
+                                          Icons.group_add_rounded,
+                                          size: screenWidth * 0.1,
+                                          color: Colors.orange,
+                                        );
+                                      }
+                                      if (_selectedIndex == 2) {
+                                        return Icon(
+                                          Icons.calendar_month_outlined,
+                                          size: screenWidth * 0.1,
+                                          color: Colors.cyan,
+                                        );
+                                      }
+                                      return Icon(
+                                        Icons.ads_click_rounded,
+                                        size: screenWidth * 0.1,
+                                        color: Colors.redAccent,
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(width: screenWidth * 0.03),
+                                  Text(
+                                    _summaryTitle,
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.04,
+                                      color: Theme.of(context).primaryColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: screenHeight * 0.015),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: screenWidth * 0.06,
+                                  vertical: screenHeight * 0.01,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _summaryCount,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: screenWidth * 0.045,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        if (_displayList.isEmpty)
+                          Center(
+                            child: Column(
+                              children: [
+                                const SizedBox(height: 40),
+                                Icon(Icons.assignment_turned_in_outlined,
+                                    size: 60, color: Colors.grey.shade300),
+                                const SizedBox(height: 12),
+                                Text('No follow-ups found',
+                                    style:
+                                        TextStyle(color: Colors.grey.shade500)),
+                              ],
                             ),
-                    ),
-                  ),
-                  const Text(
-                    'Quick',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                          ),
+                      ],
+                    );
+                  }
+
+                  // Lead cards
+                  final itemIndex = index - 1;
+                  if (itemIndex < 0 || itemIndex >= _displayList.length)
+                    return const SizedBox.shrink();
+
+                  return LeadRowCard(
+                    lead: _displayList[itemIndex],
+                    onCall: () => _confirmCall(_displayList[itemIndex]),
+                  );
+                },
               ),
             ),
-          ),
-        ],
-      ),
+      // floatingActionButton: Column(
+      //   mainAxisSize: MainAxisSize.min,
+      //   crossAxisAlignment: CrossAxisAlignment.end,
+      //   children: [
+      //     if (_isQuickMenuExpanded) ...[
+      //       _buildQuickActionItem(
+      //         'assets/icons/what.png',
+      //         () {},
+      //       ), // WhatsApp asset
+      //       const SizedBox(height: 12),
+      //       _buildQuickActionItem(Icons.email_outlined, () {}),
+      //       const SizedBox(height: 12),
+      //       _buildQuickActionItem(Icons.phone_outlined, () {
+      //         if (_displayList.isNotEmpty) {
+      //           _confirmCall(_displayList.first);
+      //         }
+      //       }),
+      //       const SizedBox(height: 12),
+      //       _buildQuickActionItem(Icons.message_outlined, () {}),
+      //       const SizedBox(height: 12),
+      //     ],
+      //     GestureDetector(
+      //       onTap: () {
+      //         setState(() {
+      //           _isQuickMenuExpanded = !_isQuickMenuExpanded;
+      //         });
+      //       },
+      //       child: Container(
+      //         width: 70,
+      //         height: 70,
+      //         decoration: const BoxDecoration(shape: BoxShape.circle),
+      //         clipBehavior: Clip.antiAlias,
+      //         child: Stack(
+      //           alignment: Alignment.center,
+      //           children: [
+      //             Container(
+      //               width: 70,
+      //               height: 70,
+      //               decoration: BoxDecoration(
+      //                 shape: BoxShape.circle,
+      //                 color: _isQuickMenuExpanded
+      //                     ? const Color(0xFFD9D9D9)
+      //                     : null,
+      //                 gradient: _isQuickMenuExpanded
+      //                     ? null
+      //                     : const LinearGradient(
+      //                         colors: [Color(0xFF1B7BBC), Color(0xFF26A69A)],
+      //                         begin: Alignment.topLeft,
+      //                         end: Alignment.bottomRight,
+      //                       ),
+      //               ),
+      //             ),
+      //             const Text(
+      //               'Quick',
+      //               style: TextStyle(
+      //                 color: Colors.black,
+      //                 fontSize: 14,
+      //                 fontWeight: FontWeight.bold,
+      //               ),
+      //             ),
+      //           ],
+      //         ),
+      //       ),
+      //     ),
+      //   ],
+      // ),
     );
   }
 
@@ -439,12 +441,16 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) {
             if (mounted) _fetchData();
@@ -469,8 +475,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
           color: isSelected
               ? const Color(0xFF26A69A)
               : (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade900
-                    : Colors.white),
+                  ? Colors.grey.shade900
+                  : Colors.white),
           shape: BoxShape.circle,
           border: isSelected
               ? null
@@ -503,8 +509,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
             color: isSelected
                 ? Theme.of(context).primaryColor
                 : (Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF2C2440)
-                      : const Color(0xFFF3F0F5)),
+                    ? const Color(0xFF2C2440)
+                    : const Color(0xFFF3F0F5)),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
@@ -512,9 +518,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isSelected
-                    ? Colors.white
-                    : Theme.of(context).primaryColor,
+                color:
+                    isSelected ? Colors.white : Theme.of(context).primaryColor,
                 fontSize: screenWidth * 0.03,
                 fontWeight: FontWeight.w500,
               ),
@@ -546,9 +551,8 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
           if (hasLeftBorder)
             Container(
               width: 4,
-              height: reason != null
-                  ? 100
-                  : 80, // Dynamic height based on fields
+              height:
+                  reason != null ? 100 : 80, // Dynamic height based on fields
               decoration: BoxDecoration(
                 color: borderColor,
                 borderRadius: const BorderRadius.only(
@@ -573,8 +577,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color:
-                      Theme.of(
+                  color: Theme.of(
                         context,
                       ).cardTheme.color?.withOpacity(0.5) ??
                       const Color(0xFFF7F7F7),
@@ -734,11 +737,9 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
     Color? valueColor,
     Color? labelColor,
   }) {
-    final Color effectiveLabelColor =
-        labelColor ??
+    final Color effectiveLabelColor = labelColor ??
         (Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey);
-    final Color effectiveValueColor =
-        valueColor ??
+    final Color effectiveValueColor = valueColor ??
         (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black);
 
     return Row(
@@ -823,8 +824,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color:
-                        Theme.of(context).textTheme.titleLarge?.color ??
+                    color: Theme.of(context).textTheme.titleLarge?.color ??
                         Colors.black,
                   ),
                 ),
@@ -873,8 +873,7 @@ class _FollowUpScreenState extends State<FollowUpScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
-                    color:
-                        Theme.of(context).textTheme.bodyLarge?.color ??
+                    color: Theme.of(context).textTheme.bodyLarge?.color ??
                         Colors.black,
                   ),
                 ),

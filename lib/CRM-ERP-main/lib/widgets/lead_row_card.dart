@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../Screens/Lead_Information/enquiry_tabs_view.dart';
+import 'meeting_details_popup.dart';
 
 class LeadRowCard extends StatelessWidget {
   final Map<String, dynamic> lead;
@@ -8,7 +9,8 @@ class LeadRowCard extends StatelessWidget {
   final bool showCall;
   final bool showStatus;
   final bool enableTap;
-  final bool isAllTab; // Added to handle All tab specific UI
+  final String? currentTab;
+  final VoidCallback? onCreateMeeting;
 
   const LeadRowCard({
     super.key,
@@ -17,7 +19,8 @@ class LeadRowCard extends StatelessWidget {
     this.showCall = true,
     this.showStatus = true,
     this.enableTap = true,
-    this.isAllTab = false,
+    this.onCreateMeeting,
+    this.currentTab,
   });
 
   Color _statusColor(String status) {
@@ -44,10 +47,19 @@ class LeadRowCard extends StatelessWidget {
     final name = (lead['cus_name'] ??
             lead['le_name'] ??
             lead['contact_person'] ??
+             lead['name'] ??
             'Unknown')
         .toString();
-    final p1 = (lead['mobile_1'] ?? lead['mobile'] ?? lead['phone'] ?? lead['cid'] ?? '').toString();
-    final p2 = (lead['mobile_2'] ?? '').toString();
+    final p1 = (lead['mobile_1'] ??
+            lead['mobile'] ??
+            lead['phone'] ??
+            lead['mobile_no'] ??
+            lead['cus_mobile'] ??
+            lead['contact_no'] ??
+            lead['cid'] ??
+            '')
+        .toString();
+    final p2 = (lead['mobile_2'] ?? lead['moble_2'] ?? '').toString();
     final company = (lead['company'] ?? lead['requirement_notes'] ?? lead['other_required'] ?? '').toString();
     
     final nextDate = (lead['next_follow_up_date'] ?? lead['meet_date'] ?? '').toString();
@@ -70,13 +82,18 @@ class LeadRowCard extends StatelessWidget {
       return s;
     }
 
+    final cusStatus = (lead['cus_status'] ?? '').toString().toUpperCase();
     final leadStatus = (lead['lead_status'] ?? '').toString();
     final manualStatus = (lead['status'] ?? '').toString();
-    final rawStatus = (leadStatus.isNotEmpty
-            ? leadStatus
-            : (manualStatus.isNotEmpty
-                ? manualStatus
-                : (outcome.isNotEmpty ? 'Follow up' : 'New')))
+    final rawStatus = (cusStatus == 'NEW')
+        ? 'New'
+        : (cusStatus == 'FOLLOW_UP'
+            ? 'Follow up'
+            : (leadStatus.isNotEmpty
+                ? leadStatus
+                : (manualStatus.isNotEmpty
+                    ? manualStatus
+                    : (outcome.isNotEmpty ? 'Follow up' : 'New'))))
         .toString();
     final status = _formatStatus(rawStatus);
     final outcomeText = _formatStatus(outcome);
@@ -168,87 +185,136 @@ class LeadRowCard extends StatelessWidget {
                           ),
                       ],
                     ),
-                    SizedBox(height: 12.h),
-                    
-                    // Contact Info Section
-                    Row(
-                      children: [
-                        _buildCompactInfo(Icons.phone_iphone_rounded, p1, accentColor),
-                        if (p2.isNotEmpty && p2 != p1) ...[
-                          SizedBox(width: 12.w),
-                          _buildCompactInfo(Icons.phone_enabled_rounded, p2, accentColor),
-                        ],
-                      ],
-                    ),
-                    
-                    Divider(height: 24.h, color: Colors.grey.withOpacity(0.1)),
-
-                    // Project / Product Info
-                    if (displayProject.isNotEmpty && displayProject != 'N/A')
-                      _buildDetailRow(Icons.layers_outlined, "Product", displayProject, const Color(0xFF6200EA)),
-
-                    // Email Info
-                    if (email.isNotEmpty && email != 'null' && email != '')
-                      _buildDetailRow(Icons.alternate_email_rounded, "Email", email, const Color(0xFF555555)),
-
-                    // Date Info
-                    if (date.isNotEmpty && date != '0000-00-00')
-                      _buildDetailRow(Icons.event_available_outlined, "Timeline", date, const Color(0xFF2979FF)),
-
-                    // Follow up specific details
-                    if (isFollowUp) ...[
+                    // Tab-specific details
+                    if (currentTab == 'All' || currentTab == null) ...[
+                      if (displayProject.isNotEmpty && displayProject != 'N/A')
+                        _buildDetailRow(Icons.layers_outlined, "Product", displayProject, const Color(0xFF6200EA)),
+                      if (date.isNotEmpty && date != '0000-00-00')
+                        _buildDetailRow(Icons.event_available_outlined, "Date Time", date, const Color(0xFF2979FF)),
+                    ] else if (currentTab == 'New') ...[
+                      if (displayProject.isNotEmpty && displayProject != 'N/A')
+                        _buildDetailRow(Icons.layers_outlined, "Product", displayProject, const Color(0xFF6200EA)),
+                      _buildDetailRow(Icons.phone_iphone_rounded, "Mobile 1", p1, accentColor),
+                      if (p2.isNotEmpty && p2 != p1)
+                        _buildDetailRow(Icons.phone_enabled_rounded, "Mobile 2", p2, accentColor),
+                      if (email.isNotEmpty && email != 'null' && email != '')
+                        _buildDetailRow(Icons.alternate_email_rounded, "Email", email, const Color(0xFF555555)),
+                    ] else if (currentTab == 'Follow up') ...[
                       if (outcome.isNotEmpty && outcome != 'N/A')
-                        _buildDetailRow(Icons.call_missed_outgoing_rounded, "Outcome", outcomeText, const Color(0xFFE91E63)),
-                      if (budget.isNotEmpty && budget != '0' && budget != '0.0')
-                        _buildDetailRow(Icons.account_balance_wallet_outlined, "Budget", "₹$budget", const Color(0xFF2E7D32)),
+                        _buildDetailRow(Icons.call_missed_outgoing_rounded, "Call Outcome", outcomeText, const Color(0xFFE91E63)),
+                      if ((lead['follow_up_mode'] ?? lead['mode_of_meet'] ?? '').toString().isNotEmpty)
+                        _buildDetailRow(Icons.commute_rounded, "Followup Mode", (lead['follow_up_mode'] ?? lead['mode_of_meet'] ?? '').toString(), const Color(0xFF2E7D32)),
                       if (summary.isNotEmpty && summary != 'N/A')
                         _buildDetailRow(Icons.description_outlined, "Summary", summary, Colors.black54),
+                      if (nextDate.isNotEmpty && nextDate != '0000-00-00')
+                        _buildDetailRow(Icons.calendar_today_rounded, "Followup Date", nextDate, const Color(0xFF2979FF)),
+                      if (nextTime.isNotEmpty)
+                        _buildDetailRow(Icons.access_time_rounded, "Time", nextTime, const Color(0xFF2979FF)),
+                    ] else if (currentTab == 'Schedule') ...[
+                       _buildDetailRow(Icons.event_available_outlined, "Date and Time", date, const Color(0xFF2979FF)),
+                       if ((lead['mode_of_meet'] ?? lead['follow_up_mode'] ?? '').toString().isNotEmpty)
+                        _buildDetailRow(Icons.commute_rounded, "Mode of Meeting", (lead['mode_of_meet'] ?? lead['follow_up_mode'] ?? '').toString(), const Color(0xFF2E7D32)),
+                       if ((lead['loc'] ?? lead['location'] ?? '').toString().isNotEmpty)
+                        _buildDetailRow(Icons.location_on_outlined, "Location", (lead['loc'] ?? lead['location'] ?? '').toString(), const Color(0xFFFF6D00)),
+                       if ((lead['address'] ?? '').toString().isNotEmpty)
+                        _buildDetailRow(Icons.home_outlined, "Address", lead['address'].toString(), const Color(0xFF555555)),
+                    ] else if (currentTab == 'Meeting') ...[
+                      if (displayProject.isNotEmpty && displayProject != 'N/A')
+                        _buildDetailRow(Icons.layers_outlined, "Product", displayProject, const Color(0xFF6200EA)),
+                      if ((lead['mode_of_meet'] ?? lead['follow_up_mode'] ?? '').toString().isNotEmpty)
+                        _buildDetailRow(Icons.commute_rounded, "Mode of Meet", (lead['mode_of_meet'] ?? lead['follow_up_mode'] ?? '').toString(), const Color(0xFF2E7D32)),
+                       _buildDetailRow(Icons.event_available_outlined, "Date of Time", date, const Color(0xFF2979FF)),
+                      if (summary.isNotEmpty && summary != 'N/A')
+                        _buildDetailRow(Icons.description_outlined, "Summary", summary, Colors.black54),
+                    ] else ...[
+                      // Fallback for other tabs like Negotiation
+                      if (displayProject.isNotEmpty && displayProject != 'N/A')
+                        _buildDetailRow(Icons.layers_outlined, "Product", displayProject, const Color(0xFF6200EA)),
+                      if (email.isNotEmpty && email != 'null' && email != '')
+                        _buildDetailRow(Icons.alternate_email_rounded, "Email", email, const Color(0xFF555555)),
+                      if (date.isNotEmpty && date != '0000-00-00')
+                        _buildDetailRow(Icons.event_available_outlined, "Timeline", date, const Color(0xFF2979FF)),
                     ],
 
-                    if (showCall) ...[
+                    if (showCall || onCreateMeeting != null) ...[
                       SizedBox(height: 16.h),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: onCall,
-                            borderRadius: BorderRadius.circular(24.r),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [accentColor, accentColor.withOpacity(0.8)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (onCreateMeeting != null)
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onCreateMeeting,
                                 borderRadius: BorderRadius.circular(24.r),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: accentColor.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(color: accentColor),
+                                    borderRadius: BorderRadius.circular(24.r),
                                   ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 16.r),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    'Call Now',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 12.sp,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add_task, color: accentColor, size: 14.r),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        'Meeting',
+                                        style: TextStyle(
+                                          color: accentColor,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11.sp,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
+                          if (onCreateMeeting != null && showCall) SizedBox(width: 8.w),
+                          if (showCall)
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onCall,
+                                borderRadius: BorderRadius.circular(24.r),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [accentColor, accentColor.withOpacity(0.8)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(24.r),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: accentColor.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.phone_in_talk_rounded, color: Colors.white, size: 16.r),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Call Now',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 12.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ],
@@ -261,23 +327,7 @@ class LeadRowCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactInfo(IconData icon, String text, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14.r, color: color.withOpacity(0.7)),
-        SizedBox(width: 4.w),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: const Color(0xFF444444),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildDetailRow(IconData icon, String label, String value, Color color) {
     return Padding(

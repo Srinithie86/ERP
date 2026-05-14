@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../Models/leave_api.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:intl/intl.dart';
 import '../../../Utils/shared_prefs_util.dart';
 
 class AdminLeaveStatusScreen extends StatefulWidget {
@@ -13,13 +15,43 @@ class AdminLeaveStatusScreen extends StatefulWidget {
 
 class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
   bool _isLoading = true;
-  List<LeaveRequestData> _leaveData = [];
+  List<dynamic> _allLeaveData = [];
+  List<dynamic> _filteredLeaveData = [];
   String? _error;
+  DateTime _selectedDate = DateTime.now();
+  String _selectedStatus = "all";
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF26A69A),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _applyFilter();
+      });
+    }
   }
 
   Future<void> _fetchData() async {
@@ -29,18 +61,75 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
     });
     try {
       final params = await SharedPrefsUtil.getCommonParams();
-      final String reportingManager = params['uid'] ?? "";
-      final response = await LeaveApi.fetchLeaveRequests(reportingManager: reportingManager);
-      setState(() {
-        _leaveData = response.data;
-        _isLoading = false;
-      });
+      final String cid = params['cid'] ?? "99994444";
+      final String uid = params['uid'] ?? "";
+      final String deviceId = params['device_id'] ?? "1237";
+      final String lat = params['lt'] ?? "123";
+      final String lng = params['ln'] ?? "123";
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: {
+          "type": "2083",
+          "cid": cid,
+          "uid": uid,
+          "device_id": deviceId,
+          "lt": lat,
+          "ln": lng,
+          "form": "sm_main_form_16112",
+          "select": "*",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['error'] == false) {
+          setState(() {
+            _allLeaveData = data['data'] ?? [];
+            _applyFilter();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _error = data['message'] ?? "Failed to fetch data";
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _error = "Server error: ${response.statusCode}";
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  void _applyFilter() {
+    List<dynamic> tempList = [];
+    final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    // Filter by Date
+    tempList = _allLeaveData.where((l) {
+      final appliedDate = l['applied_date']?.toString() ?? "";
+      return appliedDate == formattedDate;
+    }).toList();
+
+    // Then apply Status Filter
+    if (_selectedStatus != "all") {
+      tempList = tempList
+          .where(
+              (l) => l['status']?.toString().toLowerCase() == _selectedStatus)
+          .toList();
+    }
+
+    setState(() {
+      _filteredLeaveData = tempList;
+    });
   }
 
   @override
@@ -60,49 +149,170 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () => _selectDate(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchData,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF26A69A)))
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
-              : _leaveData.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.event_busy, size: 64.sp, color: Colors.grey[400]),
-                          SizedBox(height: 16.h),
-                          Text("No leave history found",
-                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 16.sp)),
-                        ],
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        _buildSummaryHeader(),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: EdgeInsets.all(16.w),
-                            itemCount: _leaveData.length,
-                            itemBuilder: (context, index) => _buildStatusCard(_leaveData[index]),
-                          ),
-                        ),
-                      ],
+              ? Center(
+                  child: Text(_error!,
+                      style: GoogleFonts.poppins(color: Colors.red)))
+              : Column(
+                  children: [
+                    _buildSummaryHeader(),
+                    _buildFilterBadge(),
+                    Expanded(
+                      child: _filteredLeaveData.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.event_busy,
+                                      size: 64.sp, color: Colors.grey[400]),
+                                  SizedBox(height: 16.h),
+                                  Text(
+                                      _selectedStatus != "all"
+                                          ? "No ${_selectedStatus.toUpperCase()} requests found"
+                                          : "No leave requests for this date",
+                                      style: GoogleFonts.poppins(
+                                          color: Colors.grey, fontSize: 16.sp)),
+                                  if (_selectedStatus != "all" ||
+                                      DateFormat('yyyy-MM-dd')
+                                              .format(_selectedDate) !=
+                                          DateFormat('yyyy-MM-dd')
+                                              .format(DateTime.now()))
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedDate = DateTime.now();
+                                          _selectedStatus = "all";
+                                          _applyFilter();
+                                        });
+                                      },
+                                      child: const Text("Reset Filters"),
+                                    ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.all(16.w),
+                              itemCount: _filteredLeaveData.length,
+                              itemBuilder: (context, index) =>
+                                  _buildStatusCard(_filteredLeaveData[index]),
+                            ),
                     ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildFilterBadge() {
+    String dateStr = DateFormat('dd MMMM yyyy').format(_selectedDate);
+    bool isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFF26A69A).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20.r),
+              border:
+                  Border.all(color: const Color(0xFF26A69A).withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(isToday ? Icons.today : Icons.calendar_month,
+                    size: 14.sp, color: const Color(0xFF26A69A)),
+                SizedBox(width: 6.w),
+                Text(
+                  isToday ? "Today's Leaves" : dateStr,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF26A69A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_selectedStatus != "all") ...[
+            SizedBox(width: 8.w),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedStatus = "all";
+                  _applyFilter();
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      _selectedStatus.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700]),
+                    ),
+                    SizedBox(width: 4.w),
+                    Icon(Icons.close, size: 12.sp, color: Colors.grey[600]),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          Text(
+            "Count: ${_filteredLeaveData.length}",
+            style: GoogleFonts.poppins(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildSummaryHeader() {
-    int approved = _leaveData.where((l) => l.status?.toLowerCase() == 'approved').length;
-    int rejected = _leaveData.where((l) => l.status?.toLowerCase() == 'rejected').length;
-    int pending = _leaveData.where((l) => l.status?.toLowerCase() == 'pending').length;
+    final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final baseList = _allLeaveData
+        .where((l) => l['applied_date']?.toString() == formattedDate)
+        .toList();
+
+    int approved = baseList
+        .where((l) => l['status']?.toString().toLowerCase() == 'approved')
+        .length;
+    int rejected = baseList
+        .where((l) => l['status']?.toString().toLowerCase() == 'rejected')
+        .length;
+    int pending = baseList
+        .where((l) => l['status']?.toString().toLowerCase() == 'pending')
+        .length;
 
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.symmetric(vertical: 20.h),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -114,41 +324,84 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _summaryItem("Pending", "$pending", Colors.orange),
-          _summaryItem("Approved", "$approved", Colors.green),
-          _summaryItem("Rejected", "$rejected", Colors.red),
+          _summaryItem("Pending", "$pending", Colors.orange, "pending"),
+          _summaryItem("Approved", "$approved", Colors.green, "approved"),
+          _summaryItem("Rejected", "$rejected", Colors.red, "rejected"),
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedStatus = "all";
+                _applyFilter();
+              });
+            },
+            child: Column(
+              children: [
+                Icon(Icons.clear_all,
+                    color: _selectedStatus == "all"
+                        ? Colors.blueGrey
+                        : Colors.grey.shade300),
+                Text("Clear",
+                    style: GoogleFonts.poppins(
+                        fontSize: 11.sp, color: Colors.grey)),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _summaryItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: color,
+  Widget _summaryItem(
+      String label, String value, Color color, String statusKey) {
+    bool isSelected = _selectedStatus == statusKey;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedStatus = isSelected ? "all" : statusKey;
+          _applyFilter();
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1.5,
           ),
         ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 11.sp,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 11.sp,
+                color: isSelected ? color : Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatusCard(LeaveRequestData leave) {
-    final String status = (leave.status ?? "Pending").toLowerCase();
+  Widget _buildStatusCard(dynamic leave) {
+    final String status =
+        (leave['status']?.toString() ?? "Pending").toLowerCase();
     final Color statusColor = status == 'approved'
         ? Colors.green
         : status == 'rejected'
@@ -192,14 +445,14 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      leave.employeeName,
+                      leave['employee_name']?.toString() ?? "Unknown",
                       style: GoogleFonts.poppins(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      leave.leaveType,
+                      leave['leave_type']?.toString() ?? "Leave",
                       style: GoogleFonts.poppins(
                         fontSize: 12.sp,
                         color: Colors.grey[600],
@@ -226,20 +479,25 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
             ],
           ),
           const Divider(height: 24),
-          _infoRow(Icons.event_note, "Duration", "${leave.leaveStartDate ?? "N/A"} to ${leave.leaveEndDate ?? "N/A"}"),
+          _infoRow(Icons.event_note, "Duration",
+              "${leave['leave_start_date'] ?? "N/A"} to ${leave['leave_end_date'] ?? "N/A"}"),
           SizedBox(height: 8.h),
-          _infoRow(Icons.calendar_today_outlined, "Total Days", "${leave.totalDays ?? "0"} Day(s)"),
+          _infoRow(Icons.calendar_today_outlined, "Total Days",
+              "${leave['total_days'] ?? "0"} Day(s)"),
           SizedBox(height: 8.h),
-          _infoRow(Icons.notes, "Reason", leave.reason ?? "No reason provided"),
-          if (status == 'rejected' && leave.rejectReason != null) ...[
+          _infoRow(Icons.notes, "Reason",
+              leave['reason']?.toString() ?? "No reason provided"),
+          if (status == 'rejected' && leave['reject_reason'] != null) ...[
             SizedBox(height: 8.h),
-            _infoRow(Icons.warning_amber_rounded, "Reject Reason", leave.rejectReason!, color: Colors.red),
+            _infoRow(Icons.warning_amber_rounded, "Reject Reason",
+                leave['reject_reason']?.toString() ?? "",
+                color: Colors.red),
           ],
           SizedBox(height: 12.h),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              "Applied on: ${leave.appliedDate ?? leave.dtime}",
+              "Applied on: ${leave['applied_date'] ?? leave['dtime'] ?? 'N/A'}",
               style: GoogleFonts.poppins(
                 fontSize: 10.sp,
                 color: Colors.grey,
@@ -252,7 +510,8 @@ class _AdminLeaveStatusScreenState extends State<AdminLeaveStatusScreen> {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String text, {bool isBold = false, Color? color}) {
+  Widget _infoRow(IconData icon, String label, String text,
+      {bool isBold = false, Color? color}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

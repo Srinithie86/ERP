@@ -21,39 +21,33 @@ class _EnquiryScheduleTabState extends State<EnquiryScheduleTab> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final String leadId = (
-        widget.lead?['id'] ?? 
-        widget.lead?['cus_id'] ?? 
-        widget.lead?['led_id'] ?? 
-        widget.lead?['aid'] ?? 
-        widget.lead?['uid'] ?? 
-        ''
-      ).toString();
-      final String leCode = (widget.lead?['le_code'] ?? '').toString();
+      String enquiryType = 'Lead';
+      if (widget.lead != null) {
+        final type = widget.lead!['enquiry_type']?.toString();
+        if (type == '2') enquiryType = 'Enquiry';
+        if (type == '3') enquiryType = 'Referral';
+      }
 
-      if (leadId.isNotEmpty && leadId != 'null') {
-        final res = await ScheduleApi.fetchSchedules();
-        if (mounted) {
-          setState(() {
-            _schedules = res.where((s) {
-              // Match by numeric ID (aid for leads, bid for enquiry, did for referral)
-              bool idMatch = s.aid.toString() == leadId || 
-                             s.bid.toString() == leadId || 
-                             s.did.toString() == leadId;
-              
-              // Also match by le_code as a fallback
-              bool codeMatch = leCode.isNotEmpty && (s.leCode == leCode);
-              
-              return idMatch || codeMatch;
-            }).map((m) => m.toMap()).toList();
-          });
-        }
+      final data = await ScheduleApi.fetchSchedules(enquiryType: enquiryType);
+      
+      if (mounted) {
+        setState(() {
+          if (widget.lead != null) {
+            final leadId = widget.lead!['id']?.toString() ?? widget.lead!['uid']?.toString();
+            _schedules = data.where((s) {
+              final sAid = s['aid']?.toString();
+              final sUid = s['uid']?.toString();
+              return sAid == leadId || sUid == leadId;
+            }).toList();
+          } else {
+            _schedules = data;
+          }
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      debugPrint("Error fetching schedules in tab: $e");
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }

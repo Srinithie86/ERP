@@ -29,12 +29,16 @@ class _QuickActionButtonState extends State<QuickActionButton> {
       builder: (c) => CallConfirmationPopup(
         lead: widget.lead!,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: widget.lead!, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: widget.lead!,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           );
         },

@@ -45,10 +45,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Calculate start of week (Monday)
-    // DateTime.weekday: Mon=1 ... Sun=7
-    startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    endOfWeek = startOfWeek.add(const Duration(days: 6));
+    // Calculate start of week (Monday) at 00:00:00
+    DateTime tempNow = DateTime.now();
+    DateTime tempStart = tempNow.subtract(Duration(days: tempNow.weekday - 1));
+    startOfWeek = DateTime(tempStart.year, tempStart.month, tempStart.day, 0, 0, 0);
+    endOfWeek = startOfWeek.add(const Duration(days: 6)).add(const Duration(hours: 23, minutes: 59, seconds: 59));
 
     _loadInitialData();
   }
@@ -325,9 +326,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               startOfWeek = startOfWeek.subtract(
                                 const Duration(days: 7),
                               );
-                              endOfWeek = endOfWeek.subtract(
-                                const Duration(days: 7),
-                              );
+                              startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day, 0, 0, 0);
+                              endOfWeek = startOfWeek.add(const Duration(days: 6)).add(const Duration(hours: 23, minutes: 59, seconds: 59));
                             });
                             _fetchWeeklyData();
                           },
@@ -360,9 +360,8 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                               startOfWeek = startOfWeek.add(
                                 const Duration(days: 7),
                               );
-                              endOfWeek = endOfWeek.add(
-                                const Duration(days: 7),
-                              );
+                              startOfWeek = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day, 0, 0, 0);
+                              endOfWeek = startOfWeek.add(const Duration(days: 6)).add(const Duration(hours: 23, minutes: 59, seconds: 59));
                             });
                             _fetchWeeklyData();
                           },

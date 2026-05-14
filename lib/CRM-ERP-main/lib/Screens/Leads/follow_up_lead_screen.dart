@@ -49,38 +49,8 @@ class _FollowUpLeadScreenState extends State<FollowUpLeadScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final List<FollowUpModel> followUpLeads = await FollowUpApi.fetchFollowUpLeads(enquiryType: '1');
-      
-      if (mounted) {
-        setState(() {
-          _leads = followUpLeads.map((f) {
-            final Map<String, dynamic> data = f.toMap();
-            data['status'] = 'Follow up';
-            data['lead_status'] = 'Follow up';
-            // Ensure id is present (could be aid, bid, did depending on type, but for Lead it should be aid)
-            // LeadRowCard uses 'id' sometimes but mostly it uses the map directly.
-            // In FollowUpApi, aid is mapped. Let's make sure 'id' is set to aid/bid/did if not present.
-            if (data['id'] == null) {
-              data['id'] = f.aid ?? f.bid ?? f.did;
-            }
-            return data;
-          }).toList();
-
-          // Sort by ID descending (newest first)
-          _leads.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -287,12 +257,16 @@ class _FollowUpLeadScreenState extends State<FollowUpLeadScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _fetch());
         },

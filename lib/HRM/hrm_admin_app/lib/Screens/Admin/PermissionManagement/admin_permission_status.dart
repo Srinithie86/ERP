@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../Models/permission_api.dart';
 import '../../../Utils/shared_prefs_util.dart';
 
@@ -8,18 +11,48 @@ class AdminPermissionStatusScreen extends StatefulWidget {
   const AdminPermissionStatusScreen({super.key});
 
   @override
-  State<AdminPermissionStatusScreen> createState() => _AdminPermissionStatusScreenState();
+  State<AdminPermissionStatusScreen> createState() =>
+      _AdminPermissionStatusScreenState();
 }
 
-class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScreen> {
+class _AdminPermissionStatusScreenState
+    extends State<AdminPermissionStatusScreen> {
   bool _isLoading = true;
   List<PermissionRequestData> _permissionData = [];
   String? _error;
+  DateTime _selectedDate = DateTime.now();
+  String _statusFilter = 'All';
 
   @override
   void initState() {
     super.initState();
     _fetchData();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF26A69A),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
   }
 
   Future<void> _fetchData() async {
@@ -29,12 +62,35 @@ class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScree
     });
     try {
       final params = await SharedPrefsUtil.getCommonParams();
-      final String reportingManager = params['uid'] ?? "";
-      final response = await PermissionApi.fetchPermissionRequests(reportingManager: reportingManager);
-      setState(() {
-        _permissionData = response.data;
-        _isLoading = false;
-      });
+
+      final Map<String, String> body = {
+        'type': '2083',
+        'cid': '99994444',
+        'lt': '123',
+        'ln': '123',
+        'device_id': '1237',
+        'form': 'sm_main_form_16143',
+        'select': '*',
+        'token': params['token'] ?? "",
+        'uid': params['uid'] ?? "",
+      };
+
+      final response = await http.post(
+        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decodedData = jsonDecode(response.body);
+        final permResponse = PermissionRequestResponse.fromJson(decodedData);
+        setState(() {
+          _permissionData = permResponse.data;
+          _isLoading = false;
+        });
+      } else {
+        throw Exception(
+            "Failed to load permission history: ${response.statusCode}");
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -60,46 +116,157 @@ class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScree
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () => _selectDate(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchData,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF26A69A)))
           : _error != null
-              ? Center(child: Text(_error!, style: GoogleFonts.poppins(color: Colors.red)))
-              : _permissionData.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.history, size: 64.sp, color: Colors.grey[400]),
-                          SizedBox(height: 16.h),
-                          Text("No permission history found",
-                              style: GoogleFonts.poppins(color: Colors.grey, fontSize: 16.sp)),
-                        ],
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        _buildSummaryHeader(),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: EdgeInsets.all(16.w),
-                            itemCount: _permissionData.length,
-                            itemBuilder: (context, index) => _buildStatusCard(_permissionData[index]),
-                          ),
-                        ),
-                      ],
+              ? Center(
+                  child: Text(_error!,
+                      style: GoogleFonts.poppins(color: Colors.red)))
+              : Column(
+                  children: [
+                    _buildSummaryHeader(),
+                    _buildDateDisplay(),
+                    Expanded(
+                      child: _buildFilteredList(),
                     ),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildDateDisplay() {
+    String dateStr = DateFormat('dd MMMM yyyy').format(_selectedDate);
+    bool isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+      color: Colors.grey[100],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            isToday ? "Today's Permissions" : "Permissions for $dateStr",
+            style: GoogleFonts.poppins(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.blueGrey[700],
+            ),
+          ),
+          if (_statusFilter != 'All')
+            GestureDetector(
+              onTap: () => setState(() => _statusFilter = 'All'),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF26A69A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      _statusFilter,
+                      style: GoogleFonts.poppins(
+                          fontSize: 10.sp,
+                          color: const Color(0xFF26A69A),
+                          fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(width: 4.w),
+                    Icon(Icons.close,
+                        size: 12.sp, color: const Color(0xFF26A69A)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilteredList() {
+    String formattedSelectedDate =
+        DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+    final filtered = _permissionData.where((p) {
+      // Filter by Date
+      bool dateMatch = (p.appDate == formattedSelectedDate);
+
+      // Filter by Status
+      bool statusMatch = true;
+      if (_statusFilter != 'All') {
+        String s = (p.status ?? "").toLowerCase();
+        if (_statusFilter == 'Pending') {
+          statusMatch = (s == 'pending' || s == '0' || s == '');
+        } else {
+          statusMatch = (s == _statusFilter.toLowerCase());
+        }
+      }
+
+      return dateMatch && statusMatch;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 48.sp, color: Colors.grey[400]),
+            SizedBox(height: 16.h),
+            Text("No data found for this selection",
+                style:
+                    GoogleFonts.poppins(color: Colors.grey, fontSize: 14.sp)),
+            if (_statusFilter != 'All' ||
+                !DateFormat('yyyy-MM-dd')
+                    .format(_selectedDate)
+                    .contains(DateFormat('yyyy-MM-dd').format(DateTime.now())))
+              TextButton(
+                onPressed: () => setState(() {
+                  _selectedDate = DateTime.now();
+                  _statusFilter = 'All';
+                }),
+                child: Text("Reset Filters",
+                    style: TextStyle(color: Color(0xFF26A69A))),
+              )
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.all(16.w),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) => _buildStatusCard(filtered[index]),
     );
   }
 
   Widget _buildSummaryHeader() {
-    int approved = _permissionData.where((p) => (p.status ?? "").toLowerCase() == 'approved').length;
-    int rejected = _permissionData.where((p) => (p.status ?? "").toLowerCase() == 'rejected').length;
-    int pending = _permissionData.where((p) => (p.status ?? "").toLowerCase() == 'pending').length;
+    String formattedSelectedDate =
+        DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final dateData = _permissionData
+        .where((p) => p.appDate == formattedSelectedDate)
+        .toList();
+
+    int approved = dateData
+        .where((p) => (p.status ?? "").toLowerCase() == 'approved')
+        .length;
+    int rejected = dateData
+        .where((p) => (p.status ?? "").toLowerCase() == 'rejected')
+        .length;
+    int pending = dateData.where((p) {
+      String s = (p.status ?? "").toLowerCase();
+      return s == 'pending' || s == '0' || s == '';
+    }).length;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -116,34 +283,56 @@ class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScree
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _summaryItem("Pending", "$pending", Colors.orange),
-          _summaryItem("Approved", "$approved", Colors.green),
-          _summaryItem("Rejected", "$rejected", Colors.red),
+          _summaryItem(
+              "Pending", "$pending", Colors.orange, _statusFilter == 'Pending'),
+          _summaryItem("Approved", "$approved", Colors.green,
+              _statusFilter == 'Approved'),
+          _summaryItem(
+              "Rejected", "$rejected", Colors.red, _statusFilter == 'Rejected'),
         ],
       ),
     );
   }
 
-  Widget _summaryItem(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: color,
+  Widget _summaryItem(
+      String label, String value, Color color, bool isSelected) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _statusFilter = isSelected ? 'All' : label;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 1,
           ),
         ),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 11.sp,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 11.sp,
+                color: Colors.grey[600],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -226,14 +415,18 @@ class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScree
             ],
           ),
           const Divider(height: 24),
-          _infoRow(Icons.calendar_today, "Apply Date", permission.appDate ?? "N/A"),
+          _infoRow(
+              Icons.calendar_today, "Apply Date", permission.appDate ?? "N/A"),
           SizedBox(height: 8.h),
-          _infoRow(Icons.access_time, "Time", "${permission.startTime ?? "N/A"} - ${permission.endDate ?? "N/A"}"),
+          _infoRow(Icons.access_time, "Time",
+              "${permission.startTime ?? "N/A"} - ${permission.endDate ?? "N/A"}"),
           SizedBox(height: 8.h),
-          _infoRow(Icons.notes, "Reason", permission.reason ?? "No reason provided"),
+          _infoRow(
+              Icons.notes, "Reason", permission.reason ?? "No reason provided"),
           if (permission.appBy != null) ...[
             SizedBox(height: 8.h),
-            _infoRow(Icons.person_outline, "Processed By", permission.appBy!, isBold: true),
+            _infoRow(Icons.person_outline, "Processed By", permission.appBy!,
+                isBold: true),
           ],
           SizedBox(height: 12.h),
           Align(
@@ -252,7 +445,8 @@ class _AdminPermissionStatusScreenState extends State<AdminPermissionStatusScree
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String text, {bool isBold = false, Color? color}) {
+  Widget _infoRow(IconData icon, String label, String text,
+      {bool isBold = false, Color? color}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

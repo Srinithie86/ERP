@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +34,7 @@ class _FaceAuthVerificationScreenState
         builder: (context) => LiveFaceScannerView(
           title: "Verify Face",
           description: "Hold still for verification",
-          onFaceDetected: (Face face, InputImage inputImage) async {
+          onFaceDetected: (Face face, File imageFile) async {
             _onFaceDetected(face);
           },
         ),
@@ -199,4 +200,3 @@ class _FaceAuthVerificationScreenState
     );
   }
 }
-

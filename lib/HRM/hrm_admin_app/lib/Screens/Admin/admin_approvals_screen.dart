@@ -130,7 +130,8 @@ class _InterleavedApprovalsFeed extends StatefulWidget {
   const _InterleavedApprovalsFeed();
 
   @override
-  State<_InterleavedApprovalsFeed> createState() => _InterleavedApprovalsFeedState();
+  State<_InterleavedApprovalsFeed> createState() =>
+      _InterleavedApprovalsFeedState();
 }
 
 class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
@@ -155,7 +156,8 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
 
       // Launch all fetches in parallel
       final leaveFuture = LeaveApi.fetchLeaveRequests(reportingManager: uid);
-      final permFuture = PermissionApi.fetchPermissionRequests(reportingManager: uid);
+      final permFuture =
+          PermissionApi.fetchPermissionRequests(reportingManager: uid);
       final expFuture = ExpenseApi.fetchExpenseRequests(reportingManager: uid);
 
       // Process each as it completes for faster perceived speed
@@ -167,9 +169,11 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
       });
 
       // Ensure loading state is cleared even if some fail
-      await Future.wait<dynamic>([
-        leaveFuture.catchError((e) => LeaveRequestResponse(error: true, message: e.toString(), count: 0, data: [])),
-        permFuture.catchError((e) => PermissionRequestResponse(error: true, message: e.toString(), count: 0, data: [])),
+      await Future.wait([
+        leaveFuture.catchError((e) => LeaveRequestResponse(
+            error: true, message: e.toString(), count: 0, data: [])),
+        permFuture.catchError((e) => PermissionRequestResponse(
+            error: true, message: e.toString(), count: 0, data: [])),
         expFuture.catchError((e) => {"error": true, "data": []}),
       ]);
 
@@ -206,7 +210,8 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
       setState(() {
         _combinedRequests.addAll(newItems);
         // Sort by ID descending
-        _combinedRequests.sort((a, b) => (b['id'] as int).compareTo(a['id'] as int));
+        _combinedRequests
+            .sort((a, b) => (b['id'] as int).compareTo(a['id'] as int));
         // Once we have some data, we can stop the main spinner to show items
         if (_combinedRequests.isNotEmpty) {
           _isLoading = false;
@@ -218,7 +223,8 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)));
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF26A69A)));
     }
 
     if (_combinedRequests.isEmpty) {
@@ -242,7 +248,7 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
           if (item['type'] == "Leave") typeLabel = "Leave Request";
           if (item['type'] == "Permission") typeLabel = "Permission Request";
           if (item['type'] == "Expense") typeLabel = "Expense Request";
-          
+
           return _buildTypeHeader(context, typeLabel, item['data']);
         },
       ),
@@ -287,18 +293,21 @@ class _InterleavedApprovalsFeedState extends State<_InterleavedApprovalsFeed> {
             showAppBar: false,
             isEmbedded: true,
             specificRequest: data,
+            onActionDone: _fetchAndCombine,
           )
         else if (title.contains("Permission"))
           AdminPermissionRequestsScreen(
             showAppBar: false,
             isEmbedded: true,
             specificRequest: data,
+            onActionDone: _fetchAndCombine,
           )
         else if (title.contains("Expense"))
           AdminExpenseRequestsScreen(
             showAppBar: false,
             isEmbedded: true,
             specificRequest: data,
+            onActionDone: _fetchAndCombine,
           )
       ],
     );

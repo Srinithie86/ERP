@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../Services/lead_service.dart';
 import '../../Widgets/lead_row_card.dart';
-import '../../Widgets/call_confirmation_popup.dart';
-import '../../Widgets/responsive_layout.dart';
+import '../../widgets/call_confirmation_popup.dart';
+import '../../widgets/responsive_layout.dart';
+import '../Leads/call_outcome_screen.dart';
 
 class EnquiryNegotiationScreen extends StatefulWidget {
   const EnquiryNegotiationScreen({super.key});
@@ -24,29 +25,8 @@ class _EnquiryNegotiationScreenState extends State<EnquiryNegotiationScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Enquiry');
-      if (mounted) {
-        setState(() {
-          _enquiries = res.where((e) {
-            String status = (e['lead_status'] ?? e['status'] ?? '')
-                .toString()
-                .toLowerCase();
-            return status.contains('negotiation');
-          }).toList();
-
-          // Sort by ID descending (newest first)
-          _enquiries.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -108,8 +88,18 @@ class _EnquiryNegotiationScreenState extends State<EnquiryNegotiationScreen> {
       isScrollControlled: true,
       builder: (c) => CallConfirmationPopup(
         lead: lead,
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
+          ).then((_) => _fetch());
         },
         onCancel: () => Navigator.pop(c),
       ),

@@ -122,72 +122,76 @@ class EnquiryTimelineTab extends StatelessWidget {
       actionColor = const Color(0xFF7E57C2); // Deep Purple
     }
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(width: 8),
-          Column(
-            children: [
-              const Icon(
-                Icons.access_time_outlined,
-                color: Color(0xFF26A69A),
-                size: 24,
-              ),
-              Expanded(
-                child: Container(
-                  width: 2,
-                  color: isLast ? Colors.transparent : const Color(0xFF26A69A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      children: _buildActionSpans(action, actionColor),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$date $time',
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user,
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    summary,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                ],
-              ),
+    return Stack(
+      children: [
+        // Vertical line
+        if (!isLast)
+          Positioned(
+            left: 19, // 8 (SizedBox) + 12 (half of 24 icon) - 1 (half of 2 line)
+            top: 32, // Icon size 24 + some offset
+            bottom: 0,
+            child: Container(
+              width: 2,
+              color: const Color(0xFF26A69A),
             ),
           ),
-        ],
-      ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.access_time_outlined,
+              color: Color(0xFF26A69A),
+              size: 24,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        children: _buildActionSpans(action, actionColor),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$date $time',
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      summary,
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

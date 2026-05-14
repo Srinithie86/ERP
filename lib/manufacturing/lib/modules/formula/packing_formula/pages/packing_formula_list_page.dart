@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../core/app_theme.dart';
 import '../packing_formula_model.dart';
 import '../packing_formula_api_service.dart';
@@ -42,7 +42,7 @@ class _PackingFormulaListPageState extends State<PackingFormulaListPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => CreatePackingFormulaBottomSheet(
-        onCreatePackingFormula: (productName, category, version) {
+        onCreatePackingFormula: (productName, category, version, noOfCase) {
           Navigator.pop(context);
           showModalBottomSheet(
             context: context,
@@ -52,6 +52,7 @@ class _PackingFormulaListPageState extends State<PackingFormulaListPage> {
               productName: productName,
               category: category,
               version: version,
+              noOfCase: noOfCase,
               onPackingFormulaCreated: (newPackingFormula) {
                 setState(() {
                   _packingFormulas.add(newPackingFormula);

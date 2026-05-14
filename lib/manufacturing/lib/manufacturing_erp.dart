@@ -6,3 +6,4 @@ export 'modules/material_request/material_request_screen.dart';
 export 'modules/production/production_screen.dart';
 export 'modules/quality/pages/quality_list_screen.dart';
 export 'core/main_shell.dart';
+export 'modules/printing/test_print_screen.dart';

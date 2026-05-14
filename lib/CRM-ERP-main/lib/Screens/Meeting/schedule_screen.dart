@@ -29,19 +29,8 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await ScheduleApi.fetchSchedules();
-      if (mounted) {
-        setState(() {
-          _schedules = res.map((m) => m.toMap()).toList();
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<dynamic> get _filteredSchedules {
@@ -54,15 +43,16 @@ class _ScheduleVisitScreenState extends State<ScheduleVisitScreen> {
 
   // Method to get current counts based on report type
   Map<String, String> get _currentCounts {
-    final total = _schedules.length.toString();
-    final complete = _schedules.where((m) => (m['feedback'] ?? '').toString().isNotEmpty).length.toString();
-    final schedule = (_schedules.length - int.parse(complete)).toString();
+    final completeCount =
+        _schedules.where((m) => (m['feedback'] ?? '').toString().isNotEmpty).length;
+    final totalCount = _schedules.length;
+    final scheduleCount = totalCount - completeCount;
 
     return {
       "Today": _firstCardTitle,
-      "Schedule": schedule,
-      "Complete": complete,
-      "Total": total,
+      "Schedule": scheduleCount.toString(),
+      "Complete": completeCount.toString(),
+      "Total": totalCount.toString(),
     };
   }
 

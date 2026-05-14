@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manufacturing_erp/modules/formula/bom/bom_model.dart';
 import 'widgets/bom_form_widgets.dart';
-import 'package:manufacturing_erp/core/api_config.dart';
 
 class BomProductSuggestion {
   final String name;
@@ -23,13 +22,14 @@ class BomProductSuggestion {
 
 
 class BomApiService {
-  
+  static const String _baseUrl = 'https://erpsmart.in/total/api/m_api/';
+
   static Future<List<BomProductSuggestion>> getSuggestions(
       {int subType = 2}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(await ApiConfig.getBaseUrl()),
+        Uri.parse(_baseUrl),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -62,7 +62,7 @@ class BomApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(await ApiConfig.getBaseUrl()),
+        Uri.parse(_baseUrl),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -92,7 +92,7 @@ class BomApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final response = await http.post(
-        Uri.parse(await ApiConfig.getBaseUrl()),
+        Uri.parse(_baseUrl),
         body: {
           'type': '2083',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -143,7 +143,7 @@ class BomApiService {
       }).toList();
 
       final response = await http.post(
-        Uri.parse(await ApiConfig.getBaseUrl()),
+        Uri.parse(_baseUrl),
         body: {
           'type': '9002',
           'cid': prefs.getString('cid') ?? '44555666',
@@ -159,6 +159,8 @@ class BomApiService {
           'device_id': prefs.getString('device_id') ?? 'abc123xyz',
           'ln': prefs.getString('ln') ?? '23',
           'lt': prefs.getString('lt') ?? '65',
+          'role_id': prefs.getString('role_id') ?? '1',
+          
         },
       );
 

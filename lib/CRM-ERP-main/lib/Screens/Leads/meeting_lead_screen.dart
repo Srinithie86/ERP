@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Services/lead_service.dart';
-import '../../Widgets/call_confirmation_popup.dart';
+import '../../widgets/call_confirmation_popup.dart';
 import '../../widgets/lead_row_card.dart';
 import 'add_lead_screen.dart';
 import 'call_outcome_screen.dart';
@@ -28,52 +28,8 @@ class _MeetingLeadScreenState extends State<MeetingLeadScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final meetings = await MeetingApi.fetchMeetings();
-      debugPrint("Fetched ${meetings.length} meetings");
-
-      if (mounted) {
-        setState(() {
-          _leads = meetings.map((m) {
-            final map = m.toMap();
-            return {
-              // Use meeting fields directly — cus_name and mobile_1 are stored in meeting
-              'id': map['id'],
-              'uid': map['uid'],
-              'cid': map['cid'],
-              'aid': map['aid'],
-              'cus_name': map['cus_name'] ?? '',
-              'le_name': map['cus_name'] ?? '',
-              'mobile_1': map['mobile_1'] ?? '',
-              'mobile_2': map['mobile_2'] ?? '',
-              'meet_date': map['meet_date'] ?? '',
-              'time': map['time'] ?? '',
-              'loc': map['loc'] ?? '',
-              'address': map['address'] ?? '',
-              'mode_of_meet': map['mode_of_meet'] ?? '',
-              'attended_by': map['attended_by'] ?? '',
-              'dtime': map['dtime'] ?? '',
-              'status': 'Meeting',
-              'lead_status': 'Meeting',
-            };
-          }).toList();
-
-          // Sort by meeting id descending (newest first)
-          _leads.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-
-          debugPrint("Meeting screen showing ${_leads.length} records");
-        });
-      }
-    } catch (e) {
-      debugPrint("Error fetching meetings: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<dynamic> get _filteredLeads {
@@ -271,12 +227,16 @@ class _MeetingLeadScreenState extends State<MeetingLeadScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true),
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
             ),
           ).then((_) => _fetch());
         },

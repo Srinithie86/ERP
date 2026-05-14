@@ -12,6 +12,8 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:convert';
 import 'package:hrm/services/face_detector_service.dart';
 import 'package:hrm/models/attendance_api.dart';
+import 'package:hrm/components/live_face_scanner_view.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class CheckInVerificationScreen extends StatefulWidget {
   const CheckInVerificationScreen({super.key});
@@ -526,82 +528,70 @@ class _CheckInVerificationScreenState extends State<CheckInVerificationScreen> {
   }
 
   Future<void> _takeSelfie() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50,
-      maxWidth: 800,
-      maxHeight: 800,
-    );
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LiveFaceScannerView(
+          title: "Selfie Verification",
+          description: "Align your face to scan and verify",
+          onFaceDetected: (Face face, File imageFile) async {
+            Navigator.pop(context); // Close scanner
+            
+            setState(() => isLoading = true);
+            try {
+              final FaceDetectionResult result = await _faceDetectorService
+                  .detectFace(imageFile);
 
-    if (photo != null) {
-      final String extension = photo.path.split('.').last.toLowerCase();
-      if (extension == 'jpeg' || extension == 'jpg' || extension == 'png') {
-        // Face detection logic
-        setState(() => isLoading = true);
+              if (!result.isValid) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(result.error ?? 'Face detection failed.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
 
-        try {
-          final File imageFile = File(photo.path);
-          final FaceDetectionResult result = await _faceDetectorService
-              .detectFace(imageFile);
+              // Generate and Save Face Profile for Checkout Identification
+              final profile = _faceDetectorService.getFaceProfile(result.face!);
+              if (profile.isNotEmpty) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('checkin_face_profile', jsonEncode(profile));
+              }
 
-          if (!result.isValid) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(result.error ?? 'Face detection failed.'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              if (mounted) {
+                setState(() {
+                  _image = imageFile;
+                });
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Full single face recognized successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              debugPrint("FACE DETECTION ERROR => $e");
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Error analyzing face. Please try again.'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            } finally {
+              if (mounted) setState(() => isLoading = false);
             }
-            return;
-          }
-
-          // Generate and Save Face Profile for Checkout Identification
-          final profile = _faceDetectorService.getFaceProfile(result.face!);
-          if (profile.isNotEmpty) {
-            final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('checkin_face_profile', jsonEncode(profile));
-          }
-
-          if (mounted) {
-            setState(() {
-              _image = imageFile;
-            });
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Full single face recognized successfully!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } catch (e) {
-          debugPrint("FACE DETECTION ERROR => $e");
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Error analyzing face. Please try again.'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        } finally {
-          if (mounted) setState(() => isLoading = false);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Only JPEG and PNG images are allowed'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-    }
+          },
+        ),
+      ),
+    );
   }
 
   void _showLocationServiceDialog() {
@@ -790,8 +780,8 @@ class _CheckInVerificationScreenState extends State<CheckInVerificationScreen> {
           Center(
             child: ElevatedButton.icon(
               onPressed: _takeSelfie,
-              icon: const Icon(Icons.camera_alt, size: 16),
-              label: Text(_image == null ? 'Take Selfie' : 'Retake Selfie'),
+              icon: const Icon(Icons.qr_code_scanner, size: 16),
+              label: Text(_image == null ? 'Scan Face' : 'Rescan Face'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2AA89A),
                 foregroundColor: Colors.white,

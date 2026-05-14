@@ -20,13 +20,6 @@ class PreferenceService {
 
   static Future<String?> getUid() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Debug logging to track down missing UID
-    final keys = prefs.getKeys();
-    debugPrint("------------ PREFERENCE KEYS: $keys ------------");
-    for (String key in keys) {
-      debugPrint("KEY: $key, VALUE: ${prefs.get(key)}");
-    }
 
     return prefs.getString(_keyUid) ?? 
            prefs.getString('server_uid') ??

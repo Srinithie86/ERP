@@ -1,11 +1,14 @@
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Meeting/meeting_screen.dart';
-import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/dashboard_screen.dart' as admin_app;
+import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/dashboard_screen.dart'
+    as admin_app;
 import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/Campaign_center/campaign_center.dart';
 import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/LeadManagement/lead_enquiry.dart';
 import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/AssignManagement/assign_to.dart';
 import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/CallManagement/call_summary.dart';
-import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/MeetingManagement/meeting_visit.dart' as admin_meeting;
-import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/FollowupManagement/follow_up.dart' as admin_followup;
+import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/MeetingManagement/meeting_visit.dart'
+    as admin_meeting;
+import 'package:erp_smart/CRM-ERP-main/CRM-ADMIN-APP/lib/Screens/MenuManagement/FollowupManagement/follow_up.dart'
+    as admin_followup;
 import 'package:flutter/material.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Screens/Reports/report_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Services/profile_service.dart';
@@ -13,8 +16,7 @@ import '../Screens/Home/dashboard_screen.dart';
 import '../Screens/Settings/account_setting_screen.dart';
 import '../Screens/Settings/setting_screen.dart';
 import '../Screens/Leads/leads_screen.dart';
-import '../Screens/Deals/deal_lost.dart';
-import '../Screens/Deals/deal_won.dart';
+
 import '../Services/preference_service.dart';
 
 class DrawerScreen extends StatefulWidget {
@@ -236,15 +238,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                             color: const Color(0xFF26A69A),
                           ),
                           title: 'Deal Won',
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DealWonScreen(),
-                              ),
-                            );
-                          },
+                          onTap: () {},
                         ),
                         _buildSubMenuItem(
                           icon: Image.asset(
@@ -252,15 +246,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
                             color: const Color(0xFF26A69A),
                           ),
                           title: 'Deal lost',
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DealLostScreen(),
-                              ),
-                            );
-                          },
+                          onTap: () {},
                         ),
                       ],
                     ),
@@ -296,7 +282,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const admin_app.DashboardScreen(),
+                                builder: (_) =>
+                                    const admin_app.DashboardScreen(),
                               ),
                             );
                           },
@@ -376,7 +363,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const admin_meeting.MeetingVisitScreen(),
+                                builder: (_) =>
+                                    const admin_meeting.MeetingVisitScreen(),
                               ),
                             );
                           },
@@ -392,7 +380,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const admin_followup.FollowUpScreen(),
+                                builder: (_) =>
+                                    const admin_followup.FollowUpScreen(),
                               ),
                             );
                           },
@@ -446,8 +435,7 @@ class _DrawerScreenState extends State<DrawerScreen> {
               color: const Color(0xFF26A69A),
             )
           : null,
-      onTap:
-          onTap ??
+      onTap: onTap ??
           () {
             if (title == 'Leads') {
               Navigator.pop(context);
@@ -457,16 +445,8 @@ class _DrawerScreenState extends State<DrawerScreen> {
               );
             } else if (title == 'Deal Won') {
               Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const DealWonScreen()),
-              );
             } else if (title == 'Deal lost') {
               Navigator.pop(context);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const DealLostScreen()),
-              );
             } else if (title == 'Meeting / Visit') {
               Navigator.pop(context);
               Navigator.push(

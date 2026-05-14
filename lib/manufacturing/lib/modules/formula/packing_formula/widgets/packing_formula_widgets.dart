@@ -184,7 +184,7 @@ class PackingFormulaSummaryCard extends StatelessWidget {
           ),
           SizedBox(height: sw * 0.01),
           Text(
-            '${packingFormula.id} · ${packingFormula.version}',
+            ' ID : ${packingFormula.id}   ${packingFormula.version}',
             style: TextStyle(
               fontSize: sw * 0.03,
               color: AppColors.textSecondary,
@@ -194,6 +194,8 @@ class PackingFormulaSummaryCard extends StatelessWidget {
           Row(
             children: [
               _Stat(Icons.layers_outlined, '${packingFormula.materialCount} Mats', sw),
+              SizedBox(width: sw * 0.04),
+              _Stat(Icons.inventory_2_outlined, '${packingFormula.noOfCase} Cases', sw),
               SizedBox(width: sw * 0.04),
               _Stat(Icons.history, '${packingFormula.dtime}', sw),
             ],

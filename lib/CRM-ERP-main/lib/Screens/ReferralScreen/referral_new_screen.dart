@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Models/lead_api.dart';
 import '../../widgets/call_confirmation_popup.dart';
-import '../../Widgets/responsive_layout.dart';
+import '../../widgets/responsive_layout.dart';
 import 'referral_followup_screen.dart';
 import 'referral_meeting_screen.dart';
-import '../../Widgets/lead_row_card.dart';
+import '../../widgets/lead_row_card.dart';
 import '../Leads/add_lead_screen.dart';
 import '../Leads/call_outcome_screen.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Models/follow_up_api.dart';
@@ -32,51 +32,8 @@ class _ReferralNewScreenState extends State<ReferralNewScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Referral');
-      final List<FollowUpModel> followUpLeads = await FollowUpApi.fetchFollowUpLeads(enquiryType: '3');
-      final List<MeetingModel> meetings = await MeetingApi.fetchMeetings();
-      
-      final followUpDids = followUpLeads
-          .where((f) => f.did != null)
-          .map((f) => f.did.toString())
-          .toSet();
-
-      final meetingUids = meetings
-          .map((m) => m.uid.toString())
-          .toSet();
-      
-      final today = DateTime.now().toString().split(' ')[0];
-      if (mounted) {
-        setState(() {
-          _referrals = res.where((l) {
-            final date = (l['enquiry_date'] ?? l['entry_date'] ?? '').toString();
-            final id = l['id'].toString();
-            final status = (l['lead_status'] ?? l['status'] ?? '').toString().toLowerCase();
-            final outcome = (l['call_outcome'] ?? '').toString();
-
-            bool isToday = date.startsWith(today);
-            bool hasFollowUpRecord = followUpDids.contains(id);
-            bool hasMeetingRecord = meetingUids.contains(id);
-            bool isAlreadyActioned = (status.contains('follow') && status != 'missed_followup') || status.contains('meeting') || outcome.isNotEmpty && outcome != '0';
-
-            return isToday && !hasFollowUpRecord && !hasMeetingRecord && !isAlreadyActioned;
-          }).toList();
-
-          // Sort by ID descending (newest first)
-          _referrals.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<dynamic> get _filteredReferrals {
@@ -277,11 +234,17 @@ class _ReferralNewScreenState extends State<ReferralNewScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true)),
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
           ).then((_) => _fetch());
         },
       ),

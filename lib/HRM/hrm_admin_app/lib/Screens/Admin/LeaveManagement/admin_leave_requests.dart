@@ -11,11 +11,13 @@ class AdminLeaveRequestsScreen extends StatefulWidget {
   final bool showAppBar;
   final bool isEmbedded;
   final LeaveRequestData? specificRequest;
+  final VoidCallback? onActionDone; // Callback to notify parent
   const AdminLeaveRequestsScreen({
     super.key,
     this.showAppBar = true,
     this.isEmbedded = false,
     this.specificRequest,
+    this.onActionDone,
   });
 
   @override
@@ -43,10 +45,10 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
     try {
       // 1. Get current UID
       final String uid = await SharedPrefsUtil.getUid();
-      
+
       // 2. Fetch leave requests with reporting_manager filter (current user is the manager)
       final response = await LeaveApi.fetchLeaveRequests(reportingManager: uid);
-      
+
       setState(() {
         // Only show PENDING requests or requests with no status set yet
         _allRequests = response.data.where((doc) {
@@ -56,7 +58,7 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
 
         // Sort by ID descending to show latest first
         _allRequests?.sort((a, b) => b.id.compareTo(a.id));
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -85,18 +87,20 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FD),
-      appBar: widget.showAppBar ? AppBar(
-        backgroundColor: const Color(0xFF26A69A),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          "Leave Requests",
-          style: GoogleFonts.poppins(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ) : null,
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: const Color(0xFF26A69A),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              title: Text(
+                "Leave Requests",
+                style: GoogleFonts.poppins(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
       body: _buildBodyContent(),
     );
   }
@@ -109,7 +113,7 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
     if (_isLoading && _allRequests == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    
+
     if (_allRequests == null || _allRequests!.isEmpty) {
       return Center(
         child: Padding(
@@ -392,11 +396,16 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        if (widget.onActionDone != null) {
+          widget.onActionDone!();
+        }
       }
     } else {
       if (mounted) {
-        final errorMsg =
-            response['error_msg'] ?? response['debug'] ?? response['message'] ?? "Update failed";
+        final errorMsg = response['error_msg'] ??
+            response['debug'] ??
+            response['message'] ??
+            "Update failed";
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Failed to approve: $errorMsg"),
@@ -503,7 +512,8 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
 
                     // Leave Information Grid
                     _buildDetailRow("Leave Type", request.leaveType),
-                    _buildDetailRow("Applied Date", request.appliedDate ?? "N/A"),
+                    _buildDetailRow(
+                        "Applied Date", request.appliedDate ?? "N/A"),
                     _buildDetailRow(
                       "Start Date",
                       request.leaveStartDate ?? "N/A",
@@ -637,7 +647,8 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
         children: [
           Text(
             label,
-            style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.grey[600]),
+            style:
+                GoogleFonts.poppins(fontSize: 13.sp, color: Colors.grey[600]),
           ),
           Text(
             value,
@@ -663,18 +674,22 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
 
     if (file.startsWith('uploads/')) {
       // e.g. "uploads/leave_attachments/leave_xxx.png"
-      urls.add("$baseTotal/$file");                                       // /total/uploads/leave_attachments/...
-      urls.add("$baseRoot/$file");                                         // /uploads/leave_attachments/...
-      urls.add("$baseTotal/v2/$file");                                    // /total/v2/uploads/leave_attachments/...
-      urls.add("$baseTotal/v2/uploads/leave_attachments/$filename");      // /total/v2/uploads/leave_attachments/<filename>
-      urls.add("$baseTotal/uploads/$filename");                           // /total/uploads/<filename>
+      urls.add("$baseTotal/$file"); // /total/uploads/leave_attachments/...
+      urls.add("$baseRoot/$file"); // /uploads/leave_attachments/...
+      urls.add(
+          "$baseTotal/v2/$file"); // /total/v2/uploads/leave_attachments/...
+      urls.add(
+          "$baseTotal/v2/uploads/leave_attachments/$filename"); // /total/v2/uploads/leave_attachments/<filename>
+      urls.add("$baseTotal/uploads/$filename"); // /total/uploads/<filename>
     } else {
       // simple filename like "leave_2_20260402_163816.jpg"
-      urls.add("$baseTotal/v2/uploads/$file");                          // /total/v2/uploads/<file>
-      urls.add("$baseTotal/uploads/$file");                             // /total/uploads/<file>
-      urls.add("$baseRoot/uploads/$file");                              // /uploads/<file>
-      urls.add("$baseTotal/uploads/leave_attachments/$file");           // /total/uploads/leave_attachments/<file>
-      urls.add("$baseTotal/v2/uploads/leave_attachments/$file");        // /total/v2/uploads/leave_attachments/<file>
+      urls.add("$baseTotal/v2/uploads/$file"); // /total/v2/uploads/<file>
+      urls.add("$baseTotal/uploads/$file"); // /total/uploads/<file>
+      urls.add("$baseRoot/uploads/$file"); // /uploads/<file>
+      urls.add(
+          "$baseTotal/uploads/leave_attachments/$file"); // /total/uploads/leave_attachments/<file>
+      urls.add(
+          "$baseTotal/v2/uploads/leave_attachments/$file"); // /total/v2/uploads/leave_attachments/<file>
     }
     return urls;
   }
@@ -752,7 +767,7 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
                 status: "rejected",
                 rejectReason: controller.text.trim(),
               );
-              
+
               if (mounted) {
                 Navigator.pop(context);
                 if (response['error'] == false) {
@@ -765,9 +780,11 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
                       backgroundColor: Colors.red,
                     ),
                   );
+                  if (widget.onActionDone != null) {
+                    widget.onActionDone!();
+                  }
                 } else {
-                  final errorMsg =
-                      response['error_msg'] ??
+                  final errorMsg = response['error_msg'] ??
                       response['debug'] ??
                       response['message'] ??
                       "Update failed";
@@ -870,7 +887,8 @@ class _AttachmentWidgetState extends State<_AttachmentWidget> {
                     });
                   }
                 });
-                return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2));
               },
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) {
@@ -935,9 +953,9 @@ class _AttachmentWidgetState extends State<_AttachmentWidget> {
           SizedBox(height: 12.h),
           // Show buttons for each URL to test
           ...widget.urlsToTry.take(2).map((url) => Padding(
-            padding: EdgeInsets.only(bottom: 6.h),
-            child: _buildOpenButton(url),
-          )),
+                padding: EdgeInsets.only(bottom: 6.h),
+                child: _buildOpenButton(url),
+              )),
         ],
       ),
     );
@@ -962,7 +980,8 @@ class _AttachmentWidgetState extends State<_AttachmentWidget> {
         icon: Icon(Icons.open_in_new, size: 16.sp),
         label: Text(
           "Open Attachment",
-          style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600),
+          style:
+              GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w600),
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF26A69A),

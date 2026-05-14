@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../Services/lead_service.dart';
 import '../../Widgets/lead_row_card.dart';
-import '../../Widgets/call_confirmation_popup.dart';
+import '../../widgets/call_confirmation_popup.dart';
 import '../../Widgets/responsive_layout.dart';
 import 'enquiry_new_screen.dart';
 import 'enquiry_meeting_screen.dart';
@@ -31,35 +31,8 @@ class _EnquiryFollowUpScreenState extends State<EnquiryFollowUpScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final List<FollowUpModel> followUpLeads = await FollowUpApi.fetchFollowUpLeads(enquiryType: '2');
-      
-      if (mounted) {
-        setState(() {
-          _enquiries = followUpLeads.map((f) {
-            final Map<String, dynamic> data = f.toMap();
-            data['status'] = 'Follow up';
-            data['lead_status'] = 'Follow up';
-            if (data['id'] == null) {
-              data['id'] = f.aid ?? f.bid ?? f.did;
-            }
-            return data;
-          }).toList();
-
-          // Sort by ID descending (newest first)
-          _enquiries.sort((a, b) {
-            int idA = int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
-        });
-      }
-    } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // API Binding removed for re-binding
+    if (mounted) setState(() => _isLoading = false);
   }
 
   List<dynamic> get _filteredEnquiries {
@@ -262,11 +235,17 @@ class _EnquiryFollowUpScreenState extends State<EnquiryFollowUpScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (String selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true)),
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
           ).then((_) => _fetch());
         },
       ),

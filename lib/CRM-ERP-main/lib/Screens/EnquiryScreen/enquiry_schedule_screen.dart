@@ -3,8 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../Services/lead_service.dart';
 import 'package:erp_smart/CRM-ERP-main/lib/Models/lead_api.dart';
 import '../../widgets/call_confirmation_popup.dart';
-import '../../Widgets/responsive_layout.dart';
-import '../../Widgets/lead_row_card.dart';
+import '../../widgets/responsive_layout.dart';
+import '../../widgets/lead_row_card.dart';
+import '../../widgets/meeting_details_popup.dart';
 import '../Leads/add_lead_screen.dart';
 import '../Leads/call_outcome_screen.dart';
 import '../../Models/schedule_api.dart';
@@ -31,45 +32,16 @@ class _EnquiryScheduleScreenState extends State<EnquiryScheduleScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     try {
-      final res = await LeadService.fetchLeads(enquiryType: 'Enquiry');
-      final schedules = await ScheduleApi.fetchSchedules();
-      
+      final data = await ScheduleApi.fetchSchedules(enquiryType: 'Enquiry');
       if (mounted) {
         setState(() {
-          _enquiries = schedules
-              .where((m) => res.any((l) => l['id'].toString() == m.uid.toString()))
-              .map((m) {
-            final scheduleMap = m.toMap();
-            final id = scheduleMap['uid'].toString();
-            
-            final baseLead = res.firstWhere(
-              (l) => l['id'].toString() == id,
-              orElse: () => null,
-            );
-            
-            if (baseLead == null) return null;
-            
-            return {
-              ...Map<String, dynamic>.from(baseLead as Map),
-              ...scheduleMap,
-              'status': 'Schedule',
-              'lead_status': 'Schedule',
-            }.cast<String, dynamic>();
-          }).whereType<Map<String, dynamic>>().toList();
-
-          // Sort by UID descending (newest first)
-          _enquiries.sort((a, b) {
-            int idA = int.tryParse(a['uid']?.toString() ?? a['id']?.toString() ?? '0') ?? 0;
-            int idB = int.tryParse(b['uid']?.toString() ?? b['id']?.toString() ?? '0') ?? 0;
-            return idB.compareTo(idA);
-          });
+          _enquiries = List<dynamic>.from(data);
+          _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Error: $e");
-    } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -199,6 +171,7 @@ class _EnquiryScheduleScreenState extends State<EnquiryScheduleScreen> {
                                   showStatus: false,
                                   showCall: true,
                                   onCall: () => _confirmCall(context, lead),
+                                  onCreateMeeting: () => _createMeeting(context, lead, 'Enquiry'),
                                 );
                               },
                             ),
@@ -272,14 +245,29 @@ class _EnquiryScheduleScreenState extends State<EnquiryScheduleScreen> {
       builder: (c) => CallConfirmationPopup(
         lead: lead,
         onCancel: () => Navigator.pop(c),
-        onConfirm: () async {
+        onConfirm: (selectedPhone) async {
           Navigator.pop(c);
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (c) => CallOutcomeScreen(lead: lead, autoCall: true)),
+            MaterialPageRoute(
+              builder: (c) => CallOutcomeScreen(
+                lead: lead,
+                autoCall: true,
+                selectedPhone: selectedPhone,
+              ),
+            ),
           ).then((_) => _fetch());
         },
       ),
     );
+  }
+
+  void _createMeeting(BuildContext context, Map<String, dynamic> lead, String type) {
+    showDialog(
+      context: context,
+      builder: (c) => MeetingDetailsPopup(lead: lead, enquiryType: type),
+    ).then((val) {
+      if (val == true) _fetch();
+    });
   }
 }

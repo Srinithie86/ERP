@@ -249,6 +249,7 @@ class _AddMeetingScreenState extends State<AddMeetingScreen> {
   }
 
   Future<void> _submitMeeting() async {
+    // API Binding removed for re-binding
     if (_customerNameController.text.isEmpty ||
         _phoneNoController.text.isEmpty ||
         _dateController.text.isEmpty) {
@@ -258,42 +259,10 @@ class _AddMeetingScreenState extends State<AddMeetingScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final res = await MeetingApi.submitMeetingDetails({
-        'cus_name': _customerNameController.text,
-        'mobile_1': _phoneNoController.text,
-        'meet_date': _dateController.text,
-        'time': _timeController.text,
-        'mode_of_meet': _selectedMeetingType ?? '',
-        'loc': _locationController.text,
-        'address': _addressController.text,
-        'attended_by': _assignedStaffController.text,
-        'feedback': _remarksController.text,
-        'cid': _leadNoController.text, // Assuming Lead No is CID
-      });
-
-      if (mounted) {
-        if (res['error'].toString() == 'false') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Meeting details saved successfully')),
-          );
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'Failed to save meeting')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Mock Save Successful (API Removed)')),
+    );
   }
 
   Widget _buildMeetingOption(String title) {
