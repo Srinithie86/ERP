@@ -73,7 +73,7 @@ class MenuProvider extends ChangeNotifier {
     for (final item in subMenus) {
       final name = item['name']?.toString().trim().toUpperCase() ?? '';
       if (name == searchSub) return true;
-      
+
       // Also handle cases where UI label might be "Create PR" but API is "Purchase Request "
       // We can add some common aliases if needed, but strict matching is safer.
     }
@@ -82,7 +82,7 @@ class MenuProvider extends ChangeNotifier {
 
   String? _findMatchingKey(String moduleName) {
     final search = moduleName.trim().toUpperCase();
-    
+
     // Exact match or simple trim match
     for (final key in _menuData.keys) {
       if (key.trim().toUpperCase() == search) return key;
@@ -105,8 +105,6 @@ class MenuProvider extends ChangeNotifier {
         if (key.toUpperCase() == targetKey.toUpperCase()) return key;
       }
     }
-
-
 
     return null;
   }
@@ -159,11 +157,12 @@ class MenuProvider extends ChangeNotifier {
         setMenu(response['menu']);
         debugPrint("MenuProvider => Successfully refreshed menu from server");
       } else {
-        debugPrint("MenuProvider => Failed to fetch menu: ${response['message']}");
+        debugPrint(
+            "MenuProvider => Failed to fetch menu: ${response['message']}");
       }
     } catch (e) {
       debugPrint("MenuProvider => Error fetching menu: $e");
-      
+
       // FALLBACK to the user provided JSON if fetch fails
       _useProvidedFallback();
     }
@@ -173,6 +172,7 @@ class MenuProvider extends ChangeNotifier {
     final Map<String, dynamic> fallback = {
       "ERP SERVICE": [
         {"id": 4616, "name": "STORE SUPPORT"},
+        {"id": 4668, "name": "RAISE COMPLAINT"},
         {"id": 4617, "name": "Depot"},
         {"id": 4619, "name": "RATE & REVIEW"},
         {"id": 4624, "name": "IN-OFFICE SERVICE"},
@@ -185,7 +185,8 @@ class MenuProvider extends ChangeNotifier {
         {"id": 4661, "name": "STANDBY MANAGE & TRACK"},
         {"id": 4667, "name": "AFTER SALES SUPPORT"},
         {
-          "id": 3714, "name": "SERVICE TICKETS",
+          "id": 3714,
+          "name": "SERVICE TICKETS",
           "sub_menu": [
             {"id": 4644, "name": "Closed Tickets"},
             {"id": 4645, "name": "In Progress"},
@@ -195,7 +196,8 @@ class MenuProvider extends ChangeNotifier {
           ]
         },
         {
-          "id": 3721, "name": "SERVICE DETAILS",
+          "id": 3721,
+          "name": "SERVICE DETAILS",
           "sub_menu": [
             {"id": 4641, "name": "Service History"},
             {"id": 4642, "name": "Dashboard"}
@@ -205,7 +207,8 @@ class MenuProvider extends ChangeNotifier {
       "HRM": [
         {"id": 4607, "name": "Employee Life Cycle"},
         {
-          "id": 2542, "name": "Employee Life Cycle",
+          "id": 2542,
+          "name": "Employee Life Cycle",
           "sub_menu": [
             {"id": 4608, "name": "Resignation Process"},
             {"id": 4609, "name": "Transfer Management"},

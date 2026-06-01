@@ -79,6 +79,7 @@ dependencies:
   sms_autofill: ^2.4.0
   erp_localization:
     path: lib/erp_localization
+  audioplayers: ^6.7.0
 
 dependency_overrides:
   device_info_plus: ^11.1.0

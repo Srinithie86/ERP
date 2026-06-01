@@ -1,0 +1,265 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SMART-TOTALERP-main",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "SMART-TOTALERP-main (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "SMART-TOTALERP-main (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "ERP-Accounting-main",
+            "cwd": "lib/ERP-Accounting-main",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "ERP-Accounting-main (profile mode)",
+            "cwd": "lib/ERP-Accounting-main",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "ERP-Accounting-main (release mode)",
+            "cwd": "lib/ERP-Accounting-main",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "HRM",
+            "cwd": "lib/HRM",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "HRM (profile mode)",
+            "cwd": "lib/HRM",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "HRM (release mode)",
+            "cwd": "lib/HRM",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "Service-main",
+            "cwd": "lib/Service-main",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Service-main (profile mode)",
+            "cwd": "lib/Service-main",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "Service-main (release mode)",
+            "cwd": "lib/Service-main",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "dealer_management",
+            "cwd": "lib/dealer_management",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "dealer_management (profile mode)",
+            "cwd": "lib/dealer_management",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "dealer_management (release mode)",
+            "cwd": "lib/dealer_management",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "ecommerce",
+            "cwd": "lib/ecommerce",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "ecommerce (profile mode)",
+            "cwd": "lib/ecommerce",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "ecommerce (release mode)",
+            "cwd": "lib/ecommerce",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "erp_localization",
+            "cwd": "lib/erp_localization",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "erp_localization (profile mode)",
+            "cwd": "lib/erp_localization",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "erp_localization (release mode)",
+            "cwd": "lib/erp_localization",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "manufacturing",
+            "cwd": "lib/manufacturing",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "manufacturing (profile mode)",
+            "cwd": "lib/manufacturing",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "manufacturing (release mode)",
+            "cwd": "lib/manufacturing",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "purchase",
+            "cwd": "lib/purchase",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "purchase (profile mode)",
+            "cwd": "lib/purchase",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "purchase (release mode)",
+            "cwd": "lib/purchase",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "sale_management",
+            "cwd": "lib/sale_management",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "sale_management (profile mode)",
+            "cwd": "lib/sale_management",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "sale_management (release mode)",
+            "cwd": "lib/sale_management",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "warehouse",
+            "cwd": "lib/warehouse",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "warehouse (profile mode)",
+            "cwd": "lib/warehouse",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "warehouse (release mode)",
+            "cwd": "lib/warehouse",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "hrm_admin_app",
+            "cwd": "lib/HRM/hrm_admin_app",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "hrm_admin_app (profile mode)",
+            "cwd": "lib/HRM/hrm_admin_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "hrm_admin_app (release mode)",
+            "cwd": "lib/HRM/hrm_admin_app",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "Service ",
+            "cwd": "lib/theme/Service ",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Service  (profile mode)",
+            "cwd": "lib/theme/Service ",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "Service  (release mode)",
+            "cwd": "lib/theme/Service ",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

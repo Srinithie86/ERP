@@ -20,12 +20,16 @@ import 'package:erp_smart/CRM-ERP-main/lib/Screens/Home/dashboard_screen.dart'
 import 'package:erp_smart/utils/constants/module_constants.dart'
     show moduleScaffoldKey;
 import 'package:erp_smart/utils/widgets/placeholder_screen.dart';
+import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
+import 'package:erp_smart/providers/menu_provider.dart';
+import 'package:provider/provider.dart';
 
 import 'package:service_ticket/screens/main_root.dart' as service;
 import 'package:service_ticket/screens/jobs/jobs_screen.dart' as service_jobs;
 import 'package:service_ticket/screens/spares/sparetab_screen.dart' as service_spares;
 import 'package:service_ticket/screens/dispatchment/dispatchment_entry.dart' as service_dispatch;
 import 'package:service_ticket/screens/all_tickets/all_tickets.dart' as service_all_tickets;
+import 'package:service_ticket/screens/all_tickets/raise_complaint.dart' as service_raise_complaint;
 import 'package:service_ticket/screens/all_dispatch/all_dispatch_screen.dart' as service_all_dispatch;
 import 'package:service_ticket/screens/standby_screen.dart' as service_standby;
 import 'package:service_ticket/screens/spares/toolkit_screen.dart' as service_toolkit;
@@ -419,6 +423,11 @@ class AppNavigation {
             context,
             MaterialPageRoute(
                 builder: (_) => const service_all_tickets.AllTicketsScreen()));
+      } else if (n == "RAISE COMPLAINT") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_raise_complaint.RaiseComplaintScreen()));
       } else if (n == "ALL DISPATCH") {
         Navigator.push(
             context,
@@ -570,7 +579,16 @@ class AppNavigation {
           context,
           MaterialPageRoute(
               builder: (_) => service.MainRoot(
-                  isEmbedded: true, scaffoldKey: moduleScaffoldKey)));
+                    isEmbedded: true,
+                    scaffoldKey: moduleScaffoldKey,
+                    drawer: const DynamicDrawer(moduleName: 'ERP SERVICE'),
+                    onNavigate: (ctx, name, {moduleContext}) =>
+                        AppNavigation.handleNavigation(ctx, name,
+                            moduleContext: moduleContext),
+                    serviceMenus: List<Map<String, dynamic>>.from(
+                        Provider.of<MenuProvider>(context, listen: false)
+                            .getSubMenus("ERP SERVICE")),
+                  )));
       return true;
     }
 

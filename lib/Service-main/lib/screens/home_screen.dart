@@ -6,19 +6,18 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:erp_smart/providers/menu_provider.dart';
-import 'package:erp_smart/utils/app_navigation.dart';
 import '../services/device_service.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
-import '../Widgets/common_job_card.dart';
+import '../widgets/common_job_card.dart';
 import '../core/app_colors.dart';
 import '../data/app_data.dart';
-import 'Support/notification_screen.dart';
+import 'support/notification_screen.dart';
 import 'jobs/jobs_screen.dart';
 import 'spares/sparetab_screen.dart';
 import 'dispatchment/dispatchment_entry.dart';
 import 'all_tickets/all_tickets.dart';
+import 'all_tickets/raise_complaint.dart';
 import 'all_dispatch/all_dispatch_screen.dart';
 import 'standby_screen.dart';
 import 'spares/toolkit_screen.dart';
@@ -29,6 +28,8 @@ import 'evaluation/evaluation_screen.dart';
 class HomeTab extends StatefulWidget {
   final bool isEmbedded;
   final GlobalKey<ScaffoldState>? scaffoldKey;
+  final Function(BuildContext, String, {String? moduleContext})? onNavigate;
+  final List<Map<String, dynamic>>? serviceMenus;
 
   const HomeTab({
     super.key,
@@ -36,6 +37,8 @@ class HomeTab extends StatefulWidget {
     required this.onOpenDirectVisit,
     this.isEmbedded = false,
     this.scaffoldKey,
+    this.onNavigate,
+    this.serviceMenus,
   });
 
   final VoidCallback onOpenTasks;
@@ -655,9 +658,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildQuickNavigationGrid(BuildContext context) {
-    // 1. Get menu provider
-    final menuProvider = Provider.of<MenuProvider>(context);
-    final rawSubMenus = menuProvider.getSubMenus("ERP SERVICE");
+    final rawSubMenus = widget.serviceMenus ?? [];
 
     // 2. Deduplicate and filter exactly like DynamicDrawer
     final Map<String, Map<String, dynamic>> uniqueMenus = {};
@@ -739,6 +740,12 @@ class _HomeTabState extends State<HomeTab> {
           color = const Color(0xFF6A1B9A);
           screen = const AllTicketsScreen();
           break;
+        case 'RAISE COMPLAINT':
+          title = 'Raise Complaint';
+          icon = Icons.campaign_outlined;
+          color = const Color(0xFFD81B60);
+          screen = const RaiseComplaintScreen();
+          break;
         case 'ALL DISPATCH':
           title = 'All Dispatch';
           icon = Icons.assignment_turned_in_outlined;
@@ -801,7 +808,7 @@ class _HomeTabState extends State<HomeTab> {
           break;
         default:
           title = _toTitleCase(name);
-          icon = AppNavigation.getIcon(name);
+          icon = _getAppIcon(name);
           color = const Color(0xFF00796B);
           screen = null;
           break;
@@ -854,11 +861,13 @@ class _HomeTabState extends State<HomeTab> {
                   MaterialPageRoute(builder: (_) => item['screen'] as Widget),
                 );
               } else {
-                AppNavigation.handleNavigation(
-                  context,
-                  item['originalName'] as String,
-                  moduleContext: 'ERP SERVICE',
-                );
+                if (widget.onNavigate != null) {
+                  widget.onNavigate!(
+                    context,
+                    item['originalName'] as String,
+                    moduleContext: 'ERP SERVICE',
+                  );
+                }
               }
             },
             borderRadius: BorderRadius.circular(16.r),
@@ -1562,4 +1571,51 @@ class _PieChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PieChartPainter oldDelegate) => true;
+}
+
+IconData _getAppIcon(String name) {
+  final String n = name.toUpperCase();
+
+  // Module Icons
+  if (n.contains("PURCHASE")) return Icons.shopping_bag_outlined;
+  if (n.contains("SALES")) return Icons.trending_up_rounded;
+  if (n.contains("HRM")) return Icons.people_outline_rounded;
+  if (n.contains("CRM")) return Icons.contact_mail_outlined;
+  if (n.contains("ACCOUNTING")) return Icons.account_balance_wallet_outlined;
+  if (n.contains("WAREHOUSE")) return Icons.warehouse_outlined;
+  if (n.contains("MANUFACTURING")) return Icons.precision_manufacturing_outlined;
+  if (n.contains("SERVICE")) return Icons.home_repair_service_outlined;
+
+  // Action Icons
+  if (n.contains("CREATE PR") || n == "PR" || n.contains("PURCHASE REQUEST")) return Icons.add_shopping_cart_rounded;
+  if (n.contains("SUPPLIER QUOTATIONS")) return Icons.history_rounded;
+  if (n.contains("RFQ")) return Icons.article_outlined;
+  if (n.contains("ORDER")) return Icons.local_offer_outlined;
+  if (n.contains("GRN") || n.contains("QC")) return Icons.assignment_turned_in_outlined;
+  if (n.contains("INVOICE")) return Icons.receipt_long_outlined;
+  if (n.contains("APPROVAL")) return Icons.assignment_ind_outlined;
+  if (n.contains("COMPARISON")) return Icons.compare_arrows_rounded;
+  if (n.contains("CHALLAN")) return Icons.local_shipping_outlined;
+  if (n.contains("LEAVE")) return Icons.event_available_outlined;
+  if (n.contains("PERMISSION")) return Icons.history_toggle_off_rounded;
+  if (n.contains("SETTINGS")) return Icons.settings_outlined;
+  if (n.contains("REPORT")) return Icons.analytics_outlined;
+  if (n.contains("DASHBOARD")) return Icons.dashboard_customize_outlined;
+  if (n.contains("LEAD")) return Icons.person_add_alt_1_rounded;
+  if (n.contains("ENQUIRY")) return Icons.headset_mic_rounded;
+  if (n.contains("DEAL")) return Icons.handshake_rounded;
+  if (n.contains("FOLLOW")) return Icons.event_note_rounded;
+  if (n.contains("MEETING")) return Icons.groups_rounded;
+  if (n.contains("RECRUITMENT")) return Icons.person_search_outlined;
+  if (n.contains("ONBOARDING")) return Icons.how_to_reg_outlined;
+  if (n.contains("COMPLAINT")) return Icons.gavel_outlined;
+  if (n.contains("PAYROLL")) return Icons.payments_outlined;
+  if (n.contains("EXPENSE")) return Icons.account_balance_wallet_outlined;
+  if (n.contains("PERFORMANCE")) return Icons.speed_outlined;
+  if (n.contains("TRAINING")) return Icons.school_outlined;
+  if (n.contains("HEALTH") && n.contains("SAFETY")) return Icons.health_and_safety_outlined;
+  if (n.contains("EMPLOYEE DETAILS") || n.contains("STAFF DETAILS")) return Icons.badge_outlined;
+  if (n.contains("ATTENDANCE MANAGEMENT") || n.contains("ATTENDANCE ADMIN") || (n.contains("ATTENDANCE") && n.contains("ADMIN"))) return Icons.fact_check_rounded;
+
+  return Icons.circle_outlined;
 }

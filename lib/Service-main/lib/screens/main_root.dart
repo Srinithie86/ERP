@@ -5,12 +5,13 @@ import '../core/app_colors.dart';
 import '../data/app_data.dart';
 import 'home_screen.dart';
 import 'jobs/jobs_screen.dart';
-import 'jobs/Check_in/direct_visit.dart';
+import 'jobs/check_in/direct_visit.dart';
 import 'spares/sparetab_screen.dart';
 import 'dispatchment/dispatchment_entry.dart';
 import 'package:service_ticket/core/size_utils.dart';
 import '../widgets/technician_drawer.dart';
-import 'package:erp_smart/utils/widgets/dynamic_drawer.dart';
+
+
 
 class MainRoot extends StatefulWidget {
   final bool isEmbedded;
@@ -18,6 +19,7 @@ class MainRoot extends StatefulWidget {
   final Function(BuildContext, String, {String? moduleContext})? onNavigate;
   final VoidCallback? onHomePressed;
   final List<Map<String, dynamic>>? serviceMenus;
+  final Widget? drawer;
 
   const MainRoot({
     super.key,
@@ -26,6 +28,7 @@ class MainRoot extends StatefulWidget {
     this.onNavigate,
     this.onHomePressed,
     this.serviceMenus,
+    this.drawer,
   });
 
   @override
@@ -90,7 +93,7 @@ class _MainRootState extends State<MainRoot> {
         backgroundColor: AppColors.bg,
         extendBody: false,
         drawer: widget.isEmbedded
-            ? const DynamicDrawer(moduleName: 'ERP SERVICE')
+            ? (widget.drawer ?? const SizedBox.shrink())
             : CustomDrawer(
                 profile: {
                   'name': AppData.instance.profile['name'],
@@ -110,6 +113,7 @@ class _MainRootState extends State<MainRoot> {
                   _goToTab(3);
                 },
                 onHomePressed: widget.onHomePressed,
+                onNavigate: widget.onNavigate,
               ),
         body: IndexedStack(
           index: _navIndex,
@@ -119,6 +123,8 @@ class _MainRootState extends State<MainRoot> {
               scaffoldKey: widget.scaffoldKey,
               onOpenTasks: goToTasks,
               onOpenDirectVisit: _openDirectVisit,
+              onNavigate: widget.onNavigate,
+              serviceMenus: widget.serviceMenus,
             ),
             JobsScreen(onBack: () => setState(() => _navIndex = 0)),
             SparePartsTab(onBack: () => setState(() => _navIndex = 0)),

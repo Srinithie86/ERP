@@ -2,8 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:service_ticket/core/size_utils.dart';
-import 'package:erp_smart/providers/menu_provider.dart';
-import 'package:erp_smart/utils/app_navigation.dart';
 import '../core/app_colors.dart';
 
 class CustomDrawer extends StatelessWidget {
@@ -24,6 +22,7 @@ class CustomDrawer extends StatelessWidget {
     this.onAllDispatchTap,
     this.onRatingTap,
     this.onHelpSupportTap,
+    this.onNavigate,
   });
 
   final Map<String, dynamic> profile;
@@ -41,6 +40,13 @@ class CustomDrawer extends StatelessWidget {
   final VoidCallback? onAllDispatchTap;
   final VoidCallback? onRatingTap;
   final VoidCallback? onHelpSupportTap;
+  final Function(BuildContext, String, {String? moduleContext})? onNavigate;
+
+  void _handleNavigation(BuildContext context, String menuName) {
+    if (onNavigate != null) {
+      onNavigate!(context, menuName, moduleContext: 'ERP SERVICE');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +197,18 @@ class CustomDrawer extends StatelessWidget {
                       ...(() {
                         final List<dynamic> rawSubMenus = (menuItems != null && menuItems!.isNotEmpty)
                             ? menuItems!
-                            : Provider.of<MenuProvider>(context, listen: false).getSubMenus("ERP SERVICE");
+                            : const [
+                                {"name": "JOBS"},
+                                {"name": "SPARES"},
+                                {"name": "DISPATCH"},
+                                {"name": "ALL TICKETS"},
+                                {"name": "RAISE COMPLAINT"},
+                                {"name": "ALL DISPATCH"},
+                                {"name": "STAND BY"},
+                                {"name": "MY TOOLKIT"},
+                                {"name": "EOD"},
+                                {"name": "EVOLUTION REPORT"},
+                              ];
 
                         // Deduplicate and filter
                         final Map<String, Map<String, dynamic>> uniqueMenus = {};
@@ -238,7 +255,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.work_outline_rounded;
                               tap = onJobsTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'SPARES':
@@ -247,28 +264,35 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.inventory_2_outlined;
                               tap = onSparesTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'DISPATCH':
                               icon = Icons.local_shipping_outlined;
                               tap = onDispatchTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'ALL TICKETS':
                               icon = Icons.assignment_outlined;
                               tap = onAllTicketsTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
+                              };
+                              break;
+                            case 'RAISE COMPLAINT':
+                              icon = Icons.campaign_outlined;
+                              tap = () {
+                                Navigator.pop(context);
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'ALL DISPATCH':
                               icon = Icons.local_shipping_outlined;
                               tap = onAllDispatchTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'STAND BY':
@@ -276,7 +300,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.power_settings_new_rounded;
                               tap = onStandbyTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               displayLabel = 'Standby';
                               break;
@@ -285,7 +309,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.inventory_2_outlined;
                               tap = onToolkitTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               displayLabel = 'Toolkit';
                               break;
@@ -295,7 +319,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.analytics_outlined;
                               tap = onEodTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                             case 'EVOLUTION REPORT':
@@ -303,7 +327,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.assignment_turned_in_outlined;
                               tap = onEvaluationTap ?? () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               displayLabel = 'Employee Evaluation';
                               break;
@@ -311,7 +335,7 @@ class CustomDrawer extends StatelessWidget {
                               icon = Icons.layers_outlined;
                               tap = () {
                                 Navigator.pop(context);
-                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                                _handleNavigation(context, menuName);
                               };
                               break;
                           }
