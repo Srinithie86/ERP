@@ -21,7 +21,16 @@ import 'package:erp_smart/utils/constants/module_constants.dart'
     show moduleScaffoldKey;
 import 'package:erp_smart/utils/widgets/placeholder_screen.dart';
 
-import 'package:service_ticket/screens/technician_dashboard.dart' as service;
+import 'package:service_ticket/screens/main_root.dart' as service;
+import 'package:service_ticket/screens/jobs/jobs_screen.dart' as service_jobs;
+import 'package:service_ticket/screens/spares/sparetab_screen.dart' as service_spares;
+import 'package:service_ticket/screens/dispatchment/dispatchment_entry.dart' as service_dispatch;
+import 'package:service_ticket/screens/all_tickets/all_tickets.dart' as service_all_tickets;
+import 'package:service_ticket/screens/all_dispatch/all_dispatch_screen.dart' as service_all_dispatch;
+import 'package:service_ticket/screens/standby_screen.dart' as service_standby;
+import 'package:service_ticket/screens/spares/toolkit_screen.dart' as service_toolkit;
+import 'package:service_ticket/screens/eod/eod_report_screen.dart' as service_eod;
+import 'package:service_ticket/screens/evaluation/evaluation_screen.dart' as service_evaluation;
 
 import 'package:manufacturing_erp/core/main_shell.dart' as mfg;
 import 'package:manufacturing_erp/modules/formula/bom/bom_screen.dart'
@@ -388,7 +397,59 @@ class AppNavigation {
       Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => const service.TechnicianDashboard()));
+              builder: (_) => const service.MainRoot(isEmbedded: false)));
+    } else if (m.contains("SERVICE") || m.contains("ERP")) {
+      if (n == "JOBS") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (routeContext) => service_jobs.JobsScreen(onBack: () => Navigator.pop(routeContext))));
+      } else if (n == "SPARES" || n == "ENGINEER SPARE ENTRY" || n == "SPARE DISPATCH") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (routeContext) => service_spares.SparePartsTab(onBack: () => Navigator.pop(routeContext))));
+      } else if (n == "DISPATCH") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (routeContext) => service_dispatch.DispatchmentEntryScreen(onBack: () => Navigator.pop(routeContext))));
+      } else if (n == "ALL TICKETS") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_all_tickets.AllTicketsScreen()));
+      } else if (n == "ALL DISPATCH") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_all_dispatch.AllDispatchScreen()));
+      } else if (n == "STAND BY" || n == "STANDBY MANAGE & TRACK") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_standby.StandByScreen()));
+      } else if (n == "MY TOOLKIT" || n == "TOOLKIT MANAGEMENT") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_toolkit.ToolkitScreen()));
+      } else if (n == "EOD" || n == "SERVICE DETAILS" || n == "SERVICE HISTORY") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_eod.EodReportScreen()));
+      } else if (n == "EVOLUTION REPORT") {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const service_evaluation.EvaluationScreen()));
+      } else {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => PlaceholderScreen(title: name)));
+      }
     }
 
     // Manufacturing Module (when user is inside Manufacturing drawer)
@@ -508,7 +569,8 @@ class AppNavigation {
       Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => const service.TechnicianDashboard()));
+              builder: (_) => service.MainRoot(
+                  isEmbedded: true, scaffoldKey: moduleScaffoldKey)));
       return true;
     }
 

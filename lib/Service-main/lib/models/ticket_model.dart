@@ -1,4 +1,4 @@
-﻿class TicketModel {
+class TicketModel {
   const TicketModel({
     required this.id,
     required this.title,

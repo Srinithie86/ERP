@@ -212,7 +212,7 @@ class _FilterTab extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: Colors.black.withOpacity(0.03),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -300,7 +300,7 @@ class _NotificationGroup extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF0F2F5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -366,7 +366,7 @@ class _NotificationCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
+                        color: Colors.black.withOpacity(0.04),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -374,6 +374,7 @@ class _NotificationCard extends StatelessWidget {
                   ),
                   child: Image.asset(
                     item.assetPath,
+                    package: 'service_ticket',
                     fit: BoxFit.contain,
                   ),
                 ),

@@ -285,7 +285,7 @@ class _SummaryBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(10.r),
         boxShadow: [
           BoxShadow(
-            color: colors.last.withValues(alpha: 0.3),
+            color: colors.last.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

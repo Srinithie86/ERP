@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:service_ticket/core/app_colors.dart';
 import 'package:service_ticket/core/size_utils.dart';
-import '../../../Widgets/app_status_bar_wrapper.dart';
-import '../../../core/app_colors.dart';
+import 'package:service_ticket/widgets/app_status_bar_wrapper.dart';
 
 class LiveChatScreen extends StatefulWidget {
   const LiveChatScreen({super.key});
@@ -19,12 +19,10 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
       'text': 'Hello! I\'m here to help. How\ncan I assist you today?',
       'isSender': false,
     },
+    {'text': 'I need help with\nDispatch', 'isSender': true},
     {
-      'text': 'I need help with\nDispatch',
-      'isSender': true,
-    },
-    {
-      'text': 'Sure! I can help you with\ndispatch. Please provide your\norder ID or dispatch number.',
+      'text':
+          'Sure! I can help you with\ndispatch. Please provide your\norder ID or dispatch number.',
       'isSender': false,
     },
   ];
@@ -34,10 +32,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add({
-        'text': text,
-        'isSender': true,
-      });
+      _messages.add({'text': text, 'isSender': true});
       _messageController.clear();
     });
 
@@ -100,12 +95,15 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                   ],
                 ),
               ),
-              
+
               // Chat List
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 10.h,
+                  ),
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[index];
@@ -127,7 +125,10 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                       border: Border.all(color: AppColors.primary, width: 1.2),
                       borderRadius: BorderRadius.circular(6.r),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 8.h,
+                    ),
                     child: Row(
                       children: [
                         Icon(
@@ -146,15 +147,20 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                             ),
                             child: TextField(
                               controller: _messageController,
-                              style: TextStyle(fontSize: 13.sp, color: Colors.black87),
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                color: Colors.black87,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Type message...',
                                 hintStyle: TextStyle(
                                   fontSize: 13.sp,
-                                  color: AppColors.primary.withValues(alpha: 0.7),
+                                  color: AppColors.primary.withOpacity(0.7),
                                 ),
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.only(bottom: 11.h), // align center
+                                contentPadding: EdgeInsets.only(
+                                  bottom: 11.h,
+                                ), // align center
                               ),
                             ),
                           ),
@@ -164,7 +170,11 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                           height: 40.h,
                           child: ElevatedButton.icon(
                             onPressed: _sendMessage,
-                            icon: Icon(Icons.send_rounded, size: 16.sp, color: Colors.white),
+                            icon: Icon(
+                              Icons.send_rounded,
+                              size: 16.sp,
+                              color: Colors.white,
+                            ),
                             label: Text(
                               'Send',
                               style: TextStyle(
@@ -197,10 +207,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 }
 
 class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({
-    required this.text,
-    required this.isSender,
-  });
+  const _ChatBubble({required this.text, required this.isSender});
 
   final String text;
   final bool isSender;
@@ -258,7 +265,7 @@ class _ChatBubblePainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     final path = Path();
-    
+
     // The main rectangle coordinates
     final left = 0.0;
     final top = 0.0;
@@ -269,35 +276,52 @@ class _ChatBubblePainter extends CustomPainter {
       // Background path
       path.moveTo(left + radius, top);
       path.lineTo(right - radius, top);
-      path.arcToPoint(Offset(right, top + radius), radius: Radius.circular(radius));
+      path.arcToPoint(
+        Offset(right, top + radius),
+        radius: Radius.circular(radius),
+      );
       path.lineTo(right, bottom);
-      // Sender Tail at bottom right
       path.lineTo(right - tailWidth, bottom);
       path.lineTo(right - tailWidth, bottom + tailHeight);
-      path.lineTo(right - tailWidth - 8, bottom); // slant back up
-      
+      path.lineTo(right - tailWidth - 8, bottom);
+
       path.lineTo(left + radius, bottom);
-      path.arcToPoint(Offset(left, bottom - radius), radius: Radius.circular(radius));
+      path.arcToPoint(
+        Offset(left, bottom - radius),
+        radius: Radius.circular(radius),
+      );
       path.lineTo(left, top + radius);
-      path.arcToPoint(Offset(left + radius, top), radius: Radius.circular(radius));
-      
+      path.arcToPoint(
+        Offset(left + radius, top),
+        radius: Radius.circular(radius),
+      );
+
       canvas.drawPath(path, paint);
     } else {
       // Receiver: white background with blue border
       path.moveTo(left + radius, top);
       path.lineTo(right - radius, top);
-      path.arcToPoint(Offset(right, top + radius), radius: Radius.circular(radius));
+      path.arcToPoint(
+        Offset(right, top + radius),
+        radius: Radius.circular(radius),
+      );
       path.lineTo(right, bottom - radius);
-      path.arcToPoint(Offset(right - radius, bottom), radius: Radius.circular(radius));
-      
+      path.arcToPoint(
+        Offset(right - radius, bottom),
+        radius: Radius.circular(radius),
+      );
+
       // Tail at bottom left
       path.lineTo(left + tailWidth + 8, bottom);
       path.lineTo(left + tailWidth, bottom + tailHeight);
       path.lineTo(left + tailWidth, bottom);
-      
+
       path.lineTo(left, bottom);
       path.lineTo(left, top + radius);
-      path.arcToPoint(Offset(left + radius, top), radius: Radius.circular(radius));
+      path.arcToPoint(
+        Offset(left + radius, top),
+        radius: Radius.circular(radius),
+      );
 
       canvas.drawPath(path, paint);
       canvas.drawPath(path, borderPaint);

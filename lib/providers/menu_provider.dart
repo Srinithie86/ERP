@@ -95,6 +95,8 @@ class MenuProvider extends ChangeNotifier {
       'PURCHASE': 'PURCHASE', // redundant but safe
       'SALES': 'SALES',
       'ACCOUNTING': 'ACCOUNTING ',
+      'SERVICE': 'ERP SERVICE',
+      'ERP SERVICE': 'SERVICE',
     };
 
     if (mapping.containsKey(search)) {
@@ -103,6 +105,8 @@ class MenuProvider extends ChangeNotifier {
         if (key.toUpperCase() == targetKey.toUpperCase()) return key;
       }
     }
+
+
 
     return null;
   }

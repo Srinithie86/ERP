@@ -1,11 +1,32 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart' as dio_pkg;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'device_service.dart';
 import 'storage_service.dart';
 
 class ApiService {
-  static const String baseUrl = "https://erpsmart.in/total/api/m_api/";
+  static const String _defaultBaseUrl = "https://erpsmart.in/total/api/m_api/";
+
+  static Future<String> getBaseUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? url = prefs.getString("company_domain_url");
+    if (url == null || url.isEmpty) return _defaultBaseUrl;
+
+    // Normalize URL
+    if (!url.startsWith("http")) url = "https://$url";
+    if (!url.endsWith("/")) url = "$url/";
+    if (!url.endsWith("api/m_api/")) {
+      if (url.endsWith("api/"))
+        url = "${url}m_api/";
+      else
+        url = "${url}api/m_api/";
+    }
+    return url;
+  }
+
+  static String get baseUrl => _defaultBaseUrl; // Legacy support
 
   static Future<dynamic> login({
     required String mobile,
@@ -13,9 +34,10 @@ class ApiService {
     required String lon,
   }) async {
     String deviceId = await DeviceService.getDeviceId();
+    print("DEVICE ID: $deviceId");
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5001",
         "lt": lat,
@@ -41,7 +63,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5002",
         "lt": lat,
@@ -70,7 +92,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5021",
         "cid": cid,
@@ -94,7 +116,7 @@ class ApiService {
     String cid = await StorageService.getCid() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "2084",
         "cid": cid,
@@ -115,7 +137,7 @@ class ApiService {
     String cid = await StorageService.getCid() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "2083",
         "cid": cid,
@@ -148,28 +170,34 @@ class ApiService {
     String roleId = await StorageService.getRoleId() ?? "";
     String token = await StorageService.getToken() ?? "";
 
-    var response = await http.post(
-      Uri.parse(baseUrl),
-      body: {
-        "type": "5022",
-        "cid": cid,
-        "id": ticketId,
-        "engineer_id": engineerId,
-        "priority": priority,
-        "uid": uid,
-        "role_id": roleId,
-        "token": token,
-        "device_id": deviceId,
-        "lt": "34",
-        "ln": "12",
-        "locat_verify": locationVerify,
-        "waranty": warranty,
-        "apro_change": approxCharge,
-        "expence": expense,
-      },
-    );
+    final baseUrl = await getBaseUrl();
+    final body = {
+      "type": "5022",
+      "cid": cid,
+      "id": ticketId,
+      "engineer_id": engineerId,
+      "priority": priority,
+      "uid": uid,
+      "role_id": roleId,
+      "token": token,
+      "device_id": deviceId,
+      "lt": "34",
+      "ln": "12",
+      "locat_verify": locationVerify,
+      "waranty": warranty,
+      "apro_change": approxCharge,
+      "expence": expense,
+    };
 
-    print("ASSIGN TICKET (5022) RESP: ${response.body}");
+    debugPrint("\n========== ASSIGN TICKET REQUEST (5022) ==========");
+    debugPrint("URL: $baseUrl");
+    debugPrint("FIELDS: $body");
+
+    var response = await http.post(Uri.parse(baseUrl), body: body);
+
+    debugPrint("========== ASSIGN TICKET RESPONSE (5022) ==========");
+    debugPrint("RESULT: ${response.body}");
+    debugPrint("===================================================\n");
     return jsonDecode(response.body);
   }
 
@@ -186,11 +214,10 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5023",
         "cid": cid,
-        "uid": uid,
         "role_id": roleId,
         "token": token,
         "engineer_id": engineerId,
@@ -222,22 +249,24 @@ class ApiService {
     Map<String, String> body = {
       "type": "5012",
       "cid": cid,
-      "uid": uid,
+      "led_id": engineerId,
       "engineer_id": engineerId,
+      "cus_id": engineerId,
       "role_id": roleId,
       "token": token,
       "device_id": deviceId,
       "lt": lat,
       "ln": lon,
+      "date": "all",
     };
-    // Return cache immediately if available and not ignored
+    print("Job request : $body`");
 
     if (_cachedJobs != null && !ignoreCache) {
       _fetchAndCacheJobs(body);
       return {"error": false, "records": _cachedJobs, "isCache": true};
     }
 
-    var response = await http.post(Uri.parse(baseUrl), body: body);
+    var response = await http.post(Uri.parse(await getBaseUrl()), body: body);
 
     print("GET JOBS (5012): ${response.body}");
     var decoded = await compute(jsonDecode, response.body);
@@ -252,7 +281,7 @@ class ApiService {
 
   static void _fetchAndCacheJobs(Map<String, String> body) async {
     try {
-      var response = await http.post(Uri.parse(baseUrl), body: body);
+      var response = await http.post(Uri.parse(await getBaseUrl()), body: body);
       var decoded = await compute(jsonDecode, response.body);
       if (decoded != null && decoded["error"] == false) {
         _cachedJobs = decoded["records"];
@@ -274,7 +303,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5026",
         "cid": cid,
@@ -293,7 +322,6 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // SPARES HISTORY / DETAILS (5017)
   static Future<dynamic> getSparesHistory({
     required String cid,
     required String uid,
@@ -304,7 +332,7 @@ class ApiService {
     String deviceId = await DeviceService.getDeviceId();
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5017",
         "cid": cid,
@@ -339,7 +367,7 @@ class ApiService {
     String engineerId = await StorageService.getEngineerId() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5030",
         "cid": cid,
@@ -375,7 +403,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5025",
         "cid": cid,
@@ -403,7 +431,7 @@ class ApiService {
     String cusId = await StorageService.getCusId() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5033",
         "cid": cid,
@@ -431,7 +459,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5027",
         "cid": cid,
@@ -458,7 +486,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5028",
         "cid": cid,
@@ -485,7 +513,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5029",
         "cid": cid,
@@ -535,7 +563,7 @@ class ApiService {
       return {"error": false, "total": _cachedTotal, "data": _cachedDispatch};
     }
 
-    var response = await http.post(Uri.parse(baseUrl), body: body);
+    var response = await http.post(Uri.parse(await getBaseUrl()), body: body);
 
     print("GET DISPATCH DATA (5031): ${response.body}");
     var decoded = await compute(jsonDecode, response.body);
@@ -552,7 +580,7 @@ class ApiService {
 
   static void _fetchAndCacheDispatch(Map<String, String> body) async {
     try {
-      var response = await http.post(Uri.parse(baseUrl), body: body);
+      var response = await http.post(Uri.parse(await getBaseUrl()), body: body);
       var decoded = await compute(jsonDecode, response.body);
       if (decoded != null && decoded["error"] == false) {
         _cachedDispatch = decoded["data"];
@@ -577,7 +605,7 @@ class ApiService {
     String token = await StorageService.getToken() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5032",
         "cid": cid,
@@ -610,7 +638,7 @@ class ApiService {
     String name = await StorageService.getName() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5038",
         "cid": cid,
@@ -641,7 +669,7 @@ class ApiService {
     String engineerId = await StorageService.getEngineerId() ?? "";
 
     var response = await http.post(
-      Uri.parse(baseUrl),
+      Uri.parse(await getBaseUrl()),
       body: {
         "type": "5037",
         "cid": cid,
@@ -657,5 +685,53 @@ class ApiService {
 
     print("GET EVALUATION REPORT (5037) RESP: ${response.body}");
     return jsonDecode(response.body);
+  }
+
+  static Future<dynamic> requestSpares({
+    required String ticketId,
+    required String cusId,
+    required String customerName,
+    required String address,
+    required List<Map<String, String>> items,
+  }) async {
+    final dio = dio_pkg.Dio();
+    String deviceId = await DeviceService.getDeviceId();
+    String cid = await StorageService.getCid() ?? "";
+    String uid = await StorageService.getUid() ?? "";
+    String roleId = await StorageService.getRoleId() ?? "";
+    String token = await StorageService.getToken() ?? "";
+    final String encodedItems = jsonEncode(items);
+
+    final Map<String, String> body = {
+      "type": "5036",
+      "cid": cid,
+      "uid": uid,
+      "role_id": roleId,
+      "token": token,
+      "device_id": deviceId,
+      "lt": "123",
+      "ln": "987",
+      "ticket_id": ticketId,
+      "cus_id": cusId,
+      "customer_id": customerName,
+      "customer_name": customerName,
+      "address": address,
+      "items": encodedItems,
+    };
+
+    print("REQUEST SPARES (5036) SENDING BODY: $body");
+
+    try {
+      final response = await dio.post(
+        await getBaseUrl(),
+        data: dio_pkg.FormData.fromMap(body),
+      );
+
+      print("REQUEST SPARES (5036) RESP: ${response.data}");
+      return response.data;
+    } catch (e) {
+      print("REQUEST SPARES (5036) ERROR: $e");
+      return {"error": true, "message": e.toString()};
+    }
   }
 }

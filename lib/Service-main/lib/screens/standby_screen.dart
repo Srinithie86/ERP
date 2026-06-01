@@ -87,7 +87,7 @@ class _StandByScreenState extends State<StandByScreen> {
                       borderRadius: BorderRadius.circular(12.r),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withOpacity(0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -161,7 +161,7 @@ class _StandByScreenState extends State<StandByScreen> {
                               BoxShadow(
                                 color: const Color(
                                   0xFF4776E6,
-                                ).withValues(alpha: 0.3),
+                                ).withOpacity(0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
                               ),
@@ -293,7 +293,7 @@ class _CircularStat extends StatelessWidget {
               width: 32.w,
               height: 32.w,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -344,7 +344,7 @@ class _MachineListItem extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -356,7 +356,7 @@ class _MachineListItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w700,
-            color: Colors.black.withValues(alpha: 0.8),
+            color: Colors.black.withOpacity(0.8),
           ),
         ),
       ),
@@ -434,7 +434,7 @@ class _MachineInUseItemState extends State<_MachineInUseItem> {
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black.withValues(alpha: 0.8),
+                  color: Colors.black.withOpacity(0.8),
                 ),
               ),
               Positioned(
@@ -498,19 +498,6 @@ class _MachineInUseItemState extends State<_MachineInUseItem> {
             padding: EdgeInsets.symmetric(horizontal: 24.w),
             child: Column(
               children: [
-                // _buildDetailRow(
-                //   Icons.settings_suggest_rounded,
-                //   const Color(0xFFF06292),
-                //   'Machine No',
-                //   m['breakerNo'] ?? '--',
-                // ),
-                // SizedBox(height: 10.h),
-                // _buildDetailRow(
-                //   Icons.apps_rounded,
-                //   const Color(0xFF4CAF50),
-                //   'Serial Number',
-                //   m['serial'] ?? '--',
-                // ),
                 SizedBox(height: 10.h),
                 _buildDetailRow(
                   Icons.people_alt_rounded,
@@ -547,9 +534,15 @@ class _MachineInUseItemState extends State<_MachineInUseItem> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Image.asset(
-                  'assets/calendar.png',
+                  'assets/calendar_icon.png',
+                  package: 'service_ticket',
                   width: 24.sp,
                   height: 24.sp,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.calendar_today_rounded,
+                    size: 24.sp,
+                    color: Colors.white,
+                  ),
                 ),
                 SizedBox(height: 12.h),
                 Row(
@@ -1167,7 +1160,7 @@ class _AssignMachineSheetState extends State<_AssignMachineSheet> {
                         border: Border.all(color: Colors.grey.shade300),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withOpacity(0.1),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -1456,7 +1449,8 @@ class _AssignMachineSheetState extends State<_AssignMachineSheet> {
               ),
             ),
             Image.asset(
-              'assets/calendar.png',
+              'assets/calendar_icon.png',
+              package: 'service_ticket',
               width: 18.sp,
               height: 18.sp,
             ),

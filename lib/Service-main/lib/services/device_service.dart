@@ -1,5 +1,5 @@
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 
 class DeviceService {
@@ -19,7 +19,10 @@ class DeviceService {
     try {
       if (Platform.isAndroid) {
         final android = await deviceInfo.androidInfo;
-        deviceId = android.id ?? "android_unknown";
+        deviceId = android.id;
+        if (deviceId.isEmpty || deviceId == "unknown") {
+          deviceId = android.model + "_" + android.fingerprint;
+        }
       } else if (Platform.isIOS) {
         final ios = await deviceInfo.iosInfo;
         deviceId = ios.identifierForVendor ?? "ios_unknown";

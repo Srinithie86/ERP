@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:service_ticket/core/size_utils.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Widgets/app_status_bar_wrapper.dart';
 import '../../core/app_colors.dart';
 import '../../data/app_data.dart';
@@ -61,18 +61,21 @@ class _AllTicketsScreenState extends State<AllTicketsScreen> {
   Future<void> _fetchTickets() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
       final cid = await StorageService.getCid() ?? '';
       final uid = await StorageService.getUid() ?? '';
       final roleId = await StorageService.getRoleId() ?? '';
       final token = await StorageService.getToken() ?? '';
+      final lat = prefs.getString('lt') ?? '11.0';
+      final lon = prefs.getString('ln') ?? '77.0';
 
       final res = await ApiService.getTickets(
         cid: cid,
         uid: uid,
         roleId: roleId,
         token: token,
-        lat: '145',
-        lon: '145',
+        lat: lat,
+        lon: lon,
       );
 
       if (res != null &&
@@ -145,6 +148,7 @@ class _AllTicketsScreenState extends State<AllTicketsScreen> {
         'audio': t['audio']?.toString(),
         'pho': t['pho']?.toString(),
         'note': t['remark']?.toString() ?? t['note']?.toString() ?? 'N/A',
+        'cus_id': t['cus_id']?.toString() ?? '',
       };
     }).toList();
 
@@ -473,8 +477,7 @@ class _AllTicketsScreenState extends State<AllTicketsScreen> {
                                   issue: t['issue'],
                                   dateText: t['dateText'],
                                   timeText: t['timeText'],
-                                  label:
-                                      t['status'], // Use the pre-computed statusLabel
+                                  label: t['status'],
                                   filterCategory: t['filterCategory'],
                                   address: t['location'],
                                   product: t['product'],
@@ -484,6 +487,15 @@ class _AllTicketsScreenState extends State<AllTicketsScreen> {
                                   audio: t['audio'],
                                   priorityName: t['priority'],
                                   note: t['note'] ?? 'N/A',
+                                  cusId: t['cus_id'] ?? '',
+                                  onTap: () async {
+                                    if (t['cus_id'] != null &&
+                                        t['cus_id'].toString().isNotEmpty) {
+                                      await StorageService.saveCusId(
+                                        t['cus_id'].toString(),
+                                      );
+                                    }
+                                  },
                                   onAssignTap: () =>
                                       _openAssignBottomSheet(context, t),
                                   onViewStatusTap: () =>
@@ -518,51 +530,58 @@ class _AllTicketsScreenState extends State<AllTicketsScreen> {
           ticketData: ticketData,
           cachedPriorities: _priorityListCache,
           cachedEngineers: _engineerListCache,
-          onAssign: (String priority, String engineerName, String engineerId,
-              String locationVerify, String warranty, String approxCharge,
-              String expense) async {
-            try {
-              // Show loading if possible, but for now just call the API
-              final res = await ApiService.assignTicket(
-                ticketId: ticketData['id'].toString(),
-                engineerId: engineerId,
-                priority: priority,
-                locationVerify: locationVerify,
-                warranty: warranty,
-                approxCharge: approxCharge,
-                expense: expense,
-              );
+          onAssign:
+              (
+                String priority,
+                String engineerName,
+                String engineerId,
+                String locationVerify,
+                String warranty,
+                String approxCharge,
+                String expense,
+              ) async {
+                try {
+                  // Show loading if possible, but for now just call the API
+                  final res = await ApiService.assignTicket(
+                    ticketId: ticketData['id'].toString(),
+                    engineerId: engineerId,
+                    priority: priority,
+                    locationVerify: locationVerify,
+                    warranty: warranty,
+                    approxCharge: approxCharge,
+                    expense: expense,
+                  );
 
-              if (res != null && res['error'] == false) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Ticket ${ticketData['ticketNo']} assigned to $engineerName successfully',
-                      ),
-                    ),
-                  );
-                  _fetchTickets(); // Refresh list from backend
+                  if (res != null && res['error'] == false) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Ticket ${ticketData['ticketNo']} assigned to $engineerName successfully',
+                          ),
+                        ),
+                      );
+                      _fetchTickets(); // Refresh list from backend
+                    }
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to assign ticket: ${res?['message'] ?? 'Unknown error'}',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error assigning ticket: $e')),
+                    );
+                  }
                 }
-              } else {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Failed to assign ticket: ${res?['message'] ?? 'Unknown error'}',
-                      ),
-                    ),
-                  );
-                }
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error assigning ticket: $e')),
-                );
-              }
-            }
-          },
+              },
         );
       },
     );
@@ -782,7 +801,8 @@ class _AssignBottomSheet extends StatefulWidget {
     String warranty,
     String approxCharge,
     String expense,
-  ) onAssign;
+  )
+  onAssign;
   final List<Map<String, dynamic>> cachedPriorities;
   final List<Map<String, dynamic>> cachedEngineers;
 
@@ -1117,12 +1137,14 @@ class _AssignBottomSheetState extends State<_AssignBottomSheet> {
                   _buildCheckbox(
                     label: 'Location Verified',
                     value: _locationVerified,
-                    onChanged: (val) => setState(() => _locationVerified = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => _locationVerified = val ?? false),
                   ),
                   _buildCheckbox(
                     label: 'Warranty item Available',
                     value: _warrantyAvailable,
-                    onChanged: (val) => setState(() => _warrantyAvailable = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => _warrantyAvailable = val ?? false),
                   ),
                   SizedBox(height: 16.h),
 

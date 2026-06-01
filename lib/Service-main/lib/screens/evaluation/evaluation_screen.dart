@@ -89,54 +89,73 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _evaluationList.isEmpty
-                      ? const Center(child: Text("No evaluation data available"))
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _evaluationList.length,
-                          itemBuilder: (context, index) {
-                            final item = _evaluationList[index];
-                            final rank = int.tryParse(item['rank']?.toString() ?? '') ?? (index + 1);
-                            final name = item['engineer_name']?.toString() ?? 'Unknown';
-                            final assigned = int.tryParse(item['total']?.toString() ?? '0') ?? 0;
-                            final completed = int.tryParse(item['status_4_total']?.toString() ?? '0') ?? 0;
-                            final pending = assigned - completed;
-                            final percentage = assigned > 0 ? (completed / assigned * 100).toStringAsFixed(0) : "0";
-                            final rating = double.tryParse(item['average_rating']?.toString() ?? '0') ?? 0.0;
+                  ? const Center(child: Text("No evaluation data available"))
+                  : ListView.builder(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 16.h,
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _evaluationList.length,
+                      itemBuilder: (context, index) {
+                        final item = _evaluationList[index];
+                        final rank =
+                            int.tryParse(item['rank']?.toString() ?? '') ??
+                            (index + 1);
+                        final name =
+                            item['engineer_name']?.toString() ?? 'Unknown';
+                        final assigned =
+                            int.tryParse(item['total']?.toString() ?? '0') ?? 0;
+                        final completed =
+                            int.tryParse(
+                              item['status_4_total']?.toString() ?? '0',
+                            ) ??
+                            0;
+                        final pending = assigned - completed;
+                        final percentage = assigned > 0
+                            ? (completed / assigned * 100).toStringAsFixed(0)
+                            : "0";
+                        final rating =
+                            double.tryParse(
+                              item['average_rating']?.toString() ?? '0',
+                            ) ??
+                            0.0;
 
-                            if (rank == 1) {
-                              return Column(
-                                children: [
-                                  _buildTopPerformerCard(
-                                    name: name,
-                                    assigned: assigned,
-                                    completed: completed,
-                                    percentage: percentage,
-                                    rating: rating,
-                                  ),
-                                  SizedBox(height: 20.h),
-                                ],
-                              );
-                            }
+                        if (rank == 1) {
+                          return Column(
+                            children: [
+                              _buildTopPerformerCard(
+                                name: name,
+                                assigned: assigned,
+                                completed: completed,
+                                percentage: percentage,
+                                rating: rating,
+                              ),
+                              SizedBox(height: 20.h),
+                            ],
+                          );
+                        }
 
-                            return Column(
-                              children: [
-                                _buildRankingCard(
-                                  rank: rank,
-                                  name: name,
-                                  assigned: assigned,
-                                  completed: completed,
-                                  pending: pending,
-                                  rating: rating,
-                                  showTrophy: rank <= 3,
-                                  trophyColor: rank == 2 ? Colors.grey[400]! : Colors.orange[400]!,
-                                  iconType: rank > 3 ? 'progress' : 'trophy',
-                                ),
-                                SizedBox(height: 12.h),
-                              ],
-                            );
-                          },
-                        ),
+                        return Column(
+                          children: [
+                            _buildRankingCard(
+                              rank: rank,
+                              name: name,
+                              assigned: assigned,
+                              completed: completed,
+                              pending: pending,
+                              rating: rating,
+                              showTrophy: rank <= 3,
+                              trophyColor: rank == 2
+                                  ? Colors.grey[400]!
+                                  : Colors.orange[400]!,
+                              iconType: rank > 3 ? 'progress' : 'trophy',
+                            ),
+                            SizedBox(height: 12.h),
+                          ],
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -243,7 +262,11 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                       SizedBox(height: 4.h),
                       Row(
                         children: [
-                          Icon(Icons.star_rounded, color: Colors.amber[300], size: 16.sp),
+                          Icon(
+                            Icons.star_rounded,
+                            color: Colors.amber[300],
+                            size: 16.sp,
+                          ),
                           SizedBox(width: 4.w),
                           Text(
                             rating.toStringAsFixed(1),
@@ -290,6 +313,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                   padding: EdgeInsets.only(left: 10.w),
                   child: Image.asset(
                     'assets/trophy.gif.gif',
+                    package: 'service_ticket',
                     width: 70.sp,
                     height: 70.sp,
                     fit: BoxFit.contain,
@@ -393,7 +417,11 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.star_rounded, color: Colors.amber[700], size: 15.sp),
+                        Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber[700],
+                          size: 15.sp,
+                        ),
                         SizedBox(width: 3.w),
                         Text(
                           rating.toStringAsFixed(1),

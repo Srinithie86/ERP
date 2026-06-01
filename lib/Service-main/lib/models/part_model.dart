@@ -1,4 +1,4 @@
-﻿class PartModel {
+class PartModel {
   const PartModel({
     required this.id,
     required this.name,

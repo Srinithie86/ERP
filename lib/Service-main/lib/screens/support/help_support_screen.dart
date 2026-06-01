@@ -27,8 +27,11 @@ class HelpSupportScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20.r),
                       child: Padding(
                         padding: EdgeInsets.all(4.r),
-                        child: Icon(Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.primary, size: 18.sp),
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: AppColors.primary,
+                          size: 18.sp,
+                        ),
                       ),
                     ),
                     SizedBox(width: 8.w),
@@ -108,7 +111,12 @@ class HelpSupportScreen extends StatelessWidget {
                                   assetPath: 'assets/chat_icon.png',
                                   bgColor: const Color(0xFFD4F5E0),
                                   onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LiveChatScreen()));
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const LiveChatScreen(),
+                                      ),
+                                    );
                                   },
                                 ),
                                 SizedBox(width: 12.w),
@@ -144,13 +152,19 @@ class HelpSupportScreen extends StatelessWidget {
                             // FAQ Header
                             Padding(
                               padding: EdgeInsets.fromLTRB(
-                                  16.w, 16.h, 16.w, 12.h),
+                                16.w,
+                                16.h,
+                                16.w,
+                                12.h,
+                              ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.help_outline_rounded,
-                                      size: 22.sp,
-                                      color: const Color(0xFF3A3A3A)),
+                                  Icon(
+                                    Icons.help_outline_rounded,
+                                    size: 22.sp,
+                                    color: const Color(0xFF3A3A3A),
+                                  ),
                                   SizedBox(width: 8.w),
                                   Text(
                                     'Frequently Asked Question',
@@ -274,6 +288,7 @@ class _QuickServiceTile extends StatelessWidget {
             children: [
               Image.asset(
                 assetPath,
+                package: 'service_ticket',
                 width: 52.w,
                 height: 52.w,
                 fit: BoxFit.contain,
@@ -295,9 +310,6 @@ class _QuickServiceTile extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────
-//  FAQ Item Row
-// ─────────────────────────────────────────────────────────
 class _FAQItem extends StatelessWidget {
   const _FAQItem({required this.question, this.isLast = false});
 
@@ -312,10 +324,7 @@ class _FAQItem extends StatelessWidget {
         border: isLast
             ? null
             : Border(
-                bottom: BorderSide(
-                  color: const Color(0xFFE8ECF2),
-                  width: 0.8,
-                ),
+                bottom: BorderSide(color: const Color(0xFFE8ECF2), width: 0.8),
               ),
       ),
       child: Row(

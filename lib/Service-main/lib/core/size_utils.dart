@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 class SizeConfig {
-  static double screenWidth = 375;
-  static double screenHeight = 812;
+  static late double screenWidth;
+  static late double screenHeight;
 
   static void init(BuildContext context) {
     if (!context.mounted) return;

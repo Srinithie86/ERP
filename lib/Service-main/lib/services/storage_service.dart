@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,56 +9,120 @@ class StorageService {
   static const String _keyRoleId = 'role_id';
   static const String _keyEngineerId = 'engineer_id';
   static const String _keyCusId = 'cus_id';
-  static const String _keyName = 'user_name';
-  static const String _keyEmail = 'user_email';
-  static const String _keyPhone = 'user_phone';
-  static const String _keyAddress = 'user_address';
-  static const String _keyCity = 'user_city';
-  static const String _keyState = 'user_state';
-  static const String _keyPincode = 'user_pincode';
-  static const String _keyCountry = 'user_country';
+  static const String _keyName = 'name';
+  static const String _keyEmail = 'email';
+  static const String _keyPhone = 'mobile';
+  static const String _keyAddress = 'address';
+  static const String _keyCity = 'city';
+  static const String _keyState = 'state';
+  static const String _keyPincode = 'pincode';
+  static const String _keyCountry = 'country';
+
+  /// Highly aggressive search for technician ID (led_id or cus_id)
+  static String resolveTechnicianId(Map<String, dynamic> data) {
+    // 1. Check all possible keys at top level
+    final keys = [
+      'led_id', ' led_id', 'ledid',
+      'cus_id', ' cus_id', 'cusid',
+      'engineer_id', ' engineer_id', 'eng_id', 'eg_id'
+    ];
+    
+    for (var key in keys) {
+      final val = data[key]?.toString().trim() ?? '';
+      if (val.isNotEmpty && val != "0" && val != "null") return val;
+    }
+
+    // 2. Check inside "data" list if it exists
+    if (data['data'] is List && (data['data'] as List).isNotEmpty) {
+      final first = data['data'][0];
+      if (first is Map) {
+        for (var key in keys) {
+          final val = first[key]?.toString().trim() ?? '';
+          if (val.isNotEmpty && val != "0" && val != "null") return val;
+        }
+      }
+    }
+    
+    return '';
+  }
 
   static Future<void> saveUser(Map<String, dynamic> data) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // Extract IDs safely from various possible keys
-      final userId = (data["user_id"] ?? data["uid"] ?? data["id"] ?? data["login_cus_id"] ?? data["data"]?[0]?["id"])?.toString();
-      final roleId = (data["role_id"] ?? data["data"]?[0]?["role_id"])?.toString();
-      final token = (data["token"] ?? data["Token"] ?? data["auth-token"] ?? data["f_token"] ?? data["data"]?[0]?["token"])?.toString();
-      final cid = (data["cid"] ?? data["cid_str"] ?? data["login_cid"] ?? data["data"]?[0]?["cid"])?.toString();
-      final cusId = (data["cus_id"] ?? data["engineer_id"] ?? data["eg_id"] ?? data["login_cus_id"] ?? data["data"]?[0]?["cus_id"])?.toString();
-      final name = (data["name"] ?? data["user_name"] ?? data["data"]?[0]?["name"])?.toString();
-      final email = (data["email"] ?? data["user_email"] ?? data["data"]?[0]?["email"])?.toString();
-      final phone = (data["mobile"] ?? data["phone"] ?? data["user_phone"] ?? data["data"]?[0]?["mobile"])?.toString();
-      final address = (data["address"] ?? data["data"]?[0]?["address"])?.toString();
-      final city = (data["city"] ?? data["data"]?[0]?["city"])?.toString();
-      final state = (data["state"] ?? data["data"]?[0]?["state"])?.toString();
-      final pincode = (data["pincode"] ?? data["data"]?[0]?["pincode"])?.toString();
-      final country = (data["country"] ?? data["data"]?[0]?["country"])?.toString();
 
-      if (token != null && token.isNotEmpty) await prefs.setString("token", token);
-      if (cid != null && cid.isNotEmpty) await prefs.setString("cid", cid);
-      if (userId != null && userId.isNotEmpty) await prefs.setString("uid", userId);
-      if (roleId != null && roleId.isNotEmpty) await prefs.setString("role_id", roleId);
-      if (name != null && name.isNotEmpty) await prefs.setString(_keyName, name);
-      if (email != null && email.isNotEmpty) await prefs.setString(_keyEmail, email);
-      if (phone != null && phone.isNotEmpty) await prefs.setString(_keyPhone, phone);
-      if (address != null && address.isNotEmpty) await prefs.setString(_keyAddress, address);
-      if (city != null && city.isNotEmpty) await prefs.setString(_keyCity, city);
-      if (state != null && state.isNotEmpty) await prefs.setString(_keyState, state);
-      if (pincode != null && pincode.isNotEmpty) await prefs.setString(_keyPincode, pincode);
-      if (country != null && country.isNotEmpty) await prefs.setString(_keyCountry, country);
-      
-      // Priority for technician ID: cus_id -> engineer_id -> uid
-      final techId = cusId ?? userId;
-      if (techId != null && techId.isNotEmpty) {
-        await prefs.setString("engineer_id", techId);
-        await prefs.setString("cus_id", techId);
+      final userId =
+          (data["user_id"] ??
+                  data["uid"] ??
+                  data["id"] ??
+                  data["data"]?[0]?["uid"])
+              ?.toString();
+      final roleId = (data["role_id"] ?? data["data"]?[0]?["role_id"])
+          ?.toString();
+      final token = (data["token"] ?? data["data"]?[0]?["token"])?.toString();
+      final cid = (data["cid"] ?? data["data"]?[0]?["cid"])?.toString();
+
+      // Use the aggressive resolver
+      final techId = resolveTechnicianId(data);
+
+      debugPrint("DEBUG: StorageService.saveUser => Aggressive resolve techId: '$techId' from input keys: ${data.keys.take(10).toList()}");
+
+      if (techId.isNotEmpty) {
+        await prefs.setString(_keyEngineerId, techId);
+        await prefs.setString(_keyCusId, techId);
+        debugPrint("DEBUG: StorageService.saveUser => SAVED TechId: $techId");
+      } else {
+        debugPrint("DEBUG: StorageService.saveUser => techId resolved as empty, preserving existing identity.");
       }
 
-      await prefs.setBool("logged_in", true);
-      debugPrint("StorageService: session saved (uid: $userId, cid: $cid, name: $name)");
+      final name =
+          (data["name"] ?? data["user_name"] ?? data["data"]?[0]?["name"])
+              ?.toString();
+      final email =
+          (data["email"] ?? data["user_email"] ?? data["data"]?[0]?["email"])
+              ?.toString();
+      final phone =
+          (data["mobile"] ??
+                  data["phone"] ??
+                  data["user_phone"] ??
+                  data["data"]?[0]?["mobile"])
+              ?.toString();
+      final address = (data["address"] ?? data["data"]?[0]?["address"])
+          ?.toString();
+      final city = (data["city"] ?? data["data"]?[0]?["city"])?.toString();
+      final state = (data["state"] ?? data["data"]?[0]?["state"])?.toString();
+      final pincode = (data["pincode"] ?? data["data"]?[0]?["pincode"])
+          ?.toString();
+      final country = (data["country"] ?? data["data"]?[0]?["country"])
+          ?.toString();
+
+      if (token != null && token.isNotEmpty)
+        await prefs.setString("token", token);
+      if (cid != null && cid.isNotEmpty) await prefs.setString("cid", cid);
+      if (userId != null && userId.isNotEmpty)
+        await prefs.setString("uid", userId);
+      if (roleId != null && roleId.isNotEmpty)
+        await prefs.setString("role_id", roleId);
+      if (name != null && name.isNotEmpty)
+        await prefs.setString(_keyName, name);
+      if (email != null && email.isNotEmpty)
+        await prefs.setString(_keyEmail, email);
+      if (phone != null && phone.isNotEmpty)
+        await prefs.setString(_keyPhone, phone);
+      if (address != null && address.isNotEmpty)
+        await prefs.setString(_keyAddress, address);
+      if (city != null && city.isNotEmpty)
+        await prefs.setString(_keyCity, city);
+      if (state != null && state.isNotEmpty)
+        await prefs.setString(_keyState, state);
+      if (pincode != null && pincode.isNotEmpty)
+        await prefs.setString(_keyPincode, pincode);
+      if (country != null && country.isNotEmpty)
+        await prefs.setString(_keyCountry, country);
+
+      await prefs.setBool("is_logged_in", true);
+      debugPrint(
+        "StorageService: session saved (uid: $userId, cid: $cid, name: $name)",
+      );
     } catch (e) {
       debugPrint("StorageService Error: $e");
     }
@@ -85,13 +150,45 @@ class StorageService {
 
   static Future<String?> getEngineerId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyEngineerId);
+
+    String? id = prefs.getString(_keyCusId);
+    if (id != null && id.isNotEmpty) {
+      debugPrint(
+        "DEBUG: StorageService => Found Engineer ID in 'cus_id' key: $id",
+      );
+      return id;
+    }
+
+    id = prefs.getString(_keyEngineerId);
+    if (id != null && id.isNotEmpty) {
+      debugPrint(
+        "DEBUG: StorageService => Found Engineer ID in 'engineer_id' key: $id",
+      );
+      return id;
+    }
+
+    final loginRes = prefs.getString('login_response');
+    if (loginRes != null) {
+      try {
+        final Map<String, dynamic> data = jsonDecode(loginRes);
+        final rawLed = data['led_id']?.toString() ?? '';
+        final rawCus = data['cus_id']?.toString() ?? '';
+        final rawEng = data['engineer_id']?.toString() ?? '';
+
+        if (rawLed.isNotEmpty && rawLed != "0") return rawLed;
+        if (rawCus.isNotEmpty && rawCus != "0") return rawCus;
+        if (rawEng.isNotEmpty && rawEng != "0") return rawEng;
+      } catch (e) {
+        debugPrint("DEBUG: StorageService => login_response parse error: $e");
+      }
+    }
+
+    final fallback = prefs.getString(_keyUserId);
+    debugPrint("DEBUG: StorageService => Falling back to UID: $fallback");
+    return fallback;
   }
 
-  static Future<String?> getCusId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyCusId);
-  }
+  static Future<String?> getCusId() async => getEngineerId();
 
   static Future<String?> getName() async {
     final prefs = await SharedPreferences.getInstance();
@@ -133,6 +230,11 @@ class StorageService {
     return prefs.getString(_keyCountry);
   }
 
+  static Future<void> saveCusId(String cusId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCusId, cusId);
+  }
+
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -140,6 +242,6 @@ class StorageService {
 
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool("logged_in") ?? false;
+    return prefs.getBool("is_logged_in") ?? false;
   }
 }

@@ -8,20 +8,20 @@ import 'package:service_ticket/services/api_service.dart';
 import 'package:service_ticket/services/storage_service.dart';
 import 'package:service_ticket/services/device_service.dart';
 
-class AddProductsScreen extends StatefulWidget {
-  const AddProductsScreen({super.key});
+class AddSparesScreen extends StatefulWidget {
+  const AddSparesScreen({super.key});
 
   @override
-  State<AddProductsScreen> createState() => _AddProductsScreenState();
+  State<AddSparesScreen> createState() => _AddSparesScreenState();
 }
 
-class _AddProductsScreenState extends State<AddProductsScreen> {
+class _AddSparesScreenState extends State<AddSparesScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   List<Map<String, dynamic>> _allProducts = [];
   List<Map<String, dynamic>> _filteredProducts = [];
-  Map<String, dynamic>? _selectedProduct;
+  final List<Map<String, dynamic>> _selectedProducts = [];
   bool _isLoading = false;
 
   @override
@@ -65,17 +65,18 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
           final List products = data['data'];
           setState(() {
             _allProducts = products.map((p) {
-              return Map<String, dynamic>.from(p)..addAll({
-                'name': p['product_name'] ?? '',
-                'code': p['product_code'] ?? '',
-                'stock': '${p['stock_qty'] ?? 0} In Stock',
-                'qty': 1,
-              });
+              final rawMap = Map<String, dynamic>.from(p as Map);
+              rawMap['product_name'] = rawMap['product_name']?.toString() ?? '';
+              rawMap['product_code'] = rawMap['product_code']?.toString() ?? '';
+              rawMap['id'] = rawMap['id']?.toString() ?? '';
+              rawMap['name'] = rawMap['product_name'];
+              rawMap['code'] = rawMap['product_code'];
+              rawMap['stock'] = '${rawMap['stock_qty'] ?? 0} In Stock';
+              rawMap['qty'] = 1;
+
+              return rawMap;
             }).toList();
-            _filteredProducts = _allProducts;
-            if (_allProducts.isNotEmpty) {
-              _selectedProduct = _allProducts[0];
-            }
+            _filteredProducts = List.from(_allProducts);
           });
         }
       }
@@ -92,8 +93,12 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
     setState(() {
       _filteredProducts = _allProducts.where((p) {
         final matchesQuery =
-            p['name'].toLowerCase().contains(query.toLowerCase()) ||
-            p['code'].toLowerCase().contains(query.toLowerCase());
+            (p['product_name'] as String).toLowerCase().contains(
+              query.toLowerCase(),
+            ) ||
+            (p['product_code'] as String).toLowerCase().contains(
+              query.toLowerCase(),
+            );
         return matchesQuery;
       }).toList();
     });
@@ -113,7 +118,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Products',
+          'Spares',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20.sp,
@@ -131,7 +136,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
                   child: Column(
                     children: [
-                      // Search Input with Barcode
+                      // Search Input
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 14.w),
                         decoration: BoxDecoration(
@@ -159,11 +164,6 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                                   border: InputBorder.none,
                                 ),
                               ),
-                            ),
-                            Icon(
-                              Icons.qr_code_scanner_rounded,
-                              color: const Color(0xFF303F9F),
-                              size: 24.sp,
                             ),
                           ],
                         ),
@@ -229,80 +229,74 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                 ),
 
                 // Bottom Summary Panel
-                if (_selectedProduct != null)
+                if (_selectedProducts.isNotEmpty)
                   Container(
-                    padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 20.h),
-                    decoration: const BoxDecoration(color: tealColor),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 16.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20.w,
+                      vertical: 14.h,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [tealColor, Color(0xFF00897B)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Product Name : ',
+                              'Item : ${_selectedProducts.length} | Qty : ${_selectedProducts.fold(0, (sum, p) => sum + (p['qty'] as int))}',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16.sp,
+                                fontSize: 15.sp,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                _selectedProduct!['name'],
+                          ],
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context, _selectedProducts);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: tealColor,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 20.w,
+                              vertical: 10.h,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.r),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Continue',
                                 style: TextStyle(
-                                  color: Colors.white,
                                   fontSize: 16.sp,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 12.h),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Qty : ${_selectedProduct!['qty']}',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              _selectedProduct!['stock'],
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16.h),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48.h,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context, _selectedProduct);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: tealColor,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Request',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                              SizedBox(width: 8.w),
+                              Icon(Icons.chevron_right, size: 20.sp),
+                            ],
                           ),
                         ),
                       ],
@@ -332,7 +326,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product['name'],
+                      product['product_name'] as String,
                       style: TextStyle(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w700,
@@ -341,7 +335,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                     ),
                     SizedBox(height: 2.h),
                     Text(
-                      product['code'],
+                      product['product_code'] as String,
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
@@ -350,7 +344,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      product['stock'],
+                      product['stock'] as String,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w700,
@@ -380,7 +374,9 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                     InkWell(
                       onTap: () {
                         setState(() {
-                          if (product['qty'] > 1) product['qty']--;
+                          if ((product['qty'] as int) > 1) {
+                            product['qty'] = (product['qty'] as int) - 1;
+                          }
                         });
                       },
                       child: Icon(
@@ -404,6 +400,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
                         ),
+                        key: ValueKey('${product['id']}_${product['qty']}'),
                         controller: TextEditingController(
                           text: '${product['qty']}',
                         ),
@@ -411,9 +408,12 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                           final n = int.tryParse(val);
                           if (n != null && n > 0) {
                             product['qty'] = n;
-                            if (_selectedProduct != null &&
-                                _selectedProduct!['code'] == product['code']) {
-                              setState(() {});
+                            final idx = _selectedProducts.indexWhere(
+                              (p) =>
+                                  p['product_code'] == product['product_code'],
+                            );
+                            if (idx != -1) {
+                              setState(() => _selectedProducts[idx]['qty'] = n);
                             }
                           }
                         },
@@ -422,7 +422,7 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                     InkWell(
                       onTap: () {
                         setState(() {
-                          product['qty']++;
+                          product['qty'] = (product['qty'] as int) + 1;
                         });
                       },
                       child: Icon(
@@ -434,32 +434,50 @@ class _AddProductsScreenState extends State<AddProductsScreen> {
                   ],
                 ),
               ),
-              // Add Button
-              SizedBox(
-                width: 80.w,
-                height: 36.h,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _selectedProduct = product;
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tealColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4.r),
+              // Add / Remove Button
+              Builder(
+                builder: (context) {
+                  // ── FIX: use product_code (unique per product) as key
+                  final isSelected = _selectedProducts.any(
+                    (p) => p['product_code'] == product['product_code'],
+                  );
+                  return SizedBox(
+                    width: 100.w,
+                    height: 38.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (isSelected) {
+                            _selectedProducts.removeWhere(
+                              (p) =>
+                                  p['product_code'] == product['product_code'],
+                            );
+                          } else {
+                            _selectedProducts.add(product);
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isSelected
+                            ? const Color(0xFFFF5252)
+                            : tealColor,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        isSelected ? 'Remove' : 'Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Add',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                  );
+                },
               ),
             ],
           ),

@@ -34,7 +34,7 @@ class _CheckInFeedbackScreenState extends State<CheckInFeedbackScreen> {
               borderRadius: BorderRadius.circular(12.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -159,7 +159,7 @@ class _CheckInFeedbackScreenState extends State<CheckInFeedbackScreen> {
                               style: TextStyle(fontSize: 13.sp, color: const Color(0xFF445B87)),
                             ),
                           ),
-                          Image.asset('assets/calendar.png', width: 16.sp, height: 16.sp),
+                          Image.asset('assets/calendar_icon.png', package: 'service_ticket', width: 16.sp, height: 16.sp),
                         ],
                       ),
                     ),

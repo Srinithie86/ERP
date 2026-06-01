@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:service_ticket/core/size_utils.dart';
+import 'package:service_ticket/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../Widgets/app_status_bar_wrapper.dart';
+import '../../widgets/app_status_bar_wrapper.dart';
 import '../../core/app_colors.dart';
 import '../../data/app_data.dart';
 import '../../services/device_service.dart';
@@ -100,6 +101,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         'search': query,
       };
 
+      final baseUrl = await ApiService.getBaseUrl();
       final dio = dio_pkg.Dio(
         dio_pkg.BaseOptions(
           connectTimeout: const Duration(seconds: 15),
@@ -107,7 +109,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         ),
       );
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        baseUrl,
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -174,6 +176,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         'list_id': '10105',
       };
 
+      final baseUrl = await ApiService.getBaseUrl();
       final dio = dio_pkg.Dio(
         dio_pkg.BaseOptions(
           connectTimeout: const Duration(seconds: 15),
@@ -181,7 +184,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         ),
       );
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        baseUrl,
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -258,6 +261,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         cleanId = match.group(0)!;
       }
 
+      if (!mounted) return;
       setState(() {
         _nameCtrl.clear();
         _phoneCtrl.clear();
@@ -277,9 +281,10 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         'engineer_id': engineerId,
       };
 
+      final baseUrl = await ApiService.getBaseUrl();
       final dio = dio_pkg.Dio();
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        baseUrl,
         data: body,
         options: dio_pkg.Options(
           contentType: dio_pkg.Headers.formUrlEncodedContentType,
@@ -370,6 +375,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
     );
     if (picked == null) return;
+    if (!mounted) return;
     setState(() => expected ? _expectedDate = picked : _transportDate = picked);
   }
 
@@ -379,6 +385,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
       initialTime: _dispatchTime ?? TimeOfDay.now(),
     );
     if (picked == null) return;
+    if (!mounted) return;
     setState(() {
       _dispatchTime = picked;
       _period = picked.period == DayPeriod.am ? 'AM' : 'PM';
@@ -409,9 +416,12 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
     if (source == null) return;
     final picked = await ImagePicker().pickImage(
       source: source,
-      imageQuality: 85,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 25,
     );
     if (picked == null) return;
+    if (!mounted) return;
     setState(() {
       _image = File(picked.path);
       _imagePath = picked.path;
@@ -438,7 +448,9 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
       final token = (prefs.getString('token') ?? '').trim();
       final cusIdPref = (prefs.getString('cus_id') ?? '').trim();
       final engineerId =
-          (cusIdPref.isNotEmpty ? cusIdPref : (prefs.getString('engineer_id') ?? ''))
+          (cusIdPref.isNotEmpty
+                  ? cusIdPref
+                  : (prefs.getString('engineer_id') ?? ''))
               .trim();
       final deviceId = await DeviceService.getDeviceId();
 
@@ -484,11 +496,14 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         ),
       );
 
-      final formData = dio_pkg.FormData();
-      bodyFields.forEach((k, v) {
-        formData.fields.add(MapEntry(k, v));
-      });
+      debugPrint(
+        "\n========== DISPATCHMENT ENTRY REQUEST (Type 5015) ==========",
+      );
+      debugPrint("FIELDS: $bodyFields");
 
+      final formData = dio_pkg.FormData.fromMap(bodyFields);
+
+      // Add image if exists
       if (_image != null && await _image!.exists()) {
         formData.files.add(
           MapEntry(
@@ -501,13 +516,15 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
         );
       }
 
-      final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
-        data: formData,
-      );
+      final baseUrl = await ApiService.getBaseUrl();
+      final response = await dio.post(baseUrl, data: formData);
 
       if (!mounted) return;
-      Navigator.of(context, rootNavigator: true).pop(); // Close loader
+      Navigator.of(context, rootNavigator: true).pop();
+
+      debugPrint("\n========== DISPATCHMENT ENTRY RESPONSE ==========");
+      debugPrint("STATUS CODE: ${response.statusCode}");
+      debugPrint("RAW DATA: ${response.data}");
 
       dynamic res = response.data;
       if (res is String) res = jsonDecode(res);
@@ -615,6 +632,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     final parcelErr = _submitted && _selectedParcelId == null;
     final modeErr = _submitted && _mode == null;
     final dateErr = _submitted && _transportDate == null;
@@ -632,7 +650,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
           top: false,
           bottom: false,
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 22.h),
+            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 100.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -716,7 +734,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
                       borderRadius: BorderRadius.circular(8.r),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
+                          color: Colors.black.withOpacity(0.08),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -1049,7 +1067,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
                                 vertical: 6.h,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
+                                color: Colors.black.withOpacity(0.45),
                                 borderRadius: BorderRadius.circular(20.r),
                               ),
                               child: Text(
@@ -1075,7 +1093,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
                   style: TextStyle(fontSize: 13.sp),
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 20.h),
                 SizedBox(
                   width: double.infinity,
                   height: 42.h,
@@ -1090,7 +1108,7 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
                       ),
                     ),
                     child: Text(
-                      'Confirm Dispatch',
+                      'Confirmmm Dispatch',
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w700,
@@ -1159,13 +1177,21 @@ class _DispatchmentEntryScreenState extends State<DispatchmentEntryScreen> {
                     ? const Color(0xFFA3A8B7)
                     : const Color(0xFF445B87),
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Image.asset(
-            'assets/calendar.png',
+            'assets/calendar_icon.png',
+            package: 'service_ticket',
             width: 18.w,
             height: 18.w,
             fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Icon(
+              Icons.calendar_today_rounded,
+              size: 18.sp,
+              color: const Color(0xFFA3A8B7),
+            ),
           ),
         ],
       ),

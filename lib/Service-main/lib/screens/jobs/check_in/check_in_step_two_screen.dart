@@ -5,11 +5,13 @@ import 'package:dio/dio.dart' as dio_pkg;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:service_ticket/core/size_utils.dart';
+import 'package:service_ticket/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/app_colors.dart';
 import '../../../data/app_data.dart';
 import 'check_in_step_three_screen.dart';
 import 'check_in_widgets.dart';
+import '../../../services/device_service.dart';
 
 class CheckInStepTwoScreen extends StatefulWidget {
   const CheckInStepTwoScreen({super.key});
@@ -72,17 +74,19 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
       final Map<String, dynamic> body = {
         'type': '5018',
         'cid': cid,
-        'device_id': deviceId.isEmpty ? '123' : deviceId,
+        'device_id': deviceId.isEmpty
+            ? await DeviceService.getDeviceId()
+            : deviceId,
         'lt': '11.0',
         'ln': '77.0',
         'engineer_id': engineerId.isEmpty ? uid : engineerId,
-        'role_id': roleId.isEmpty ? '2' : roleId,
+        'role_id': roleId,
         'token': token,
       };
 
       final dio = dio_pkg.Dio();
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiService.getBaseUrl(),
         data: dio_pkg.FormData.fromMap(body),
       );
 
@@ -155,13 +159,15 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
       final dio = dio_pkg.Dio();
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiService.getBaseUrl(),
         data: dio_pkg.FormData.fromMap({
           'type': '2083',
           'cid': cid,
           'lt': '123',
           'ln': '123',
-          'device_id': deviceId,
+          'device_id': deviceId.isEmpty
+              ? await DeviceService.getDeviceId()
+              : deviceId,
           'form': 'sm_main_form_16001',
           'select': 'charge',
           'where': 'id=$jobId',
@@ -312,13 +318,15 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
     final Map<String, dynamic> fields = {
       'cid': cid,
-      'uid': uid.isEmpty ? '33' : uid,
+      'uid': uid,
       'type': '5014',
       'ln': lng,
       'lt': lat,
-      'device_id': deviceId.isEmpty ? '12345' : deviceId,
+      'device_id': deviceId.isEmpty
+          ? await DeviceService.getDeviceId()
+          : deviceId,
       'id': ticketId,
-      'role_id': roleId.isEmpty ? '2' : roleId,
+      'role_id': roleId,
       'token': token,
       'engineer_id': engineerId.isEmpty ? uid : engineerId,
       'wrk_disc': flow.workDescription,
@@ -337,49 +345,40 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
     final formData = dio_pkg.FormData.fromMap(fields);
 
-    if (flow.beforeImagePath.isNotEmpty) {
-      final file = File(flow.beforeImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'bf_photo',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'bf_photo.jpg',
-            ),
+    if (flow.beforeImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'bf_photo',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.beforeImageBytes!,
+            filename: 'bf_photo.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
 
-    if (flow.afterImagePath.isNotEmpty) {
-      final file = File(flow.afterImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'af_photo',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'af_photo.jpg',
-            ),
+    if (flow.afterImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'af_photo',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.afterImageBytes!,
+            filename: 'af_photo.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
 
-    if (flow.oldSpareImagePath.isNotEmpty) {
-      final file = File(flow.oldSpareImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'old_spare',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'old_spare.jpg',
-            ),
+    if (flow.oldSpareImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'old_spare',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.oldSpareImageBytes!,
+            filename: 'old_spare.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
 
     if (flow.signatureBytes != null) {
@@ -396,7 +395,7 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
 
     try {
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiService.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5014'},
         options: dio_pkg.Options(validateStatus: (status) => true),
@@ -464,7 +463,7 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
             (_workStatus == 'Pending' && _nextVisitDate == null);
         if (!mounted) return;
         _persistSpareLines(flow);
-        
+
         await _submitCheckOutToBackend(flow);
 
         Navigator.of(context).pushReplacement(
@@ -880,7 +879,8 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
                       ),
                     ),
                     Image.asset(
-                      'assets/calendar.png',
+                      'assets/calendar_icon.png',
+                      package: 'service_ticket',
                       width: 20.sp,
                       height: 20.sp,
                     ),
@@ -900,7 +900,10 @@ class _CheckInStepTwoScreenState extends State<CheckInStepTwoScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8.r),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 12.h,
+                  ),
                 ),
                 child: _isFetchingCharge
                     ? SizedBox(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:service_ticket/core/size_utils.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:service_ticket/services/api_service.dart';
 import '../../../Widgets/app_status_bar_wrapper.dart';
 import '../../../core/app_colors.dart';
 import '../../../Widgets/workflow_stepper.dart';
@@ -16,6 +17,7 @@ import '../Work_in_progress/work_in_progress.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:http_parser/http_parser.dart';
+import '../../../services/device_service.dart';
 
 class DirectVisitCameraScreen extends StatefulWidget {
   const DirectVisitCameraScreen({
@@ -44,7 +46,9 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
     try {
       final file = await ImagePicker().pickImage(
         source: ImageSource.camera,
-        imageQuality: 88,
+        imageQuality: 25,
+        maxWidth: 512,
+        maxHeight: 512,
       );
       if (file == null) {
         if (mounted) setState(() => _busy = false);
@@ -101,11 +105,6 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      print('--- SharedPreferences Dump ---');
-      for (String key in prefs.getKeys()) {
-        print('DEBUG: Key: "$key", Value: "${prefs.get(key)}"');
-      }
-      print('-----------------------------');
 
       final cid = (prefs.getString('cid') ?? '').trim();
       final token = (prefs.getString('token') ?? '').trim();
@@ -146,17 +145,16 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
           widget.jobData['ln']?.toString() ??
           '77.0';
 
-      print('DEBUG: cid: "$cid"');
-      print('DEBUG: ticketId (id): "$ticketId"');
-      print('DEBUG: uid: "$uid"');
-      print('DEBUG: roleId: "$roleId"');
-      print('DEBUG: engineerId: "$engineerId"');
-
       if (cid.isEmpty || ticketId.isEmpty) {
         throw 'Missing cid or id in job session. CID: "$cid", ID: "$ticketId"';
       }
 
-      final dio = dio_pkg.Dio();
+      final dio = dio_pkg.Dio(
+        dio_pkg.BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+        ),
+      );
 
       final Map<String, dynamic> allFields = {
         'cid': cid,
@@ -164,9 +162,11 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
         'type': '5013',
         'ln': lng,
         'lt': lat,
-        'device_id': deviceId.isEmpty ? 'BP2A.250605.031.A3' : deviceId,
+        'device_id': deviceId.isEmpty
+            ? await DeviceService.getDeviceId()
+            : deviceId,
         'id': ticketId,
-        'role_id': roleId.isEmpty ? '2' : roleId,
+        'role_id': roleId,
         'engineer_id': engineerId.isEmpty ? uid : engineerId,
         'token': token,
         'wrk_time': '1000',
@@ -175,20 +175,15 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
 
       final formData = dio_pkg.FormData.fromMap({
         ...allFields,
-        'vrf_photo': await dio_pkg.MultipartFile.fromFile(
-          _capturedFilePath!,
-          filename: 'vrf_photo.png',
-          contentType: MediaType('image', 'png'),
+        'vrf_photo': dio_pkg.MultipartFile.fromBytes(
+          _selfieBytes!,
+          filename: 'vrf_photo.jpg',
+          contentType: MediaType('image', 'jpeg'),
         ),
       });
 
-      print(
-        'DEBUG: Final POST QueryParams: {cid: $cid, id: $ticketId, type: 5013}',
-      );
-      print('DEBUG: Final POST Body Fields: $allFields');
-
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiService.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5013'},
         options: dio_pkg.Options(
@@ -196,9 +191,6 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
           validateStatus: (status) => true,
         ),
       );
-
-      print('DEBUG: Response Status: ${response.statusCode}');
-      print('DEBUG: Response Body: ${response.data}');
 
       final dynamic responseData = response.data is String
           ? json.decode(response.data)
@@ -328,7 +320,7 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
                     border: Border.all(color: const Color(0xFFE6EAF4)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
+                        color: Colors.black.withOpacity(0.04),
                         blurRadius: 14,
                         offset: const Offset(0, 6),
                       ),
@@ -339,6 +331,7 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
                       if (_selfieBytes == null)
                         Image.asset(
                           'assets/camera_icon.png',
+                          package: 'service_ticket',
                           width: 140.w,
                           height: 140.w,
                           fit: BoxFit.contain,
@@ -493,7 +486,7 @@ class _DirectVisitCameraScreenState extends State<DirectVisitCameraScreen> {
                     child: Text(
                       _busy
                           ? 'Uploading...'
-                          : 'Completed verification & Check - In',
+                          : 'Complete Verification & Check - In',
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w700,
@@ -527,7 +520,11 @@ class MapPreviewScreen extends StatelessWidget {
               child: InteractiveViewer(
                 minScale: 1,
                 maxScale: 3,
-                child: Image.asset('assets/map.png', fit: BoxFit.cover),
+                child: Image.asset(
+                  'assets/map.png',
+                  package: 'service_ticket',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             Positioned(
@@ -558,7 +555,7 @@ class MapPreviewScreen extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.all(8.r),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: Colors.white.withOpacity(0.92),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

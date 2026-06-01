@@ -12,6 +12,7 @@ import '../../../data/app_data.dart';
 import '../../../services/api_service.dart';
 import 'check_in_completed_screen.dart';
 import 'check_in_widgets.dart';
+import '../../../services/device_service.dart';
 
 const Color _primaryBlue = Color(0xFF2644A6);
 
@@ -187,13 +188,13 @@ class _HappyCodeSheetState extends State<_HappyCodeSheet> {
 
     final Map<String, dynamic> fields = {
       'cid': cid,
-      'uid': uid.isEmpty ? '33' : uid,
+      'uid': uid,
       'type': '5014',
       'ln': lng,
       'lt': lat,
-      'device_id': deviceId.isEmpty ? '12345' : deviceId,
+      'device_id': deviceId.isEmpty ? await DeviceService.getDeviceId() : deviceId,
       'id': ticketId,
-      'role_id': roleId.isEmpty ? '2' : roleId,
+      'role_id': roleId,
       'token': token,
       'engineer_id': engineerId.isEmpty ? uid : engineerId,
       'wrk_disc': flow.workDescription,
@@ -207,47 +208,38 @@ class _HappyCodeSheetState extends State<_HappyCodeSheet> {
 
     final formData = dio_pkg.FormData.fromMap(fields);
 
-    if (flow.beforeImagePath.isNotEmpty) {
-      final file = File(flow.beforeImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'bf_photo',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'bf_photo.jpg',
-            ),
+    if (flow.beforeImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'bf_photo',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.beforeImageBytes!,
+            filename: 'bf_photo.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
-    if (flow.afterImagePath.isNotEmpty) {
-      final file = File(flow.afterImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'af_photo',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'af_photo.jpg',
-            ),
+    if (flow.afterImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'af_photo',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.afterImageBytes!,
+            filename: 'af_photo.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
-    if (flow.oldSpareImagePath.isNotEmpty) {
-      final file = File(flow.oldSpareImagePath);
-      if (await file.exists()) {
-        formData.files.add(
-          MapEntry(
-            'old_spare',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'old_spare.jpg',
-            ),
+    if (flow.oldSpareImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'old_spare',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.oldSpareImageBytes!,
+            filename: 'old_spare.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
     if (flow.signatureBytes != null) {
       formData.files.add(
@@ -263,7 +255,7 @@ class _HappyCodeSheetState extends State<_HappyCodeSheet> {
 
     try {
       final dio = dio_pkg.Dio();
-      await dio.post('https://erpsmart.in/total/api/m_api/', data: formData);
+      await dio.post(await ApiService.getBaseUrl(), data: formData);
     } catch (e) {
       debugPrint('Final submission error: $e');
     }

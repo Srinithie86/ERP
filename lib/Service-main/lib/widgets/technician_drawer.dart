@@ -1,13 +1,17 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:service_ticket/core/size_utils.dart';
-import '../screens/login/login_screen.dart';
+import 'package:erp_smart/providers/menu_provider.dart';
+import 'package:erp_smart/utils/app_navigation.dart';
 import '../core/app_colors.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({
     super.key,
     required this.profile,
+    this.menuItems,
+    this.onHomePressed,
     this.onProfileTap,
     this.onJobsTap,
     this.onSparesTap,
@@ -23,6 +27,8 @@ class CustomDrawer extends StatelessWidget {
   });
 
   final Map<String, dynamic> profile;
+  final List<Map<String, dynamic>>? menuItems;
+  final VoidCallback? onHomePressed;
   final VoidCallback? onProfileTap;
   final VoidCallback? onJobsTap;
   final VoidCallback? onSparesTap;
@@ -167,60 +173,157 @@ class CustomDrawer extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     children: [
                       _DrawerMenuTile(
+                        icon: Icons.dashboard_rounded,
+                        label: 'Main Dashboard',
+                        onTap: onHomePressed ??
+                            () {
+                              Navigator.pop(context);
+                              Navigator.of(context).popUntil((route) => route.isFirst);
+                            },
+                      ),
+                      _DrawerMenuTile(
                         icon: Icons.person_outline_rounded,
                         label: 'Profile',
                         onTap: onProfileTap,
                       ),
-                      _DrawerMenuTile(
-                        icon: Icons.work_outline_rounded,
-                        label: 'Jobs',
-                        onTap: onJobsTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.inventory_2_outlined,
-                        label: 'Spares',
-                        onTap: onSparesTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.local_shipping_outlined,
-                        label: 'Dispatch',
-                        onTap: onDispatchTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.assignment_outlined,
-                        label: 'All Tickets',
-                        onTap: onAllTicketsTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.local_shipping_outlined,
-                        label: 'All Dispatch',
-                        onTap: onAllDispatchTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.power_settings_new_rounded,
-                        label: 'Standby',
-                        onTap: onStandbyTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.inventory_2_outlined,
-                        label: 'Toolkit',
-                        onTap: onToolkitTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.analytics_outlined,
-                        label: 'EOD',
-                        onTap: onEodTap,
-                      ),
-                      _DrawerMenuTile(
-                        icon: Icons.assignment_turned_in_outlined,
-                        label: 'Employee Evaluation',
-                        onTap: onEvaluationTap,
-                      ),
-                      // _DrawerMenuTile(
-                      //   icon: Icons.star_border_rounded,
-                      //   label: 'Rating & Reviews',
-                      //   onTap: onRatingTap,
-                      // ),
+
+                      // Dynamic Menus from passed list or MenuProvider fallback
+                      ...(() {
+                        final List<dynamic> rawSubMenus = (menuItems != null && menuItems!.isNotEmpty)
+                            ? menuItems!
+                            : Provider.of<MenuProvider>(context, listen: false).getSubMenus("ERP SERVICE");
+
+                        // Deduplicate and filter
+                        final Map<String, Map<String, dynamic>> uniqueMenus = {};
+                        for (var i in rawSubMenus) {
+                          if (i is! Map) continue;
+                          final Map<String, dynamic> item =
+                              i is Map<String, dynamic> ? i : Map<String, dynamic>.from(i);
+                          final name = (item['name'] ?? '').toString().trim().toUpperCase();
+                          if (name.isEmpty) continue;
+
+                          if (uniqueMenus.containsKey(name)) {
+                            if (item.containsKey('sub_menu') &&
+                                item['sub_menu'] is List &&
+                                (item['sub_menu'] as List).isNotEmpty) {
+                              uniqueMenus[name] = item;
+                            }
+                          } else {
+                            uniqueMenus[name] = item;
+                          }
+                        }
+
+                        final List<Map<String, dynamic>> filteredSubMenus = uniqueMenus.values.where((item) {
+                          final name = (item['name'] ?? '').toString().toUpperCase();
+                          if (name.contains("CREATE") && (name.contains("QC") || name.contains("INSPECTION"))) {
+                            return false;
+                          }
+                          if (name == "DASHBOARD" || name == "MAIN DASHBOARD") {
+                            return false;
+                          }
+                          return true;
+                        }).toList();
+
+                        return filteredSubMenus.map((item) {
+                          final String menuName = (item['name'] ?? '').toString();
+                          final normalized = menuName.trim().toUpperCase();
+
+                          IconData icon = Icons.circle_outlined;
+                          VoidCallback? tap;
+                          String displayLabel = menuName;
+
+                          // Map server names to our local callbacks and icons
+                          switch (normalized) {
+                            case 'JOBS':
+                              icon = Icons.work_outline_rounded;
+                              tap = onJobsTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'SPARES':
+                            case 'ENGINEER SPARE ENTRY':
+                            case 'SPARE DISPATCH':
+                              icon = Icons.inventory_2_outlined;
+                              tap = onSparesTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'DISPATCH':
+                              icon = Icons.local_shipping_outlined;
+                              tap = onDispatchTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'ALL TICKETS':
+                              icon = Icons.assignment_outlined;
+                              tap = onAllTicketsTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'ALL DISPATCH':
+                              icon = Icons.local_shipping_outlined;
+                              tap = onAllDispatchTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'STAND BY':
+                            case 'STANDBY MANAGE & TRACK':
+                              icon = Icons.power_settings_new_rounded;
+                              tap = onStandbyTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              displayLabel = 'Standby';
+                              break;
+                            case 'MY TOOLKIT':
+                            case 'TOOLKIT MANAGEMENT':
+                              icon = Icons.inventory_2_outlined;
+                              tap = onToolkitTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              displayLabel = 'Toolkit';
+                              break;
+                            case 'EOD':
+                            case 'SERVICE DETAILS':
+                            case 'SERVICE HISTORY':
+                              icon = Icons.analytics_outlined;
+                              tap = onEodTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                            case 'EVOLUTION REPORT':
+                            case 'EVALUATION':
+                              icon = Icons.assignment_turned_in_outlined;
+                              tap = onEvaluationTap ?? () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              displayLabel = 'Employee Evaluation';
+                              break;
+                            default:
+                              icon = Icons.layers_outlined;
+                              tap = () {
+                                Navigator.pop(context);
+                                AppNavigation.handleNavigation(context, menuName, moduleContext: 'ERP SERVICE');
+                              };
+                              break;
+                          }
+
+                          return _DrawerMenuTile(
+                            icon: icon,
+                            label: displayLabel,
+                            onTap: tap,
+                          );
+                        });
+                      })(),
+
                       _DrawerMenuTile(
                         icon: Icons.help_outline_rounded,
                         label: 'Help & Support',
@@ -251,12 +354,10 @@ class CustomDrawer extends StatelessWidget {
                               TextButton(
                                 onPressed: () {
                                   Navigator.pop(dialogContext);
-                                  Navigator.of(context).pushAndRemoveUntil(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                    (route) => false,
-                                  );
+                                  // Navigate back to the root (Home/Login) and clear stack
+                                  Navigator.of(
+                                    context,
+                                  ).popUntil((route) => route.isFirst);
                                 },
                                 child: const Text(
                                   'Logout',

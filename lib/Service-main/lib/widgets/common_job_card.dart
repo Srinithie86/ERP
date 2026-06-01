@@ -56,17 +56,45 @@ class CommonJobCard extends StatefulWidget {
   State<CommonJobCard> createState() => _CommonJobCardState();
 }
 
-class _CommonJobCardState extends State<CommonJobCard> {
+class _CommonJobCardState extends State<CommonJobCard>
+    with SingleTickerProviderStateMixin {
   bool _expanded = false;
   bool _audioPlaying = false;
   late AudioPlayer _audioPlayer;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
 
+  late AnimationController _blinkController;
+  late Animation<double> _blinkAnimation;
+
   @override
   void initState() {
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _blinkAnimation = Tween<double>(begin: 1.0, end: 0.2).animate(
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
+    );
+
     super.initState();
     _initAudioPlayer();
+
+    if (widget.label == 'Long Pending') {
+      _blinkController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(CommonJobCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.label == 'Long Pending' && oldWidget.label != 'Long Pending') {
+      _blinkController.repeat(reverse: true);
+    } else if (widget.label != 'Long Pending' &&
+        oldWidget.label == 'Long Pending') {
+      _blinkController.stop();
+      _blinkController.value = 0;
+    }
   }
 
   void _initAudioPlayer() {
@@ -95,6 +123,7 @@ class _CommonJobCardState extends State<CommonJobCard> {
   void dispose() {
     try {
       _audioPlayer.dispose();
+      _blinkController.dispose();
     } catch (_) {}
     super.dispose();
   }
@@ -109,6 +138,7 @@ class _CommonJobCardState extends State<CommonJobCard> {
       'Urgent' => const Color(0xFFF14D67),
       'Received' => const Color(0xFF2196F3),
       'On the Way' => const Color(0xFF6922DC),
+      'Long Pending' => const Color(0xFFAA0A0A),
       _ => const Color(0xFFF1A12A),
     };
     final isCompleted = effectiveLabel == 'Completed';
@@ -135,32 +165,50 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 Expanded(
                   child: Text(
                     widget.ticketNo,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 14.w,
-                    vertical: 6.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: labelColor,
-                    borderRadius: BorderRadius.circular(20.r),
-                  ),
-                  child: Text(
-                    effectiveLabel,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      height: 1,
+                SizedBox(width: 8.w),
+                FadeTransition(
+                  opacity: widget.label == 'Long Pending'
+                      ? _blinkAnimation
+                      : const AlwaysStoppedAnimation(1.0),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 6.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: labelColor,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.label == 'Long Pending') ...[
+                          Icon(
+                            Icons.report_gmailerrorred_rounded,
+                            color: Colors.white,
+                            size: 14.sp,
+                          ),
+                          SizedBox(width: 4.w),
+                        ],
+                        Text(
+                          effectiveLabel,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            height: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -176,8 +224,6 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 color: const Color(0xFF445B87),
                 height: 1,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 6.h),
             Text(
@@ -187,14 +233,13 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 color: Colors.black87,
                 height: 1,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             SizedBox(height: 11.h),
             Row(
               children: [
                 Image.asset(
-                  'assets/calendar.png',
+                  'assets/calendar_icon.png',
+                  package: 'service_ticket',
                   width: 13.sp,
                   height: 13.sp,
                 ),
@@ -202,12 +247,12 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 Flexible(
                   child: Text(
                     widget.dateText,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: const Color(0xFF7A7A7A),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 SizedBox(width: 12.w),
@@ -220,12 +265,12 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 Flexible(
                   child: Text(
                     widget.timeText,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: const Color(0xFF7A7A7A),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const Spacer(),
@@ -247,31 +292,23 @@ class _CommonJobCardState extends State<CommonJobCard> {
                 children: [
                   const _Dot(color: Color(0xFFE33A3A)),
                   SizedBox(width: 4.w),
-                  Flexible(
-                    child: Text(
-                      widget.priority.isNotEmpty ? widget.priority : 'N/A',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFE33A3A),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    widget.priority.isNotEmpty ? widget.priority : 'N/A',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFE33A3A),
                     ),
                   ),
                   SizedBox(width: 12.w),
                   _Dot(color: labelColor),
                   SizedBox(width: 4.w),
-                  Flexible(
-                    child: Text(
-                      effectiveLabel,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: labelColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    effectiveLabel,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
                     ),
                   ),
                 ],
@@ -477,7 +514,9 @@ class _CommonJobCardState extends State<CommonJobCard> {
                         ],
                       ),
                     )
-                  : Image.asset(url, fit: BoxFit.contain),
+                  : url.startsWith('assets/')
+                      ? Image.asset(url, package: 'service_ticket', fit: BoxFit.contain)
+                      : Image.asset(url, fit: BoxFit.contain),
             ),
             IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
@@ -538,12 +577,20 @@ class _ComplaintImageCard extends StatelessWidget {
                     ),
                   ),
                 )
-              : Image.asset(
-                  imageUrl,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                : imageUrl.startsWith('assets/')
+                    ? Image.asset(
+                        imageUrl,
+                        package: 'service_ticket',
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
         ),
       ],
     );

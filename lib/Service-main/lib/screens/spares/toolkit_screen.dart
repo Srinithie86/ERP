@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:service_ticket/core/size_utils.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:service_ticket/services/api_service.dart';
 import '../../services/device_service.dart';
 import '../../services/storage_service.dart';
 import '../../Widgets/app_status_bar_wrapper.dart';
@@ -50,7 +51,7 @@ class _ToolkitScreenState extends State<ToolkitScreen> {
       };
 
       final response = await http.post(
-        Uri.parse("https://erpsmart.in/total/api/m_api/"),
+        Uri.parse(await ApiService.getBaseUrl()),
         body: body,
       );
 
@@ -176,8 +177,8 @@ class _ToolkitScreenState extends State<ToolkitScreen> {
                                         ? null
                                         : Border(
                                             bottom: BorderSide(
-                                              color: borderColor.withValues(
-                                                alpha: 0.3,
+                                              color: borderColor.withOpacity(
+                                                0.3,
                                               ),
                                               width: 1,
                                             ),
@@ -239,6 +240,7 @@ class _ToolkitScreenState extends State<ToolkitScreen> {
                                   children: [
                                     Image.asset(
                                       'assets/verified_icon.png',
+                                      package: 'service_ticket',
                                       width: 18.w,
                                       height: 18.w,
                                       color: Colors.white,
@@ -325,7 +327,7 @@ class _DataCell extends StatelessWidget {
             ? BoxDecoration(
                 border: Border(
                   right: BorderSide(
-                    color: borderColor.withValues(alpha: 0.2),
+                    color: borderColor.withOpacity(0.2),
                     width: 1,
                   ),
                 ),

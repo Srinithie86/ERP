@@ -17,17 +17,20 @@ class AppStatusBarWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: statusBarColor,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Column(
-        children: [
-          Container(height: topInset, color: statusBarColor),
-          Expanded(child: child),
-        ],
+    return Material(
+      color: Colors.white,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle(
+          statusBarColor: statusBarColor,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Column(
+          children: [
+            Container(height: topInset, color: statusBarColor),
+            Expanded(child: child),
+          ],
+        ),
       ),
     );
   }

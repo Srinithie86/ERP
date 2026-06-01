@@ -145,138 +145,142 @@ class _SparePartsTabState extends State<SparePartsTab> {
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     final myParts = _spareList;
     final usedParts = _usedList;
 
-    return AppStatusBarWrapper(
-      child: Container(
-        color: Colors.white,
-        child: SafeArea(
-          top: false,
-          bottom: false,
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await _fetchSpares();
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header (unchanged)
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: widget.onBack,
-                        borderRadius: BorderRadius.circular(20.r),
+    return Material(
+      color: Colors.white,
+      child: AppStatusBarWrapper(
+        child: Container(
+          color: Colors.white,
+          child: SafeArea(
+            top: false,
+            bottom: false,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await _fetchSpares();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header (unchanged)
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: widget.onBack,
+                          borderRadius: BorderRadius.circular(20.r),
+                          child: Padding(
+                            padding: EdgeInsets.all(4.r),
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 18.sp,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Text(
+                          'Spares',
+                          style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 18.h),
+  
+                    // Summary Boxes (unchanged)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SummaryBox(
+                            count: '${myParts.length}',
+                            label: 'My Parts',
+                            colors: const [Color(0xFF42D74D), Color(0xFF1D8E39)],
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: _SummaryBox(
+                            count: '${usedParts.length}',
+                            label: 'Used Parts',
+                            colors: const [Color(0xFFF4A33C), Color(0xFFAC6A28)],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 24.h),
+                    // My Parts Section (unchanged)
+                    SizedBox(height: 30.h),
+                    Text(
+                      'My Parts',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    if (_loadingSpares)
+                      const Center(
                         child: Padding(
-                          padding: EdgeInsets.all(4.r),
-                          child: Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 18.sp,
-                            color: AppColors.primary,
-                          ),
+                          padding: EdgeInsets.all(40.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_errorSpares != null)
+                      Center(
+                        child: Column(
+                          children: [
+                            Text(
+                              _errorSpares!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                            ElevatedButton(
+                              onPressed: _fetchSpares,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (myParts.isEmpty)
+                      const Center(child: Text('No spare parts found'))
+                    else
+                      ...myParts.map(
+                        (part) => Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: _MyPartCard(part: part),
                         ),
                       ),
-                      SizedBox(width: 10.w),
-                      Text(
-                        'Spares',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
+  
+                    // Used Parts Section
+                    SizedBox(height: 30.h),
+                    Text(
+                      'Used Parts',
+                      style: TextStyle(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    if (usedParts.isEmpty)
+                      const Center(child: Text('No used parts found'))
+                    else
+                      ...usedParts.map(
+                        (part) => Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: _UsedPartCard(part: part),
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 18.h),
-
-                  // Summary Boxes (unchanged)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryBox(
-                          count: '${myParts.length}',
-                          label: 'My Parts',
-                          colors: const [Color(0xFF42D74D), Color(0xFF1D8E39)],
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _SummaryBox(
-                          count: '${usedParts.length}',
-                          label: 'Used Parts',
-                          colors: const [Color(0xFFF4A33C), Color(0xFFAC6A28)],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  // My Parts Section (unchanged)
-                  SizedBox(height: 30.h),
-                  Text(
-                    'My Parts',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  if (_loadingSpares)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
-                  else if (_errorSpares != null)
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            _errorSpares!,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                          ElevatedButton(
-                            onPressed: _fetchSpares,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (myParts.isEmpty)
-                    const Center(child: Text('No spare parts found'))
-                  else
-                    ...myParts.map(
-                      (part) => Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: _MyPartCard(part: part),
-                      ),
-                    ),
-
-                  // Used Parts Section
-                  SizedBox(height: 30.h),
-                  Text(
-                    'Used Parts',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  if (usedParts.isEmpty)
-                    const Center(child: Text('No used parts found'))
-                  else
-                    ...usedParts.map(
-                      (part) => Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: _UsedPartCard(part: part),
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -300,7 +304,8 @@ class _SummaryBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 86.h,
+      padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 8.w),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: colors,
@@ -310,7 +315,7 @@ class _SummaryBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: colors.last.withValues(alpha: 0.24),
+            color: colors.last.withOpacity(0.24),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -328,7 +333,7 @@ class _SummaryBox extends StatelessWidget {
               height: 1,
             ),
           ),
-          SizedBox(height: 4.h),
+          SizedBox(height: 6.h),
           Text(
             label,
             style: TextStyle(
@@ -393,7 +398,7 @@ class _MyPartCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -404,62 +409,55 @@ class _MyPartCard extends StatelessWidget {
           ),
           Container(
             color: const Color(0xFFFFF1F1),
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-            child: Row(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            child: Column(
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/quantity_icon.png',
-                        width: 18.w,
-                        height: 18.h,
-                      ),
-                      SizedBox(width: 4.w),
-                      Expanded(
-                        child: Text(
-                          'Quantity: ${part['qty']?.toString().isEmpty ?? true ? 'N/A' : part['qty']}',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Image.asset(
+                      'assets/quantity_icon.png',
+                      package: 'service_ticket',
+                      width: 18.w,
+                      height: 18.h,
+                    ),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        'Quantity: ${part['qty']?.toString().isEmpty ?? true ? 'N/A' : part['qty']}',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Container(
-                  width: 1,
-                  height: 20.h,
-                  color: Colors.grey.shade400,
-                  margin: EdgeInsets.symmetric(horizontal: 6.w),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Image.asset(
-                        'assets/calendar.png',
-                        width: 18.w,
-                        height: 18.h,
-                      ),
-                      SizedBox(width: 4.w),
-                      Expanded(
-                        child: Text(
-                          'Received: ${part['date']?.toString().trim().isEmpty ?? true ? 'N/A' : part['date']}',
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    Image.asset(
+                      'assets/calendar_icon.png',
+                      package: 'service_ticket',
+                      width: 18.w,
+                      height: 18.h,
+                    ),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        'Received: ${part['date']?.toString().trim().isEmpty ?? true ? 'N/A' : part['date']}',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -483,7 +481,7 @@ class _UsedPartCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14.r),
         border: Border.all(
-          color: const Color(0xFF5D5FEF).withValues(alpha: 0.5),
+          color: const Color(0xFF5D5FEF).withOpacity(0.5),
         ),
       ),
       child: Column(
@@ -532,37 +530,52 @@ class _UsedPartCard extends StatelessWidget {
                     horizontal: 12.w,
                     vertical: 10.h,
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      Icon(
-                        Icons.person,
-                        size: 20.sp,
-                        color: const Color(0xFF515E72),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Text(
-                          part['used_by'] ?? 'N/A',
-                          style: TextStyle(
-                            fontSize: 12.5.sp,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF445B87),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 18.sp,
+                            color: const Color(0xFF515E72),
                           ),
-                        ),
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              'Used By: ${part['used_by'] ?? 'N/A'}',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF445B87),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      Icon(
-                        Icons.calendar_month,
-                        size: 20.sp,
-                        color: const Color(0xFFE54D4D),
-                      ),
-                      SizedBox(width: 6.w),
-                      Text(
-                        'Used Date: ${part['used_date'] ?? 'N/A'}',
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF445B87),
-                        ),
+                      SizedBox(height: 8.h),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month,
+                            size: 18.sp,
+                            color: const Color(0xFFE54D4D),
+                          ),
+                          SizedBox(width: 6.w),
+                          Expanded(
+                            child: Text(
+                              'Used Date: ${part['used_date'] ?? 'N/A'}',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF445B87),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -626,7 +639,7 @@ class _CircleIcon extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),

@@ -286,6 +286,7 @@ class _DirectVisitScreenState extends State<DirectVisitScreen> {
                           Positioned.fill(
                             child: Image.asset(
                               'assets/map.png',
+                              package: 'service_ticket',
                               fit: BoxFit.cover,
                             ),
                           ),

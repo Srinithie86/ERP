@@ -12,7 +12,7 @@ import 'package:accountings/screens/home/home_screen.dart' as accounting;
 import 'package:hrm/views/main_root.dart' as hrm;
 import 'package:warehouse/screens/view/dashboard_screen.dart' as warehouse;
 import 'package:warehouse/providers/warehouse_provider.dart';
-import 'package:service_ticket/screens/technician_dashboard.dart' as service_erp;
+import 'package:service_ticket/screens/main_root.dart' as service_erp;
 import 'package:manufacturing_erp/core/main_shell.dart' as mfg;
 
 import '../../TOTAL_ERP/master/master_screen.dart';
@@ -109,7 +109,10 @@ List<ModuleItem> get allModules => [
     imagePath: 'assets/images/service_logo.png',
     bgColor: Color(0xFFE8EAF6),
     fallbackIcon: Icons.home_repair_service,
-    screenBuilder: (context) => const service_erp.TechnicianDashboard(),
+    screenBuilder: (context) => service_erp.MainRoot(
+      isEmbedded: true,
+      scaffoldKey: moduleScaffoldKey,
+    ),
   ),
 
 ];

@@ -241,7 +241,14 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
       }
 
       if (_isMobileLogin) {
-        final mobile = _mobileController.text.trim();
+        String mobile = _mobileController.text.trim();
+        if (mobile.startsWith('+91')) {
+          mobile = mobile.replaceFirst('+91', '');
+        }
+        mobile = mobile.replaceAll(RegExp(r'\D'), '');
+        if (mobile.length > 10) {
+          mobile = mobile.substring(mobile.length - 10);
+        }
         if (mobile.length < 10) {
           setState(() => _errorText = "Enter valid mobile number");
           return;
@@ -732,21 +739,21 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
 
   Widget _buildField(String label, TextEditingController controller, {bool isPassword = false, bool isPhone = false, Iterable<String>? autofillHints}) {
     if (isPhone) {
-      return IntlPhoneField(
+      return TextField(
         controller: controller,
-        initialCountryCode: 'IN',
+        keyboardType: TextInputType.phone,
+        autofillHints: autofillHints ?? const [AutofillHints.telephoneNumber],
         style: GoogleFonts.outfit(fontSize: 16.sp),
         decoration: InputDecoration(
           labelText: label,
+          prefixText: '+91 ',
+          prefixStyle: GoogleFonts.outfit(fontSize: 16.sp, color: Colors.black87),
           labelStyle: GoogleFonts.outfit(color: Colors.black87),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466))),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466))),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF047466), width: 1.5)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
-        onChanged: (phone) {
-          // controller is already updated by IntlPhoneField, but we can handle extra logic if needed
-        },
       );
     }
     return TextField(
@@ -778,9 +785,12 @@ class _SignInScreenState extends State<SignInScreen> with CodeAutoFill {
         keyboardType: TextInputType.number,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         maxLength: 1,
-        style: GoogleFonts.outfit(fontSize: 22.sp, fontWeight: FontWeight.bold),
+        style: GoogleFonts.outfit(fontSize: 22.sp, fontWeight: FontWeight.bold, color: Colors.black87),
         decoration: InputDecoration(
           counterText: '',
+          contentPadding: EdgeInsets.zero,
+          fillColor: Colors.white,
+          filled: true,
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r), borderSide: BorderSide(color: Colors.grey.shade300)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r), borderSide: const BorderSide(color: Color(0xFF00897B), width: 1.5)),
         ),

@@ -155,7 +155,7 @@ class GradientTicketSummary extends StatelessWidget {
             'Work Summary',
             style: TextStyle(
               fontSize: 11.sp,
-              color: Colors.white.withValues(alpha: 0.92),
+              color: Colors.white.withOpacity(0.92),
             ),
           ),
           SizedBox(height: 6.h),
@@ -172,7 +172,7 @@ class GradientTicketSummary extends StatelessWidget {
             issue,
             style: TextStyle(
               fontSize: 11.sp,
-              color: Colors.white.withValues(alpha: 0.88),
+              color: Colors.white.withOpacity(0.88),
             ),
           ),
           SizedBox(height: 12.h),
@@ -243,7 +243,12 @@ class UploadBox extends StatelessWidget {
     );
 
     if (source != null) {
-      final pickedFile = await picker.pickImage(source: source);
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 25,
+      );
       if (pickedFile != null) {
         return File(pickedFile.path);
       }
@@ -286,7 +291,7 @@ class UploadBox extends StatelessWidget {
                   image: backgroundImage!,
                   fit: BoxFit.cover,
                   colorFilter: ColorFilter.mode(
-                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withOpacity(0.1),
                     BlendMode.darken,
                   ),
                 )
@@ -325,7 +330,7 @@ class UploadBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 8.5.sp,
                 color: hasImage
-                    ? Colors.white.withValues(alpha: 0.8)
+                    ? Colors.white.withOpacity(0.8)
                     : const Color(0xFF98A2B3),
               ),
             ),
@@ -618,7 +623,7 @@ class _MiniInfoCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
+        color: Colors.white.withOpacity(0.16),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Column(
@@ -628,7 +633,7 @@ class _MiniInfoCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 9.sp,
-              color: Colors.white.withValues(alpha: 0.84),
+              color: Colors.white.withOpacity(0.84),
             ),
           ),
           SizedBox(height: 6.h),

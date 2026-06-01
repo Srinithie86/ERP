@@ -1,4 +1,4 @@
-﻿class ShipmentModel {
+class ShipmentModel {
   const ShipmentModel({
     required this.id,
     required this.status,

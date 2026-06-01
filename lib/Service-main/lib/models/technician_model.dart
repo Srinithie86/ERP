@@ -1,4 +1,4 @@
-﻿class TechnicianModel {
+class TechnicianModel {
   const TechnicianModel({
     required this.name,
     required this.role,

@@ -223,9 +223,7 @@ class _ProfileTabState extends State<ProfileTab> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.08,
-                                ),
+                                color: AppColors.primary.withOpacity(0.08),
                                 blurRadius: 14,
                                 offset: const Offset(0, 6),
                               ),

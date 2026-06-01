@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:service_ticket/core/size_utils.dart';
 
-import '../../Widgets/app_status_bar_wrapper.dart';
+import '../../widgets/app_status_bar_wrapper.dart';
 import '../../core/app_colors.dart';
 import '../../data/app_data.dart';
 
-import '../technician_dashboard.dart';
+import '../main_root.dart';
 
 class DispatchmentHistoryScreen extends StatelessWidget {
   const DispatchmentHistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     final record = AppData.instance.latestDispatch;
 
     return Scaffold(
@@ -29,12 +30,7 @@ class DispatchmentHistoryScreen extends StatelessWidget {
                   children: [
                     InkWell(
                       onTap: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (_) => const TechnicianDashboard(),
-                          ),
-                          (route) => false,
-                        );
+                        Navigator.of(context).pop();
                       },
                       borderRadius: BorderRadius.circular(20.r),
                       child: Padding(
@@ -81,7 +77,7 @@ class DispatchmentHistoryScreen extends StatelessWidget {
                       border: Border.all(color: const Color(0xFFD6DDEA)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withOpacity(0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),

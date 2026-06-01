@@ -1,22 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:service_ticket/core/size_utils.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:erp_smart/providers/menu_provider.dart';
+import 'package:erp_smart/utils/app_navigation.dart';
 import '../services/device_service.dart';
 import '../services/storage_service.dart';
+import '../services/api_service.dart';
 import '../Widgets/common_job_card.dart';
 import '../core/app_colors.dart';
 import '../data/app_data.dart';
 import 'Support/notification_screen.dart';
+import 'jobs/jobs_screen.dart';
+import 'spares/sparetab_screen.dart';
+import 'dispatchment/dispatchment_entry.dart';
+import 'all_tickets/all_tickets.dart';
+import 'all_dispatch/all_dispatch_screen.dart';
+import 'standby_screen.dart';
+import 'spares/toolkit_screen.dart';
+import 'eod/eod_report_screen.dart';
+import 'evaluation/evaluation_screen.dart';
+
 
 class HomeTab extends StatefulWidget {
+  final bool isEmbedded;
+  final GlobalKey<ScaffoldState>? scaffoldKey;
+
   const HomeTab({
     super.key,
     required this.onOpenTasks,
     required this.onOpenDirectVisit,
+    this.isEmbedded = false,
+    this.scaffoldKey,
   });
 
   final VoidCallback onOpenTasks;
@@ -42,6 +61,14 @@ class _HomeTabState extends State<HomeTab> {
     _fetchTodayTasks();
     _fetchSpares();
     _fetchHomeSummary();
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      _fetchTodayTasks(),
+      _fetchSpares(),
+      _fetchHomeSummary(),
+    ]);
   }
 
   Future<void> _fetchHomeSummary() async {
@@ -70,7 +97,7 @@ class _HomeTabState extends State<HomeTab> {
       debugPrint("HOME TAB FETCH SUMMARY BODY: $body");
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiService.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 15));
 
       debugPrint(
@@ -88,24 +115,22 @@ class _HomeTabState extends State<HomeTab> {
                     int.tryParse(summary['total_task']?.toString() ?? '') ?? 0;
                 _pendingJob =
                     int.tryParse(summary['pending_job']?.toString() ?? '') ?? 0;
-                _completedCount =
-                    int.tryParse(summary['completed_task']?.toString() ?? '') ??
+                _completedCount = int.tryParse(
+                        summary['completed_task']?.toString() ?? '') ??
                     int.tryParse(summary['completed_job']?.toString() ?? '') ??
                     0;
               }
 
               final sales = data['sales_overview'];
               if (sales is List) {
-                _salesOverview = sales
-                    .map((e) => Map<String, dynamic>.from(e))
-                    .toList();
+                _salesOverview =
+                    sales.map((e) => Map<String, dynamic>.from(e)).toList();
               }
 
               final orders = data['order_status'];
               if (orders is List) {
-                _orderStatus = orders
-                    .map((e) => Map<String, dynamic>.from(e))
-                    .toList();
+                _orderStatus =
+                    orders.map((e) => Map<String, dynamic>.from(e)).toList();
 
                 // If summary didn't have completed_task, try getting it from order_status
                 if (_completedCount == 0) {
@@ -115,7 +140,7 @@ class _HomeTabState extends State<HomeTab> {
                   );
                   _completedCount =
                       int.tryParse(completedItem['count']?.toString() ?? '0') ??
-                      0;
+                          0;
                 }
               }
             });
@@ -156,7 +181,7 @@ class _HomeTabState extends State<HomeTab> {
       };
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiService.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -166,9 +191,8 @@ class _HomeTabState extends State<HomeTab> {
           if (rawData is List) {
             final mapped = rawData.where((r) => r is Map).map((r) {
               final dtime = r['dtime']?.toString() ?? '';
-              final dateOnly = dtime.contains(' ')
-                  ? dtime.split(' ')[0]
-                  : dtime;
+              final dateOnly =
+                  dtime.contains(' ') ? dtime.split(' ')[0] : dtime;
               return {
                 'name': r['spare_name']?.toString() ?? 'N/A',
                 'id': r['id']?.toString() ?? 'N/A',
@@ -197,8 +221,9 @@ class _HomeTabState extends State<HomeTab> {
       final token = await StorageService.getToken() ?? '';
       final deviceId = await DeviceService.getDeviceId();
 
-      const ln = '123';
-      const lt = '21';
+      final prefs = await SharedPreferences.getInstance();
+      final ln = prefs.getString('ln') ?? '77.0';
+      final lt = prefs.getString('lt') ?? '11.0';
 
       final body = {
         "type": "5009",
@@ -214,7 +239,7 @@ class _HomeTabState extends State<HomeTab> {
       };
 
       final response = await http
-          .post(Uri.parse("https://erpsmart.in/total/api/m_api/"), body: body)
+          .post(Uri.parse(await ApiService.getBaseUrl()), body: body)
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -226,8 +251,8 @@ class _HomeTabState extends State<HomeTab> {
               : [];
           final List<dynamic> scheduledInfo =
               (data['scheduled_date_info'] is List)
-              ? data['scheduled_date_info']
-              : [];
+                  ? data['scheduled_date_info']
+                  : [];
           final combined = [...assignInfo, ...scheduledInfo];
 
           final seenIds = <String>{};
@@ -264,9 +289,8 @@ class _HomeTabState extends State<HomeTab> {
                 final hour = int.tryParse(timeParts[0]) ?? 0;
                 final minute = timeParts.length > 1 ? timeParts[1] : '00';
                 final period = hour >= 12 ? 'PM' : 'AM';
-                final displayHour = hour > 12
-                    ? hour - 12
-                    : (hour == 0 ? 12 : hour);
+                final displayHour =
+                    hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
                 timeText = '$displayHour:$minute $period';
               } catch (_) {
                 timeText = _formatTimeShort(scheduledAt);
@@ -283,14 +307,14 @@ class _HomeTabState extends State<HomeTab> {
                   ? 'No Title'
                   : record['complaint_title']?.toString() ?? 'N/A',
               'scheduledAt': scheduledAt,
-              'dateText':
-                  record['request_date']?.toString() ??
+              'dateText': record['request_date']?.toString() ??
                   _formatDateShort(scheduledAt),
               'timeText': timeText,
-              'label': 'Today',
+              'label': record['status']?.toString() ?? 'Today',
+              'status': record['status']?.toString() ?? '',
               'product': record['product_id']?.toString() ?? 'N/A',
               'complaint': record['complaint_desc']?.toString() ?? 'N/A',
-              'phone': '',
+              'phone': record['pho']?.toString() ?? '',
               'address': record['address']?.toString() ?? 'N/A',
               'priority': record['priority']?.toString() ?? '2',
               'photoUrl': record['photo']?.toString(),
@@ -354,9 +378,8 @@ class _HomeTabState extends State<HomeTab> {
 
   String _formatTimeShort(DateTime date) {
     final period = date.hour >= 12 ? 'PM' : 'AM';
-    final hour = date.hour > 12
-        ? date.hour - 12
-        : (date.hour == 0 ? 12 : date.hour);
+    final hour =
+        date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute $period';
   }
@@ -395,7 +418,10 @@ class _HomeTabState extends State<HomeTab> {
       'scheduledAt': createdAt,
       'dateText': ticket['dateText'] ?? _formatDateShort(createdAt),
       'timeText': ticket['timeText'] ?? _formatTimeShort(createdAt),
-      'label': '${ticket['status']}' == 'Completed' ? 'Completed' : 'Today',
+      'label': (ticket['status']?.toString().isNotEmpty ?? false)
+          ? ticket['status'].toString()
+          : 'Today',
+      'status': ticket['status'] ?? '',
       'product': '${ticket['product'] ?? ticket['device'] ?? ''}',
       'complaint':
           '${ticket['complaint'] ?? ticket['issue'] ?? ticket['title'] ?? ''}',
@@ -405,8 +431,7 @@ class _HomeTabState extends State<HomeTab> {
       'priority': '${ticket['priority'] ?? ''}',
       'jobLatitude': lat,
       'jobLongitude': lng,
-      'showAudio':
-          (ticket['hasAudio'] == true) ||
+      'showAudio': (ticket['hasAudio'] == true) ||
           (ticket['audioUrl'] != null &&
               ticket['audioUrl'].toString().isNotEmpty),
       'audioUrl': ticket['audioUrl'],
@@ -417,18 +442,19 @@ class _HomeTabState extends State<HomeTab> {
     };
   }
 
+  String _toTitleCase(String text) {
+    if (text.isEmpty) return text;
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1).toLowerCase();
+    }).join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
     final appData = AppData.instance;
     final profile = appData.profile;
-    final today = DateTime.now();
-
-    final pendingJobCount = appData.pendingCount;
-    final urgentJobCount = appData.tickets.where((ticket) {
-      final priority = '${ticket['priority']}'.toLowerCase();
-      return priority == 'urgent' || priority == 'high' || priority == '1';
-    }).length;
 
     final displayedTasks = _todayApiTasks.take(3).toList();
     final todayTaskCount = _todayApiTasks.length;
@@ -444,7 +470,9 @@ class _HomeTabState extends State<HomeTab> {
             children: [
               Builder(
                 builder: (context) => InkWell(
-                  onTap: () => Scaffold.of(context).openDrawer(),
+                  onTap: () {
+                    Scaffold.of(context).openDrawer();
+                  },
                   child: Icon(
                     Icons.menu_rounded,
                     color: Colors.white,
@@ -454,12 +482,11 @@ class _HomeTabState extends State<HomeTab> {
               ),
               SizedBox(width: 16.w),
               Text(
-                'Service Dashboard',
-                style: GoogleFonts.outfit(
+                'Service',
+                style: TextStyle(
                   fontSize: 20.sp,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: Colors.white,
-                  letterSpacing: -0.5,
                 ),
               ),
               const Spacer(),
@@ -497,120 +524,128 @@ class _HomeTabState extends State<HomeTab> {
         Expanded(
           child: Container(
             color: Colors.white,
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 24.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          count: '$_totalTask',
-                          label: "Total Task",
-                          color: const Color(0xFFFA1E4E),
-                          overlayColor: Colors.white.withValues(alpha: 0.2),
-                          icon: Icons.assignment_rounded,
-                          onTap: widget.onOpenTasks,
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 20.h, 16.w, 24.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatCard(
+                            count: '$_totalTask',
+                            label: "Total Task",
+                            color: const Color(0xFFFA1E4E),
+                            overlayColor: Colors.white.withOpacity(0.2),
+                            icon: Icons.assignment_rounded,
+                            onTap: widget.onOpenTasks,
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: _StatCard(
-                          count: '$_pendingJob',
-                          label: 'Pending Job',
-                          color: const Color(0xFF0F968C),
-                          overlayColor: Colors.white.withValues(alpha: 0.2),
-                          icon: Icons.pending_actions_rounded,
-                          onTap: widget.onOpenTasks,
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: _StatCard(
+                            count: '$_pendingJob',
+                            label: 'Pending Job',
+                            color: const Color(0xFF0F968C),
+                            overlayColor: Colors.white.withOpacity(0.2),
+                            icon: Icons.pending_actions_rounded,
+                            onTap: widget.onOpenTasks,
+                          ),
                         ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: _StatCard(
-                          count: '$_completedCount',
-                          label: 'Completed',
-                          color: const Color(0xFFB50D70),
-                          overlayColor: Colors.white.withValues(alpha: 0.2),
-                          icon: Icons.timer_rounded,
-                          onTap: widget.onOpenTasks,
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: _StatCard(
+                            count: '$_completedCount',
+                            label: 'Completed',
+                            color: const Color(0xFFB50D70),
+                            overlayColor: Colors.white.withOpacity(0.2),
+                            icon: Icons.timer_rounded,
+                            onTap: widget.onOpenTasks,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  _SectionHeader(
-                    title: "Today's Task",
-                    trailing: Text(
-                      '$todayTaskCount Assigned',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF7A7A7A),
-                        fontWeight: FontWeight.w500,
-                      ),
+                      ],
                     ),
-                  ),
-                  SizedBox(height: 14.h),
-                  if (displayedTasks.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(16.r),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        'No task today',
-                        textAlign: TextAlign.center,
+                    SizedBox(height: 24.h),
+                    const _SectionHeader(title: "Quick Navigation"),
+                    SizedBox(height: 12.h),
+                    _buildQuickNavigationGrid(context),
+                    SizedBox(height: 24.h),
+                    _SectionHeader(
+                      title: "Today's Task",
+                      trailing: Text(
+                        '$todayTaskCount Assigned',
                         style: TextStyle(
-                          fontSize: 13.sp,
-                          color: const Color(0xFF667085),
+                          fontSize: 12.sp,
+                          color: const Color(0xFF7A7A7A),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    )
-                  else
-                    ...displayedTasks.map((ticket) {
-                      final directVisitJob = _buildDirectVisitJob(
-                        ticket,
-                        profile,
-                      );
-                      return CommonJobCard(
-                        ticketNo: ticket['ticketNo'] ?? '',
-                        name: '${ticket['name'] ?? ''}',
-                        issue: '${ticket['issue'] ?? ''}',
-                        dateText: ticket['dateText'] ?? '',
-                        timeText: ticket['timeText'] ?? '',
-                        label: ticket['label'] ?? 'Today',
-                        product: '${ticket['product'] ?? ''}',
-                        complaint: '${ticket['complaint'] ?? ''}',
-                        phone: ticket['phone'] ?? '',
-                        address: '${ticket['address'] ?? ''}',
-                        showComplaintAudio: (ticket['hasAudio'] == true),
-                        complaintTranslation: '${ticket['complaint'] ?? ''}',
-                        priority: '${ticket['priority'] ?? ''}',
-                        primaryActionLabel: 'Start',
-                        photoUrl: ticket['photoUrl'],
-                        audioUrl: ticket['audioUrl'],
-                        note: ticket['note'] ?? 'N/A',
-                        onPrimaryTap: () =>
-                            widget.onOpenDirectVisit(directVisitJob),
-                      );
-                    }),
-                  SizedBox(height: 24.h),
-                  const _SectionHeader(title: 'Spares'),
-                  SizedBox(height: 14.h),
-                  ...spareItems.map(
-                    (part) => _SpareCard(
-                      name: '${part['name']}',
-                      code: '${part['id']}',
-                      quantity: '${part['qty']}',
-                      receivedDate: '${part['date']}',
                     ),
-                  ),
-                  SizedBox(height: 12.h),
-                  _SalesOverviewCard(data: _salesOverview),
-                  _OrderStatusCard(data: _orderStatus),
-                ],
+                    SizedBox(height: 14.h),
+                    if (displayedTasks.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.r),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Text(
+                          'No task today',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13.sp,
+                            color: const Color(0xFF667085),
+                          ),
+                        ),
+                      )
+                    else
+                      ...displayedTasks.map((ticket) {
+                        final directVisitJob = _buildDirectVisitJob(
+                          ticket,
+                          profile,
+                        );
+                        return CommonJobCard(
+                          ticketNo: ticket['ticketNo'] ?? '',
+                          name: '${ticket['name'] ?? ''}',
+                          issue: '${ticket['issue'] ?? ''}',
+                          dateText: ticket['dateText'] ?? '',
+                          timeText: ticket['timeText'] ?? '',
+                          label: ticket['label'] ?? 'Today',
+                          product: '${ticket['product'] ?? ''}',
+                          complaint: '${ticket['complaint'] ?? ''}',
+                          phone: ticket['phone'] ?? '',
+                          address: '${ticket['address'] ?? ''}',
+                          showComplaintAudio: (ticket['hasAudio'] == true),
+                          complaintTranslation: '${ticket['complaint'] ?? ''}',
+                          priority: '${ticket['priority'] ?? ''}',
+                          primaryActionLabel: 'Start',
+                          photoUrl: ticket['photoUrl'],
+                          audioUrl: ticket['audioUrl'],
+                          note: ticket['note'] ?? 'N/A',
+                          onPrimaryTap: () =>
+                              widget.onOpenDirectVisit(directVisitJob),
+                        );
+                      }),
+                    SizedBox(height: 24.h),
+                    const _SectionHeader(title: 'Spares'),
+                    SizedBox(height: 14.h),
+                    ...spareItems.map(
+                      (part) => _SpareCard(
+                        name: '${part['name']}',
+                        code: '${part['id']}',
+                        quantity: '${part['qty']}',
+                        receivedDate: '${part['date']}',
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    _SalesOverviewCard(data: _salesOverview),
+                    _OrderStatusCard(data: _orderStatus),
+                  ],
+                ),
               ),
             ),
           ),
@@ -618,6 +653,265 @@ class _HomeTabState extends State<HomeTab> {
       ],
     );
   }
+
+  Widget _buildQuickNavigationGrid(BuildContext context) {
+    // 1. Get menu provider
+    final menuProvider = Provider.of<MenuProvider>(context);
+    final rawSubMenus = menuProvider.getSubMenus("ERP SERVICE");
+
+    // 2. Deduplicate and filter exactly like DynamicDrawer
+    final Map<String, Map<String, dynamic>> uniqueMenus = {};
+    for (var i in rawSubMenus) {
+      if (i is! Map) continue;
+      final Map<String, dynamic> item =
+          i is Map<String, dynamic> ? i : Map<String, dynamic>.from(i);
+      final name = (item['name'] ?? '').toString().trim().toUpperCase();
+      if (name.isEmpty) continue;
+
+      if (uniqueMenus.containsKey(name)) {
+        if (item.containsKey('sub_menu') &&
+            item['sub_menu'] is List &&
+            (item['sub_menu'] as List).isNotEmpty) {
+          uniqueMenus[name] = item;
+        }
+      } else {
+        uniqueMenus[name] = item;
+      }
+    }
+
+    final List<Map<String, dynamic>> filteredSubMenus = uniqueMenus.values.where((item) {
+      final name = (item['name'] ?? '').toString().toUpperCase();
+      if (name.contains("CREATE") && (name.contains("QC") || name.contains("INSPECTION"))) {
+        return false;
+      }
+      if (name == "DASHBOARD" || name == "MAIN DASHBOARD") {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    // 3. Map filtered items to local configuration (screen, icon, color, etc.)
+    final List<Map<String, dynamic>> gridItems = [];
+
+    for (var item in filteredSubMenus) {
+      final String name = (item['name'] ?? '').toString();
+      final String normalized = name.trim().toUpperCase();
+
+      String title = name;
+      IconData icon = Icons.circle_outlined;
+      Color color = const Color(0xFF00796B);
+      Widget? screen;
+
+      switch (normalized) {
+        case 'JOBS':
+          title = 'Jobs';
+          icon = Icons.work_history_outlined;
+          color = const Color(0xFF00796B);
+          screen = JobsScreen(onBack: () => Navigator.pop(context));
+          break;
+        case 'SPARES':
+          title = 'Spares';
+          icon = Icons.inventory_2_outlined;
+          color = const Color(0xFFE65100);
+          screen = SparePartsTab(onBack: () => Navigator.pop(context));
+          break;
+        case 'ENGINEER SPARE ENTRY':
+          title = 'Spare Entry';
+          icon = Icons.edit_document;
+          color = const Color(0xFFE65100);
+          screen = SparePartsTab(onBack: () => Navigator.pop(context));
+          break;
+        case 'SPARE DISPATCH':
+          title = 'Spare Dispatch';
+          icon = Icons.inventory_2_outlined;
+          color = const Color(0xFFE65100);
+          screen = SparePartsTab(onBack: () => Navigator.pop(context));
+          break;
+        case 'DISPATCH':
+          title = 'Dispatch';
+          icon = Icons.local_shipping_outlined;
+          color = const Color(0xFF0288D1);
+          screen = DispatchmentEntryScreen(onBack: () => Navigator.pop(context));
+          break;
+        case 'ALL TICKETS':
+          title = 'All Tickets';
+          icon = Icons.confirmation_number_outlined;
+          color = const Color(0xFF6A1B9A);
+          screen = const AllTicketsScreen();
+          break;
+        case 'ALL DISPATCH':
+          title = 'All Dispatch';
+          icon = Icons.assignment_turned_in_outlined;
+          color = const Color(0xFF283593);
+          screen = const AllDispatchScreen();
+          break;
+        case 'STAND BY':
+          title = 'Stand By';
+          icon = Icons.power_settings_new_rounded;
+          color = const Color(0xFFC62828);
+          screen = const StandByScreen();
+          break;
+        case 'STANDBY MANAGE & TRACK':
+          title = 'Standby Track';
+          icon = Icons.location_on_outlined;
+          color = const Color(0xFFC62828);
+          screen = const StandByScreen();
+          break;
+        case 'MY TOOLKIT':
+          title = 'My Toolkit';
+          icon = Icons.build_outlined;
+          color = const Color(0xFF37474F);
+          screen = const ToolkitScreen();
+          break;
+        case 'TOOLKIT MANAGEMENT':
+          title = 'Toolkit Manage';
+          icon = Icons.handyman_outlined;
+          color = const Color(0xFF37474F);
+          screen = const ToolkitScreen();
+          break;
+        case 'EOD':
+          title = 'EOD';
+          icon = Icons.analytics_outlined;
+          color = const Color(0xFFAD1457);
+          screen = const EodReportScreen();
+          break;
+        case 'SERVICE DETAILS':
+          title = 'Service Details';
+          icon = Icons.analytics_outlined;
+          color = const Color(0xFFAD1457);
+          screen = const EodReportScreen();
+          break;
+        case 'SERVICE HISTORY':
+          title = 'Service History';
+          icon = Icons.history_edu_outlined;
+          color = const Color(0xFFAD1457);
+          screen = const EodReportScreen();
+          break;
+        case 'EVOLUTION REPORT':
+          title = 'Evolution Report';
+          icon = Icons.assignment_ind_outlined;
+          color = const Color(0xFF8D6E63);
+          screen = const EvaluationScreen();
+          break;
+        case 'EVALUATION':
+          title = 'Evaluation';
+          icon = Icons.assignment_ind_outlined;
+          color = const Color(0xFF8D6E63);
+          screen = const EvaluationScreen();
+          break;
+        default:
+          title = _toTitleCase(name);
+          icon = AppNavigation.getIcon(name);
+          color = const Color(0xFF00796B);
+          screen = null;
+          break;
+      }
+
+      gridItems.add({
+        'title': title,
+        'icon': icon,
+        'color': color,
+        'screen': screen,
+        'originalName': name,
+      });
+    }
+
+    if (gridItems.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 20.h),
+        alignment: Alignment.center,
+        child: Text(
+          "No menus available",
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10.w,
+        mainAxisSpacing: 10.h,
+        childAspectRatio: 0.92,
+      ),
+      itemCount: gridItems.length,
+      itemBuilder: (context, index) {
+        final item = gridItems[index];
+        final Color itemColor = item['color'] as Color;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              if (item['screen'] != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => item['screen'] as Widget),
+                );
+              } else {
+                AppNavigation.handleNavigation(
+                  context,
+                  item['originalName'] as String,
+                  moduleContext: 'ERP SERVICE',
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(16.r),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44.w,
+                    height: 44.w,
+                    decoration: BoxDecoration(
+                      color: itemColor.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      item['icon'] as IconData,
+                      color: itemColor,
+                      size: 22.sp,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    item['title'] as String,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }
 
 class _StatCard extends StatelessWidget {
@@ -646,12 +940,12 @@ class _StatCard extends StatelessWidget {
         height: 85.h,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(8.r),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -686,17 +980,17 @@ class _StatCard extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.outfit(
-                        fontSize: 12.sp,
+                      style: TextStyle(
+                        fontSize: 12.5.sp,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white,
                       ),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       count,
-                      style: GoogleFonts.outfit(
-                        fontSize: 26.sp,
+                      style: TextStyle(
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
@@ -736,10 +1030,10 @@ class _SectionHeader extends StatelessWidget {
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.outfit(
-              fontSize: 19.sp,
+            style: TextStyle(
+              fontSize: 18.sp,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF1E293B),
+              color: Colors.black,
             ),
           ),
         ),
@@ -767,28 +1061,14 @@ class _SpareCard extends StatelessWidget {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: const Color(0xFF9155FD)),
+        borderRadius: BorderRadius.circular(6.r),
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFF9155FD).withOpacity(0.1),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(12.r),
-                topRight: Radius.circular(12.r),
-              ),
-            ),
+            padding: EdgeInsets.all(8.w),
+            color: const Color(0xFF9155FD),
             child: Row(
               children: [
                 Container(
@@ -812,21 +1092,17 @@ class _SpareCard extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
+                        style: TextStyle(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF9155FD),
+                          color: Colors.white,
                         ),
                       ),
                       Text(
-                        'Part Code: $code',
+                        'Code: $code',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          fontSize: 12.sp,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.white),
                       ),
                     ],
                   ),
@@ -843,6 +1119,7 @@ class _SpareCard extends StatelessWidget {
                     children: [
                       Image.asset(
                         'assets/quantity_icon.png',
+                        package: 'service_ticket',
                         width: 22.w,
                         height: 22.h,
                       ),
@@ -868,7 +1145,8 @@ class _SpareCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Image.asset(
-                        'assets/calendar.png',
+                        'assets/calendar_icon.png',
+                        package: 'service_ticket',
                         width: 22.w,
                         height: 22.h,
                       ),
@@ -907,7 +1185,7 @@ class _SalesOverviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -918,7 +1196,7 @@ class _SalesOverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Service Overview',
+            'Service Overviewwww',
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.w800,
@@ -1040,20 +1318,17 @@ class _BarChartPainter extends CustomPainter {
       final item = barData[i];
       final value =
           double.tryParse(item['percentage']?.toString() ?? '0') ?? 0.0;
-      final color = value == 0
-          ? Colors.grey.shade300
-          : colors[i % colors.length];
-      final darkColor = value == 0
-          ? Colors.grey.shade400
-          : darkColors[i % darkColors.length];
+      final color =
+          value == 0 ? Colors.grey.shade300 : colors[i % colors.length];
+      final darkColor =
+          value == 0 ? Colors.grey.shade400 : darkColors[i % darkColors.length];
       final label = item['month']?.toString() ?? '';
 
       // Ensure min bar height for the pointed tip if value > 0
       final double calculatedHeight = (value / maxVal) * chartHeight;
       final double tipHeight = barWidth / 2.2; // Sharper tip
-      final double barHeight = value > 0
-          ? math.max(calculatedHeight, tipHeight + 5)
-          : 0;
+      final double barHeight =
+          value > 0 ? math.max(calculatedHeight, tipHeight + 5) : 0;
 
       if (barHeight > 0) {
         final leftPath = Path();
@@ -1153,7 +1428,7 @@ class _OrderStatusCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

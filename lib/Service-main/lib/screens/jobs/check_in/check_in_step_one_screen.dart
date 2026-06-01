@@ -42,7 +42,7 @@ class CheckInStepOneScreen extends StatelessWidget {
                   'Work Start Time - Auto Captured on Check In',
                   style: TextStyle(
                     fontSize: 11.sp,
-                    color: Colors.white.withValues(alpha: 0.88),
+                    color: Colors.white.withOpacity(0.88),
                   ),
                 ),
                 SizedBox(height: 8.h),
@@ -151,7 +151,7 @@ class _HeaderMetric extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
+        color: Colors.white.withOpacity(0.18),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Column(
@@ -161,7 +161,7 @@ class _HeaderMetric extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 10.sp,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Colors.white.withOpacity(0.9),
             ),
           ),
           SizedBox(height: 6.h),

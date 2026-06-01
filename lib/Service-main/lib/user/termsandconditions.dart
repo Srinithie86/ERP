@@ -23,7 +23,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
       body: ListView.separated(
         padding: EdgeInsets.all(20.r),
         itemCount: _items.length,
-        separatorBuilder: (_, _) => SizedBox(height: 12.h),
+        separatorBuilder: (_, __) => SizedBox(height: 12.h),
         itemBuilder: (_, index) => Container(
           padding: EdgeInsets.all(16.r),
           decoration: BoxDecoration(
@@ -38,7 +38,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
                 width: 28.w,
                 height: 28.w,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(14.r),
                 ),
                 child: Center(

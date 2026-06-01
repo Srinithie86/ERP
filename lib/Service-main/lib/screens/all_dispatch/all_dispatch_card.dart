@@ -65,11 +65,11 @@ class AllDispatchCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 16.h),
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+        color: const Color(0xFFF1F5F9).withOpacity(0.5),
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -115,7 +115,7 @@ class AllDispatchCard extends StatelessWidget {
           Row(
             children: [
               _buildIconText(
-                asset: 'assets/calendar.png',
+                asset: 'assets/calendar_icon.png',
                 text: displayDate,
               ),
               if (displayTime.isNotEmpty) ...[
@@ -131,7 +131,7 @@ class AllDispatchCard extends StatelessWidget {
           SizedBox(height: 12.h),
 
           // Divider
-          Divider(color: Colors.grey.withValues(alpha: 0.2), thickness: 1.2),
+          Divider(color: Colors.grey.withOpacity(0.2), thickness: 1.2),
           SizedBox(height: 12.h),
 
           // Footer Info Row
@@ -251,7 +251,7 @@ class AllDispatchCard extends StatelessWidget {
     return Row(
       children: [
         if (asset != null)
-          Image.asset(asset, width: 18.w, height: 18.w)
+          Image.asset(asset, package: 'service_ticket', width: 18.w, height: 18.w)
         else
           Icon(icon, size: 18.sp, color: iconColor),
         SizedBox(width: 8.w),
@@ -277,7 +277,7 @@ class AllDispatchCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (asset != null)
-          Image.asset(asset, width: 14.w, height: 14.w)
+          Image.asset(asset, package: 'service_ticket', width: 14.w, height: 14.w)
         else
           Icon(icon, size: 14.sp, color: iconColor),
         SizedBox(width: 4.w),
@@ -434,6 +434,7 @@ class _ShipmentDetailSheetState extends State<_ShipmentDetailSheet> {
                   isReceived
                       ? 'assets/received.png'
                       : 'assets/pending_icon.png',
+                  package: 'service_ticket',
                   fit: BoxFit.contain,
                 ),
               ),
@@ -445,14 +446,18 @@ class _ShipmentDetailSheetState extends State<_ShipmentDetailSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(methodIcon, width: 20.w, height: 20.h),
+                  Image.asset(methodIcon, package: 'service_ticket', width: 20.w, height: 20.h),
                   SizedBox(width: 8.w),
-                  Text(
-                    methodText,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2E4CB9),
+                  Flexible(
+                    child: Text(
+                      methodText,
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF2E4CB9),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -486,7 +491,7 @@ class _ShipmentDetailSheetState extends State<_ShipmentDetailSheet> {
                             ),
                           ),
                           SizedBox(width: 6.w),
-                          Image.asset('assets/calendar.png', width: 18.w),
+                          Image.asset('assets/calendar_icon.png', package: 'service_ticket', width: 18.w),
                         ],
                       ),
                     ],
@@ -515,7 +520,7 @@ class _ShipmentDetailSheetState extends State<_ShipmentDetailSheet> {
                             ),
                           ),
                           SizedBox(width: 6.w),
-                          Image.asset('assets/calendar.png', width: 18.w),
+                          Image.asset('assets/calendar_icon.png', package: 'service_ticket', width: 18.w),
                         ],
                       ),
                     ],
@@ -652,7 +657,7 @@ class _ShipmentDetailSheetState extends State<_ShipmentDetailSheet> {
       children: [
         Padding(
           padding: EdgeInsets.only(top: 2.h),
-          child: Image.asset(asset, width: 22.w, height: 22.h),
+          child: Image.asset(asset, package: 'service_ticket', width: 22.w, height: 22.h),
         ),
         SizedBox(width: 12.w),
         Text(

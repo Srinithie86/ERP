@@ -12,6 +12,7 @@ import '../../../data/app_data.dart';
 import '../../../services/device_service.dart';
 import '../Check_in/check_in_step_two_screen.dart';
 import '../Check_in/check_in_widgets.dart';
+import '../../../services/api_service.dart';
 
 class WorkInProgressScreen extends StatefulWidget {
   const WorkInProgressScreen({super.key, required this.jobData});
@@ -44,11 +45,12 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
     final token = (prefs.getString('token') ?? '').trim();
     final uid = (prefs.getString('uid') ?? '').trim();
     final roleId = (prefs.getString('role_id') ?? '').trim();
-    var engineerId = (prefs.getString('cus_id') ??
-                      prefs.getString('engineer_id') ??
-                      prefs.getString('engineer') ??
-                      '')
-        .trim();
+    var engineerId =
+        (prefs.getString('cus_id') ??
+                prefs.getString('engineer_id') ??
+                prefs.getString('engineer') ??
+                '')
+            .trim();
     if (engineerId.isEmpty) engineerId = uid;
     final deviceId = await DeviceService.getDeviceId();
 
@@ -76,7 +78,7 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
 
     final formData = dio_pkg.FormData.fromMap({
       'cid': cid,
-      'uid': uid.isEmpty ? '33' : uid,
+      'uid': uid,
       'type': '5014',
       'ln': lng,
       'lt': lat,
@@ -88,28 +90,21 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
       'wrk_time': '$wrkTimeSecs',
     });
 
-    if (flow.beforeImagePath.isNotEmpty) {
-      final file = File(flow.beforeImagePath);
-      final exists = await file.exists();
-      debugPrint(
-        'DEBUG: Before Image Path: ${flow.beforeImagePath}, Exists: $exists',
-      );
-      if (exists) {
-        formData.files.add(
-          MapEntry(
-            'bf_photo',
-            await dio_pkg.MultipartFile.fromFile(
-              file.path,
-              filename: 'bf_photo.jpg',
-            ),
+    if (flow.beforeImageBytes != null) {
+      formData.files.add(
+        MapEntry(
+          'bf_photo',
+          dio_pkg.MultipartFile.fromBytes(
+            flow.beforeImageBytes!,
+            filename: 'bf_photo.jpg',
           ),
-        );
-      }
+        ),
+      );
     }
 
     try {
       final response = await dio.post(
-        'https://erpsmart.in/total/api/m_api/',
+        await ApiService.getBaseUrl(),
         data: formData,
         queryParameters: {'cid': cid, 'id': ticketId, 'type': '5014'},
         options: dio_pkg.Options(validateStatus: (status) => true),
@@ -119,7 +114,7 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
       debugPrint('WorkInProgress API Exception: $e');
     }
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
 
   String _displayTicketNo(String value) {
     return value.replaceFirst(RegExp(r'^#?(TCK|TKT)-'), '#JOB-');
@@ -286,7 +281,7 @@ class _WorkInProgressScreenState extends State<WorkInProgressScreen> {
                               'Started at ${_formatTimeOfDay(_startTime ?? DateTime.now())}',
                               style: TextStyle(
                                 fontSize: 12.sp,
-                                color: Colors.white.withValues(alpha: 0.92),
+                                color: Colors.white.withOpacity(0.92),
                               ),
                             ),
                             SizedBox(height: 14.h),
@@ -482,7 +477,7 @@ class _MiniStatCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: Colors.white.withOpacity(0.14),
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Column(
@@ -492,7 +487,7 @@ class _MiniStatCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 10.sp,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Colors.white.withOpacity(0.9),
             ),
           ),
           SizedBox(height: 6.h),
